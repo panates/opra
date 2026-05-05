@@ -33,7 +33,7 @@
     "@panates/eslint-config": "^2.1.6",
     "@panates/eslint-config-ts": "^2.1.6",
     "@panates/tsconfig": "^2.1.6",
-    "@swc/core": "^1.15.32",
+    "@swc/core": "^1.15.33",
     "@swc/helpers": "^0.5.21",
     "@swc-node/register": "^1.11.1",
     "@types/mocha": "^10.0.10",

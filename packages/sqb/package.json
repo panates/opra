@@ -35,7 +35,7 @@
     "@faker-js/faker": "^10.4.0",
     "@sqb/builder": "^5.0.1",
     "@sqb/connect": "^5.0.1",
-    "@sqb/postgres": "^5.0.2",
+    "@sqb/postgres": "^5.0.3",
     "expect": "^30.3.0",
     "postgrejs": "^2.23.0",
     "sinon": "^21.1.2",

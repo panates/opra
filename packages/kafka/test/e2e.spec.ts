@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker';
 import { ApiDocument } from '@opra/common';
 import type { ILogger } from '@opra/core';
 import { KafkaAdapter } from '@opra/kafka';
-import { Admin, Producer, stringSerializers } from '@platformatic/kafka';
+import { Producer, stringSerializers } from '@platformatic/kafka';
 import { expect } from 'expect';
 import { TestController } from './_support/test-api/api/test-controller.js';
 import { TestMQApiDocument } from './_support/test-api/index.js';

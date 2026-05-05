@@ -6,16 +6,21 @@ export async function waitForMessage(
   adapter: KafkaAdapter,
   oprname: string,
   key: any,
+  timeout = 10000,
 ): Promise<KafkaContext> {
   return new Promise((resolve, reject) => {
     const waitKey = oprname + ':' + key;
     waitList.add(waitKey);
+    const timeoutTimer = setTimeout(() => {
+      reject(new Error(`Timeout waiting for message with key "${key}"`));
+    }, timeout);
     const onMessage = async (_ctx: KafkaContext) => {
       if (_ctx.__oprDef?.name === oprname) {
         if (_ctx.key === key) {
           adapter.removeListener('error', onError);
           adapter.removeListener('finish', onMessage);
           waitList.delete(waitKey);
+          clearTimeout(timeoutTimer);
           resolve(_ctx);
         } else {
           if (waitList.has(waitKey)) return;
@@ -35,6 +40,7 @@ export async function waitForMessage(
     const onError = (e: any) => {
       waitList.delete(waitKey);
       adapter.removeListener('finish', onMessage);
+      clearTimeout(timeoutTimer);
       reject(e);
     };
     adapter.on('finish', onMessage);

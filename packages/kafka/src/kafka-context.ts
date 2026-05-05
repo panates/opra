@@ -1,6 +1,5 @@
 import { MQController, MQOperation } from '@opra/common';
 import { ExecutionContext } from '@opra/core';
-import type { KafkaMessage } from 'kafkajs';
 import type { AsyncEventEmitter } from 'node-events-async';
 import type { KafkaAdapter } from './kafka-adapter.js';
 
@@ -22,9 +21,7 @@ export class KafkaContext
   readonly payload: any;
   readonly partition: number;
   readonly headers: Record<string, any>;
-  readonly rawMessage: KafkaMessage;
-  readonly heartbeat: () => Promise<void>;
-  readonly pause: () => void;
+  readonly rawMessage: KafkaAdapter.Message;
 
   /**
    * Initializes a new instance of the KafkaContext.
@@ -50,8 +47,6 @@ export class KafkaContext
     this.topic = init.topic;
     this.key = init.key;
     this.payload = init.payload;
-    this.heartbeat = init.heartbeat;
-    this.pause = init.pause;
     this.rawMessage = init.rawMessage;
   }
 }
@@ -71,10 +66,7 @@ export namespace KafkaContext {
     key: any;
     payload: any;
     headers: Record<string, any>;
-    rawMessage: KafkaMessage;
-
-    heartbeat(): Promise<void>;
-
-    pause(): void;
+    rawMessage: KafkaAdapter.Message;
+    commit(): void | Promise<void>;
   }
 }

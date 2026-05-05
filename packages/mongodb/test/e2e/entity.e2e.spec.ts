@@ -1,5 +1,6 @@
-import '@opra/sqb';
+import '@opra/mongodb';
 import { OpraTestClient } from '@opra/testing';
+import { CustomerApplication as CustomerApplication2 } from 'example-express-elastic';
 import { CustomerApplication } from 'example-express-mongo';
 import { entityTests } from '../../../http/test/e2e/tests/index.js';
 
@@ -12,6 +13,7 @@ describeOrSkip('mongodb:e2e', function () {
   const testArgs: any = {};
 
   before(async () => {
+    await CustomerApplication2.create({ basePath: '/api/v1' });
     app = await CustomerApplication.create({ basePath: '/api/v1' });
     client = new OpraTestClient(app.adapter.app, {
       document: app.document,

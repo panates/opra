@@ -64,7 +64,7 @@ export class TestController {
    *
    */
   @(MQOperation(SendMailDto, {
-    channel: /^sms-channel-\d+/,
+    channel: /^sms-channel-.*$/,
   }).Kafka({
     consumer: 'group-2',
   }))

@@ -1,6 +1,6 @@
 import { ComplexType, DataType, InternalServerError } from '@opra/common';
 import { ExecutionContext, ServiceBase } from '@opra/core';
-import { sql, type SqlElement } from '@sqb/builder';
+import { sql, SqlElement } from '@sqb/builder';
 import { EntityMetadata, Repository } from '@sqb/connect';
 import type {
   Nullish,
@@ -10,7 +10,7 @@ import type {
   StrictOmit,
   Type,
 } from 'ts-gems';
-import { isNotNullish, type vg } from 'valgen';
+import { isNotNullish, vg } from 'valgen';
 import { SQBAdapter } from './sqb-adapter.js';
 import { SqbServiceBase } from './sqb-service-base.js';
 
@@ -382,6 +382,9 @@ export class SqbEntityService<
     const options: DataType.GenerateCodecOptions = {
       projection: '*',
       scope: this._dataTypeScope,
+      fieldHook: (_, __, defaultGenerator) => {
+        return vg.oneOf([defaultGenerator(), vg.isInstanceOf(SqlElement)]);
+      },
     };
     if (operation === 'update') options.partial = 'deep';
     validator = dataType.generateCodec(

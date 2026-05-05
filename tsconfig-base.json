@@ -3,10 +3,8 @@
   "compilerOptions": {
     "composite": true,
     "incremental": true,
-    "sourceMap": true,
     "noEmit": false,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "verbatimModuleSyntax": true
+    "emitDecoratorMetadata": true
   }
 }

@@ -42,7 +42,7 @@ export interface ApiField extends ApiFieldClass {}
  */
 export const ApiField = function (this: ApiField | void, ...args: any[]) {
   // Decorator
-  if (!this) {
+  if (!(this instanceof ApiField)) {
     const [options] = args;
     return ApiField[DECORATOR](options);
   }

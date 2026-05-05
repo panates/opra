@@ -1,15 +1,15 @@
 {
   "name": "example-express-sqb",
   "private": true,
-  "version": "1.27.4",
+  "version": "1.28.0",
   "type": "module",
   "module": "./index.js",
   "dependencies": {
-    "@opra/common": "^1.27.4",
-    "@opra/core": "^1.27.4",
-    "@opra/sqb": "^1.27.4",
-    "@sqb/connect": "^5.0.1",
-    "@sqb/postgres": "^5.0.1",
+    "@opra/common": "^1.28.0",
+    "@opra/core": "^1.28.0",
+    "@opra/sqb": "^1.28.0",
+    "@sqb/connect": "^5.0.3",
+    "@sqb/postgres": "^5.0.3",
     "express": "^5.2.1",
     "ts-gems": "^3.12.0"
   },

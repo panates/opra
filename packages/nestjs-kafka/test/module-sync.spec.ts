@@ -2,11 +2,10 @@ import { faker } from '@faker-js/faker';
 import type { INestApplication } from '@nestjs/common';
 import { APP_GUARD, ModuleRef } from '@nestjs/core';
 import { APP_INTERCEPTOR } from '@nestjs/core/constants.js';
-import type { Producer } from '@nestjs/microservices/external/kafka.interface.js';
 import { Test } from '@nestjs/testing';
 import { KafkaAdapter } from '@opra/kafka';
+import { Producer, stringSerializers } from '@platformatic/kafka';
 import { expect } from 'expect';
-import { Kafka, logLevel } from 'kafkajs';
 import { waitForMessage } from '../../kafka/test/_support/wait-for-message.js';
 import { OpraKafkaModule } from '../src/index.js';
 import {
@@ -29,20 +28,18 @@ describeOrSkip('nestjs-kafka:OpraKafkaModule - sync', () => {
   let nestApplication: INestApplication;
   let moduleRef: ModuleRef;
   let adapter: KafkaAdapter;
-  let producer: Producer;
+  let producer: Producer<string, string, string, string>;
 
   before(async () => {
     CatsService.instanceCounter = 0;
     DogsService.instanceCounter = 0;
-    const kafka = new Kafka({
+    producer = new Producer({
       clientId: 'opra-test',
-      brokers: [kafkaBrokerHost],
-      logLevel: logLevel.NOTHING,
+      bootstrapBrokers: [kafkaBrokerHost],
+      serializers: stringSerializers,
+      autocreateTopics: true,
+      retries: 0,
     });
-    producer = kafka.producer({
-      allowAutoTopicCreation: true,
-    });
-    await producer.connect();
   });
 
   before(async () => {
@@ -50,7 +47,8 @@ describeOrSkip('nestjs-kafka:OpraKafkaModule - sync', () => {
       imports: [
         OpraKafkaModule.forRoot({
           client: {
-            brokers: [kafkaBrokerHost],
+            clientId: 'opra-test',
+            bootstrapBrokers: [kafkaBrokerHost],
           },
           name: 'test',
           controllers: [KafkaCatsController, KafkaDogsController],
@@ -92,7 +90,7 @@ describeOrSkip('nestjs-kafka:OpraKafkaModule - sync', () => {
   });
 
   after(async () => {
-    await producer.disconnect().catch(() => undefined);
+    producer.close(true);
     await nestApplication?.close().catch(() => undefined);
   });
 
@@ -119,9 +117,9 @@ describeOrSkip('nestjs-kafka:OpraKafkaModule - sync', () => {
         setTimeout(() => {
           producer
             .send({
-              topic: 'feed-cat',
               messages: [
                 {
+                  topic: 'feed-cat',
                   key,
                   value: JSON.stringify(payload),
                 },

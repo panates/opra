@@ -17,13 +17,13 @@ export class CustomerApplication {
     try {
       const host = process.env.MONGO_HOST || 'http://127.0.0.1:9200';
       app.dbClient = new Client({ node: host });
+      app.document = await CustomerApiDocument.create(app.dbClient);
+      app.express = express();
+      app.adapter = new ExpressAdapter(app.express, app.document, options);
     } catch (e) {
       await app.close();
       throw e;
     }
-    app.document = await CustomerApiDocument.create(app.dbClient);
-    app.express = express();
-    app.adapter = new ExpressAdapter(app.express, app.document, options);
     return app;
   }
 

@@ -1,6 +1,6 @@
 {
   "name": "@opra/common",
-  "version": "1.27.4",
+  "version": "1.28.0",
   "description": "Opra common package",
   "author": "Panates",
   "license": "MIT",
@@ -36,7 +36,7 @@
     "super-fast-md5": "^1.0.3",
     "tslib": "^2.8.1",
     "uid": "^2.0.2",
-    "valgen": "^6.0.3"
+    "valgen": "^6.1.0"
   },
   "devDependencies": {
     "@browsery/fs": "^0.5.1-r2",

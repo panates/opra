@@ -1,8 +1,9 @@
-import { ApiField, DATATYPE_METADATA } from '@opra/common';
+import { ApiField, ComplexType, DATATYPE_METADATA } from '@opra/common';
 import { expect } from 'expect';
 
 describe('common:ApiField() decorator', () => {
   it('Should define field metadata', async () => {
+    @ComplexType()
     class Animal {
       @ApiField({
         type: 'integer',
@@ -11,7 +12,6 @@ describe('common:ApiField() decorator', () => {
       })
       declare id: number;
     }
-
     const metadata = Reflect.getMetadata(DATATYPE_METADATA, Animal);
     expect(metadata).toBeDefined();
     expect(metadata.fields).toMatchObject({

@@ -157,6 +157,6 @@ export class OpraKafkaCoreModule
   }
 
   async onApplicationShutdown() {
-    await this.adapter.close();
+    await this.adapter.close(true);
   }
 }

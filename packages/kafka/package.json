@@ -28,7 +28,7 @@
   "peerDependencies": {
     "@opra/common": "^1.27.5",
     "@opra/core": "^1.27.5",
-    "kafkajs": ">=2.2.4 <3"
+    "@platformatic/kafka": ">= 1.34.0 <2"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.4.0",

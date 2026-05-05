@@ -2,8 +2,8 @@ import { faker } from '@faker-js/faker';
 import { ApiDocument } from '@opra/common';
 import type { ILogger } from '@opra/core';
 import { KafkaAdapter } from '@opra/kafka';
+import { Admin, Producer, stringSerializers } from '@platformatic/kafka';
 import { expect } from 'expect';
-import { Kafka, logLevel, type Producer } from 'kafkajs';
 import { TestController } from './_support/test-api/api/test-controller.js';
 import { TestMQApiDocument } from './_support/test-api/index.js';
 import { waitForMessage } from './_support/wait-for-message.js';
@@ -15,30 +15,28 @@ const describeOrSkip =
 describeOrSkip('kafka:e2e', () => {
   let document: ApiDocument;
   let adapter: KafkaAdapter;
-  let producer: Producer;
+  let producer: Producer<string, string, string, string>;
   const logger: ILogger = {
     log() {},
     error() {},
   };
 
   before(async () => {
-    const kafka = new Kafka({
+    producer = new Producer({
       clientId: 'opra-test',
-      brokers: [kafkaBrokerHost],
-      logLevel: logLevel.NOTHING,
+      bootstrapBrokers: [kafkaBrokerHost],
+      serializers: stringSerializers,
+      autocreateTopics: true,
     });
-    producer = kafka.producer({
-      allowAutoTopicCreation: true,
-    });
-    await producer.connect();
   });
 
   before(async () => {
     document = await TestMQApiDocument.create();
     adapter = new KafkaAdapter(document, {
       client: {
-        brokers: [kafkaBrokerHost!],
+        bootstrapBrokers: [kafkaBrokerHost!],
         clientId: 'opra-test',
+        autocreateTopics: true,
       },
       logger,
     });
@@ -46,10 +44,9 @@ describeOrSkip('kafka:e2e', () => {
   });
 
   after(async function () {
-    this.timeout(20000);
-    await producer?.disconnect();
-    await adapter?.close();
-  });
+    await adapter?.close(true);
+    producer?.close(true);
+  }).timeout(20000);
 
   beforeEach(() => {
     TestController.counters = {
@@ -74,10 +71,10 @@ describeOrSkip('kafka:e2e', () => {
         setTimeout(() => {
           producer
             .send({
-              topic: 'email-channel-1',
               messages: [
                 {
                   key,
+                  topic: 'email-channel-1',
                   value: JSON.stringify({
                     ...payload,
                     extraField: 12345,
@@ -114,7 +111,7 @@ describeOrSkip('kafka:e2e', () => {
       smsChannel1: 0,
       smsChannel2: 0,
     });
-  }).slow(800);
+  });
 
   it('Should listen regexp channel', async () => {
     const key = faker.string.alpha(5);
@@ -129,9 +126,9 @@ describeOrSkip('kafka:e2e', () => {
         setTimeout(() => {
           producer
             .send({
-              topic: 'sms-channel-2',
               messages: [
                 {
+                  topic: 'sms-channel-2',
                   key,
                   value: JSON.stringify({
                     ...payload,
@@ -170,9 +167,9 @@ describeOrSkip('kafka:e2e', () => {
         setTimeout(() => {
           producer
             .send({
-              topic: 'sms-channel-1',
               messages: [
                 {
+                  topic: 'sms-channel-1',
                   key,
                   value: JSON.stringify({
                     ...payload,

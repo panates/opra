@@ -399,10 +399,10 @@ export class MongoService<
    * @param callback - The function to be executed within the transaction.
    * @param [options] - Optional options for the transaction.
    */
-  async withTransaction(
-    callback: (session: ClientSession, _this: this) => any,
+  async withTransaction<U = any>(
+    callback: (session: ClientSession, _this: this) => U,
     options?: TransactionOptions,
-  ): Promise<any> {
+  ): Promise<U> {
     const ctx = this.context;
     let closeSessionOnFinish = false;
 

@@ -46,9 +46,9 @@ export class SqbServiceBase extends ServiceBase {
    *
    * @param callback - The function to execute within the transaction.
    */
-  async withTransaction(
-    callback: (connection: SqbConnection, _this: this) => any,
-  ): Promise<any> {
+  async withTransaction<U = any>(
+    callback: (connection: SqbConnection, _this: this) => U,
+  ): Promise<U> {
     const ctx = this.context;
     let closeSessionOnFinish = false;
 

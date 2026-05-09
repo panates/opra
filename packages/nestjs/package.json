@@ -5,7 +5,7 @@
   "author": "Panates",
   "license": "MIT",
   "scripts": {
-    "compile": "tsc --noEmit && tsc --noEmit -p test/tsconfig.json",
+    "compile": "tsc",
     "build": "tsc -b tsconfig-build.json",
     "postbuild": "node ../../support/postbuild.cjs",
     "lint": "eslint . --max-warnings=0",

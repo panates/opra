@@ -18,7 +18,7 @@
     "preclean": "rimraf build coverage",
     "clean": "rman run clean",
     "build": "rman build",
-    "test": "mocha",
+    "test": "tsc -b tsconfig-test.json --noEmit && mocha",
     "precover": "rimraf coverage",
     "format": "prettier . --write --log-level=warn",
     "precitest": "rimraf coverage reports",

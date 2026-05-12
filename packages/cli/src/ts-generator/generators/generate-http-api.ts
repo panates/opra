@@ -28,6 +28,7 @@ export async function generateHttpApi(this: TsGenerator, api: HttpApi) {
 
   const classBlock = (file.code[className] = new CodeBlock());
 
+  // Print JSDoc
   classBlock.doc = `/** 
  * ${wrapJSDocString(api.description || '')}
  * @class ${className}

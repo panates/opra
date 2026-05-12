@@ -132,8 +132,11 @@ constructor(client: OpraHttpClient) {`;
           `\n *   > ${String(prm.name)} - ${prm.description || ''}` +
           `\n *       - location: ${prm.location}` +
           `\n *       - type: ${locateNamedType(prm.type)?.name || 'any'}${prm.isArray ? '[' + prm.arraySeparator + ']' : ''}` +
-          (prm.required ? `\n *      required: ${prm.required}` : '') +
-          (prm.deprecated ? `\n *      deprecated: ${prm.deprecated}` : '');
+          (prm.default
+            ? `\n *       - default: ${typeof prm.default === 'object' ? 'object' : prm.default}`
+            : '') +
+          (prm.required ? `\n *       - required: ${prm.required}` : '') +
+          (prm.deprecated ? `\n *       - deprecated: ${prm.deprecated}` : '');
       }
       if (i) operationBlock.doc.regExParameters = block;
     }

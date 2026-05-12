@@ -1,6 +1,6 @@
 {
   "name": "@opra/http",
-  "version": "1.28.0",
+  "version": "1.28.1",
   "description": "Opra Http Server Adapter",
   "author": "Panates",
   "license": "MIT",
@@ -54,8 +54,8 @@
     "yaml": "^2.9.0"
   },
   "peerDependencies": {
-    "@opra/common": "^1.28.0",
-    "@opra/core": "^1.28.0"
+    "@opra/common": "^1.28.1",
+    "@opra/core": "^1.28.1"
   },
   "optionalDependencies": {
     "express": "^4.0.0 || ^5.0.0",

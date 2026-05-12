@@ -1,13 +1,13 @@
 {
   "name": "example-websocket",
   "private": true,
-  "version": "1.28.0",
+  "version": "1.28.1",
   "type": "module",
   "module": "./start.js",
   "dependencies": {
-    "@opra/common": "^1.28.0",
-    "@opra/core": "^1.28.0",
-    "@opra/socketio": "^1.28.0",
+    "@opra/common": "^1.28.1",
+    "@opra/core": "^1.28.1",
+    "@opra/socketio": "^1.28.1",
     "socket.io": "^4.8.3",
     "ts-gems": "^3.12.0"
   },

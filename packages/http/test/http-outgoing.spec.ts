@@ -40,7 +40,7 @@ describe('http:HttpOutgoing', () => {
     const msg = HttpOutgoing.from({ req: {} as any });
     msg.attachment('path/to/logo.png');
     expect(msg.getHeader('Content-Disposition')).toStrictEqual(
-      'attachment; filename="logo.png"',
+      'attachment; filename=logo.png',
     );
   });
 

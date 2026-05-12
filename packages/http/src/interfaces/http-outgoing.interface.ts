@@ -19,6 +19,8 @@ export interface HttpOutgoing extends StrictOmit<
 
   appendHeader(name: string, value: string | readonly string[]): this;
 
+  getHeader(name: string): number | string | string[] | undefined;
+
   setHeader(name: string, value: number | string | readonly string[]): this;
 
   /**

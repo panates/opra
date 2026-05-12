@@ -22,6 +22,11 @@ export interface HttpParameter extends Value {
   keyParam?: boolean;
 
   /**
+   * Default value
+   */
+  default?: any;
+
+  /**
    * Defines array separator
    */
   arraySeparator?: string;

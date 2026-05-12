@@ -40,6 +40,7 @@ describe('http:e2e:HttpOperation.Entity endpoints', () => {
         active: true,
         familyName: 'efgh',
         givenName: 'abcd',
+        rate: 1,
       },
     });
   });

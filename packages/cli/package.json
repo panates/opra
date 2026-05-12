@@ -1,11 +1,11 @@
 {
   "name": "@opra/cli",
-  "version": "1.28.0",
+  "version": "1.28.1",
   "description": "Opra CLI tools",
   "author": "Panates",
   "license": "MIT",
   "scripts": {
-    "compile": "tsc --noEmit && tsc --noEmit -p test/tsconfig.json",
+    "compile": "tsc",
     "prebuild": "npm run check && npm run lint && npm run clean",
     "build": "tsc -b tsconfig-build.json",
     "postbuild": "node ../../support/postbuild.cjs && cp -R bin ./build/bin",
@@ -31,8 +31,8 @@
     "tslib": "^2.8.1"
   },
   "peerDependencies": {
-    "@opra/client": "^1.28.0",
-    "@opra/common": "^1.28.0"
+    "@opra/client": "^1.28.1",
+    "@opra/common": "^1.28.1"
   },
   "type": "module",
   "module": "./index.js",

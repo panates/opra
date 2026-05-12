@@ -93,6 +93,7 @@ export const HttpParameter = function (
   _this.required = initArgs.required;
   if (_this.required == null && initArgs.location === 'path')
     _this.required = true;
+  _this.default = initArgs.default;
   _this.arraySeparator = initArgs.arraySeparator;
   _this.keyParam = initArgs.keyParam;
   _this.parser = initArgs.parser;
@@ -108,6 +109,7 @@ class HttpParameterClass extends Value {
   declare keyParam?: boolean;
   declare deprecated?: boolean | string;
   declare required?: boolean;
+  declare readonly default?: any;
   declare arraySeparator?: string;
   declare parser?: (v: any) => any;
   declare designType?: Type;
@@ -120,6 +122,7 @@ class HttpParameterClass extends Value {
       arraySeparator: this.arraySeparator,
       keyParam: this.keyParam,
       required: this.required,
+      default: this.default,
       deprecated: this.deprecated,
     });
   }
@@ -129,12 +132,15 @@ class HttpParameterClass extends Value {
     options?: DataType.GenerateCodecOptions,
     properties?: any,
   ): Validator {
-    return (
+    const fn =
       this.type?.generateCodec(codec, options, {
         ...properties,
         designType: this.designType,
-      }) || vg.isAny()
-    );
+      }) || vg.isAny();
+    if (this.default !== undefined) {
+      return vg.optional(fn, this.default);
+    }
+    return fn;
   }
 }
 

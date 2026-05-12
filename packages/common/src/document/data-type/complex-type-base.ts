@@ -10,7 +10,6 @@ import { OpraSchema } from '../../schema/index.js';
 import type { DocumentElement } from '../common/document-element.js';
 import { DocumentInitContext } from '../common/document-init-context.js';
 import type { ApiField } from './api-field.js';
-import { ArrayType } from './array-type.js';
 import type { ComplexType } from './complex-type.js';
 import { DataType } from './data-type.js';
 
@@ -396,12 +395,13 @@ abstract class ComplexTypeBaseClass extends DataType {
       } else if (!fn) {
         const defaultGenerator = () => {
           cacheItem[cacheKey] = null;
-          const xfn = this._generateFieldCodec(codec, field, {
+          const xfn = field.generateCodec(codec, {
             ...context,
             partial: context.partial === 'deep' ? context.partial : undefined,
             projection: subProjection,
             currentPath: currentPath + (currentPath ? '.' : '') + fieldName,
-          });
+            level: context.level! + 1,
+          } as GenerateCodecContext);
           cacheItem[cacheKey] = xfn;
           return xfn;
         };
@@ -421,21 +421,6 @@ abstract class ComplexTypeBaseClass extends DataType {
       schema._$push = vg.optional(vg.isAny());
     }
     return schema;
-  }
-
-  protected _generateFieldCodec(
-    codec: 'encode' | 'decode',
-    field: ApiField,
-    context: GenerateCodecContext,
-  ): Validator {
-    let fn = field.generateCodec(codec, {
-      ...context,
-      level: context.level! + 1,
-    } as GenerateCodecContext);
-    if (field.fixed) fn = vg.isEqual(field.fixed);
-    if (field.isArray && !(field.type instanceof ArrayType))
-      fn = vg.isArray(fn);
-    return fn;
   }
 }
 

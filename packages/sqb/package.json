@@ -1,11 +1,11 @@
 {
   "name": "@opra/sqb",
-  "version": "1.28.0",
+  "version": "1.28.1",
   "description": "Opra SQB adapter package",
   "author": "Panates",
   "license": "MIT",
   "scripts": {
-    "compile": "tsc --noEmit && tsc --noEmit -p test/tsconfig.json",
+    "compile": "tsc",
     "prebuild": "npm run check && npm run lint && npm run clean",
     "build": "tsc -b tsconfig-build.json",
     "postbuild": "node ../../support/postbuild.cjs",
@@ -26,8 +26,8 @@
     "valgen": "^6.1.0"
   },
   "peerDependencies": {
-    "@opra/core": "^1.28.0",
-    "@opra/http": "^1.28.0",
+    "@opra/core": "^1.28.1",
+    "@opra/http": "^1.28.1",
     "@sqb/builder": ">=5.0.1 <6",
     "@sqb/connect": ">=5.0.1 <6"
   },
@@ -36,9 +36,9 @@
     "@sqb/builder": "^5.0.1",
     "@sqb/connect": "^5.0.1",
     "@sqb/postgres": "^5.0.3",
-    "expect": "^30.3.0",
+    "expect": "^30.4.1",
     "postgrejs": "^2.23.0",
-    "sinon": "^21.1.2",
+    "sinon": "^22.0.0",
     "ts-gems": "^3.12.0"
   },
   "type": "module",

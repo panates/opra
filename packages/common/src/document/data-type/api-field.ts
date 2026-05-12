@@ -1,7 +1,7 @@
 import { omitUndefined } from '@jsopen/objects';
 import type { Combine, StrictOmit, Type, TypeThunkAsync } from 'ts-gems';
 import { asMutable } from 'ts-gems';
-import type { Validator } from 'valgen';
+import { type Validator, vg } from 'valgen';
 import { OpraSchema } from '../../schema/index.js';
 import type { ApiDocument } from '../api-document.js';
 import { DocumentElement } from '../common/document-element.js';
@@ -173,10 +173,20 @@ class ApiFieldClass extends DocumentElement {
     options?: DataType.GenerateCodecOptions,
     properties?: any,
   ): Validator {
-    return this.type.generateCodec(codec, options, {
-      ...properties,
-      designType: this.designType,
-    });
+    if (this.fixed) return vg.isEqual(this.fixed);
+    let fn =
+      this.type?.generateCodec(codec, options, {
+        ...properties,
+        designType: this.designType,
+      }) || vg.isAny();
+    if (this.default !== undefined) {
+      fn = vg.required(fn, {
+        default: this.default,
+      });
+    }
+    if (this.isArray && !(this.type.kind === OpraSchema.ArrayType.Kind))
+      fn = vg.isArray(fn);
+    return fn;
   }
 }
 

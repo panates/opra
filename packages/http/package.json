@@ -1,11 +1,11 @@
 {
   "name": "@opra/http",
-  "version": "1.28.0",
+  "version": "1.28.1",
   "description": "Opra Http Server Adapter",
   "author": "Panates",
   "license": "MIT",
   "scripts": {
-    "compile": "tsc --noEmit && tsc --noEmit -p test/tsconfig.json",
+    "compile": "tsc",
     "prebuild": "npm run check && npm run lint && npm run clean",
     "build": "tsc -b tsconfig-build.json",
     "postbuild": "node ../../support/postbuild.cjs && cp -R i18n ./build/i18n",
@@ -29,12 +29,12 @@
     "base64-stream": "^1.0.0",
     "busboy": "^1.6.0",
     "bytes": "^3.1.2",
-    "content-disposition": "^1.1.0",
-    "content-type": "^1.0.5",
+    "content-disposition": "^2.0.0",
+    "content-type": "^2.0.0",
     "cookie": "^1.1.1",
     "cookie-signature": "^1.2.2",
     "encodeurl": "^2.0.0",
-    "expect": "^30.3.0",
+    "expect": "^30.4.1",
     "fast-tokenizer": "^1.9.0",
     "fresh": "^0.5.2",
     "iconv-lite": "^0.7.2",
@@ -51,11 +51,11 @@
     "uid": "^2.0.2",
     "valgen": "^6.1.0",
     "vary": "^1.1.2",
-    "yaml": "^2.8.4"
+    "yaml": "^2.9.0"
   },
   "peerDependencies": {
-    "@opra/common": "^1.28.0",
-    "@opra/core": "^1.28.0"
+    "@opra/common": "^1.28.1",
+    "@opra/core": "^1.28.1"
   },
   "optionalDependencies": {
     "express": "^4.0.0 || ^5.0.0",

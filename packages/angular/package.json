@@ -32,22 +32,22 @@
     "ts-gems": "^3.12.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^21.2.9",
-    "@angular/cli": "^21.2.9",
-    "@angular/compiler": "^21.2.11",
-    "@angular/compiler-cli": "^21.2.11",
-    "@angular/platform-browser": "^21.2.11",
-    "@angular/platform-browser-dynamic": "^21.2.11",
+    "@angular-devkit/build-angular": "^21.2.10",
+    "@angular/cli": "^21.2.10",
+    "@angular/compiler": "^21.2.12",
+    "@angular/compiler-cli": "^21.2.12",
+    "@angular/platform-browser": "^21.2.12",
+    "@angular/platform-browser-dynamic": "^21.2.12",
     "@opra/client": "^1.28.0",
     "rxjs": "^7.8.2",
     "core-js": "^3.49.0",
     "cross-fetch": "^4.1.0",
-    "expect": "^30.3.0",
+    "expect": "^30.4.1",
     "express": "^5.2.1",
     "ng-packagr": "^21.2.3",
     "superagent": "^10.3.0",
     "supertest": "^7.2.2",
-    "zone.js": "^0.16.1"
+    "zone.js": "^0.16.2"
   },
   "type": "module",
   "repository": {

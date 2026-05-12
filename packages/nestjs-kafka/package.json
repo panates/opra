@@ -41,7 +41,7 @@
     "@nestjs/platform-express": "^11.1.19",
     "@nestjs/testing": "^11.1.19",
     "@types/amqplib": "^0.10.8",
-    "expect": "^30.3.0",
+    "expect": "^30.4.1",
     "express": "^5.2.1",
     "kafkajs": "^2.2.4",
     "rxjs": "^7.8.2",

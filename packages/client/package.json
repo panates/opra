@@ -32,7 +32,7 @@
   "devDependencies": {
     "@browsery/type-is": "^2.0.2-r1",
     "body-parser": "^2.2.2",
-    "expect": "^30.3.0",
+    "expect": "^30.4.1",
     "express": "^5.2.1",
     "ts-gems": "^3.12.0"
   },

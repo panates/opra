@@ -37,7 +37,7 @@
     "@nestjs/platform-express": "^11.1.19",
     "@nestjs/microservices": "^11.1.19",
     "@nestjs/testing": "^11.1.19",
-    "expect": "^30.3.0",
+    "expect": "^30.4.1",
     "express": "^5.2.1",
     "rxjs": "^7.8.2",
     "socket.io-client": "^4.8.3",

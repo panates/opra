@@ -34,8 +34,8 @@
   "devDependencies": {
     "@faker-js/faker": "^10.4.0",
     "mongodb": "^6.0.0 || ^7.0.0",
-    "expect": "^30.3.0",
-    "sinon": "^21.1.2",
+    "expect": "^30.4.1",
+    "sinon": "^22.0.0",
     "ts-gems": "^3.12.0"
   },
   "exports": {

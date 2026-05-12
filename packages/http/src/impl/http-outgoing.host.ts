@@ -25,8 +25,15 @@ export interface HttpOutgoingHost extends HttpOutgoing {}
 
 export class HttpOutgoingHost {
   attachment(filename?: string): this {
-    if (filename) this.contentType(path.extname(filename));
-    this.setHeader('Content-Disposition', contentDisposition(filename));
+    if (filename) {
+      this.contentType(path.extname(filename));
+      this.setHeader(
+        'Content-Disposition',
+        contentDisposition.create(path.basename(filename), {
+          type: 'attachment',
+        }),
+      );
+    }
     return this;
   }
 

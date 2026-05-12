@@ -151,7 +151,7 @@ describe('common:ComplexType', () => {
         uid: 'optional',
         active: 'optional',
         countryCode: 'optional',
-        rate: 'optional',
+        rate: 'required',
         address: 'isUndefined',
         notes: 'isUndefined',
         phoneNumbers: 'isUndefined',
@@ -183,7 +183,7 @@ describe('common:ComplexType', () => {
         uid: 'optional',
         active: 'optional',
         countryCode: 'optional',
-        rate: 'optional',
+        rate: 'required',
         address: 'isUndefined',
         notes: 'isUndefined',
         phoneNumbers: 'isUndefined',
@@ -254,7 +254,6 @@ describe('common:ComplexType', () => {
         uid: '1234567890',
         active: true,
         countryCode: 'US',
-        rate: '100',
         address: {
           street: '123 Main St',
         },
@@ -263,7 +262,7 @@ describe('common:ComplexType', () => {
       expect(x.givenName).toStrictEqual('John');
       expect(x.birthDate).toStrictEqual(new Date('1980-03-22T00:00:00'));
       expect(x.date2).toStrictEqual('1980-03-22 09:21:48');
-      expect(x.rate).toStrictEqual(100);
+      expect(x.rate).toStrictEqual(1);
       expect(x.address).toEqual({ street: '123 Main St' });
     });
   });

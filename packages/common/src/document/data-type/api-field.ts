@@ -1,15 +1,15 @@
 import { omitUndefined } from '@jsopen/objects';
 import type { Combine, StrictOmit, Type, TypeThunkAsync } from 'ts-gems';
 import { asMutable } from 'ts-gems';
-import type { Validator } from 'valgen';
+import { type Validator, vg } from 'valgen';
 import { OpraSchema } from '../../schema/index.js';
 import type { ApiDocument } from '../api-document.js';
 import { DocumentElement } from '../common/document-element.js';
 import { DECORATOR } from '../constants.js';
 import { ApiFieldDecoratorFactory } from '../decorators/api-field-decorator.js';
 import { testScopeMatch } from '../utils/test-scope-match.js';
-import type { ComplexType } from './complex-type.js';
 import { ComplexTypeBase } from './complex-type-base.js';
+import type { ComplexType } from './complex-type.js';
 import type { DataType } from './data-type.js';
 import type { EnumType } from './enum-type.js';
 import type { MappedType } from './mapped-type.js';
@@ -173,10 +173,20 @@ class ApiFieldClass extends DocumentElement {
     options?: DataType.GenerateCodecOptions,
     properties?: any,
   ): Validator {
-    return this.type.generateCodec(codec, options, {
-      ...properties,
-      designType: this.designType,
-    });
+    if (this.fixed) return vg.isEqual(this.fixed);
+    let fn =
+      this.type?.generateCodec(codec, options, {
+        ...properties,
+        designType: this.designType,
+      }) || vg.isAny();
+    if (this.default !== undefined) {
+      fn = vg.required(fn, {
+        default: this.default,
+      });
+    }
+    if (this.isArray && !(this.type.kind === OpraSchema.ArrayType.Kind))
+      fn = vg.isArray(fn);
+    return fn;
   }
 }
 

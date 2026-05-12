@@ -30,7 +30,9 @@ export class Customer extends MixinType([Record, Person]) {
   @ApiField()
   declare countryCode: string;
 
-  @ApiField()
+  @ApiField({
+    default: 1,
+  })
   declare rate: number;
 
   @ApiField({ exclusive: true })

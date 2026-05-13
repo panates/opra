@@ -32,9 +32,9 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.4.0",
-    "@nestjs/platform-express": "^11.1.19",
-    "@nestjs/microservices": "^11.1.19",
-    "@nestjs/testing": "^11.1.19",
+    "@nestjs/platform-express": "^11.1.20",
+    "@nestjs/microservices": "^11.1.20",
+    "@nestjs/testing": "^11.1.20",
     "expect": "^30.4.1",
     "express": "^5.2.1",
     "rxjs": "^7.8.2",

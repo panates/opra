@@ -6,8 +6,8 @@
   "module": "./index.js",
   "dependencies": {
     "@jsopen/objects": "^2.2.1",
-    "@nestjs/common": "^11.1.19",
-    "@nestjs/core": "^11.1.19",
+    "@nestjs/common": "^11.1.20",
+    "@nestjs/core": "^11.1.20",
     "@opra/common": "^1.28.1",
     "@opra/core": "^1.28.1",
     "@opra/mongodb": "^1.28.1",

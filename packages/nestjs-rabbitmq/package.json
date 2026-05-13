@@ -1,6 +1,6 @@
 {
   "name": "@opra/nestjs-rabbitmq",
-  "version": "1.28.1",
+  "version": "1.28.2",
   "description": "Opra NestJS RabbitMQ Module",
   "author": "Panates",
   "license": "MIT",
@@ -24,10 +24,10 @@
     "tslib": "^2.8.1"
   },
   "peerDependencies": {
-    "@opra/common": "^1.28.1",
-    "@opra/core": "^1.28.1",
-    "@opra/nestjs": "^1.28.1",
-    "@opra/rabbitmq": "^1.28.1",
+    "@opra/common": "^1.28.2",
+    "@opra/core": "^1.28.2",
+    "@opra/nestjs": "^1.28.2",
+    "@opra/rabbitmq": "^1.28.2",
     "@nestjs/common": "^10.0.0 || ^11.0.0",
     "@nestjs/core": "^10.0.0 || ^11.0.0",
     "@nestjs/microservices": "^10.0.0 || ^11.0.0",

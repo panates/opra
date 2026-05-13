@@ -1,17 +1,17 @@
 {
   "name": "example-nestjs-express-mongo",
   "private": true,
-  "version": "1.28.1",
+  "version": "1.28.2",
   "type": "module",
   "module": "./index.js",
   "dependencies": {
     "@jsopen/objects": "^2.2.1",
     "@nestjs/common": "^11.1.20",
     "@nestjs/core": "^11.1.20",
-    "@opra/common": "^1.28.1",
-    "@opra/core": "^1.28.1",
-    "@opra/mongodb": "^1.28.1",
-    "@opra/nestjs-http": "^1.28.1",
+    "@opra/common": "^1.28.2",
+    "@opra/core": "^1.28.2",
+    "@opra/mongodb": "^1.28.2",
+    "@opra/nestjs-http": "^1.28.2",
     "mongodb": "^7.2.0",
     "ts-gems": "^3.12.0"
   },

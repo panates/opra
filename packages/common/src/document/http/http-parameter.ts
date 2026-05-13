@@ -138,7 +138,9 @@ class HttpParameterClass extends Value {
         designType: this.designType,
       }) || vg.isAny();
     if (this.default !== undefined) {
-      return vg.optional(fn, this.default);
+      return vg.required(fn, {
+        default: this.default,
+      });
     }
     return fn;
   }

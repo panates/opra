@@ -64,8 +64,13 @@ export class CustomersController {
     });
   }
 
-  @(HttpOperation({ path: '/sendMessageAll' }).QueryParam('message', String))
-  async sendMessageAll(context: HttpContext) {
+  @(HttpOperation({ path: '/sendMessage' })
+    .QueryParam('message', String)
+    .QueryParam('all', {
+      type: Boolean,
+      default: true,
+    }))
+  async sendMessage(context: HttpContext) {
     return { sent: 10, message: context.queryParams.message };
   }
 }

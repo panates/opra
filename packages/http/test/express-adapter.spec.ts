@@ -46,7 +46,7 @@ describe('http:ExpressAdapter', () => {
       '/Customers | DELETE',
       '/Customers | PATCH',
       '/Customers | GET',
-      '/Customers/sendMessageAll | GET',
+      '/Customers/sendMessage | GET',
       '/Customers@:customerId | GET',
       '/Customers@:customerId | DELETE',
       '/Customers@:customerId | PATCH',

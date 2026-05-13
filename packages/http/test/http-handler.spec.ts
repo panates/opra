@@ -52,6 +52,21 @@ describe('http:HttpHandler', () => {
     expect(context.queryParams.xyz).not.toBeDefined();
   });
 
+  it('Should set default query parameters', async () => {
+    const resource = document.getHttpApi().findController('Customers');
+    const operation = resource!.operations.get('sendMessage')!;
+    const context = createContext(
+      operation,
+      HttpIncoming.from({
+        method: 'GET',
+        url: '/Customers?message=abcd',
+      }),
+    );
+    await adapter.handler.parseRequest(context);
+    expect(context.queryParams.message).toEqual('abcd');
+    expect(context.queryParams.all).toEqual(true);
+  });
+
   it('Should parse path parameters', async () => {
     const resource = document
       .getHttpApi()

@@ -1,6 +1,6 @@
 {
   "name": "@opra/http",
-  "version": "1.28.2",
+  "version": "1.28.3",
   "description": "Opra Http Server Adapter",
   "author": "Panates",
   "license": "MIT",
@@ -49,13 +49,13 @@
     "toml": "^4.1.1",
     "tslib": "^2.8.1",
     "uid": "^2.0.2",
-    "valgen": "^6.1.0",
+    "valgen": "^6.2.0",
     "vary": "^1.1.2",
     "yaml": "^2.9.0"
   },
   "peerDependencies": {
-    "@opra/common": "^1.28.2",
-    "@opra/core": "^1.28.2"
+    "@opra/common": "^1.28.3",
+    "@opra/core": "^1.28.3"
   },
   "optionalDependencies": {
     "express": "^4.0.0 || ^5.0.0",
@@ -68,7 +68,7 @@
     "@types/busboy": "^1.5.4",
     "@types/bytes": "^3.1.5",
     "@types/content-disposition": "^0.5.9",
-    "@types/content-type": "^1.1.9",
+    "@types/content-type": "^2.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/cookie-signature": "^1.1.2",
     "@types/encodeurl": "^1.0.3",

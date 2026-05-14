@@ -307,7 +307,7 @@ export class HttpHandler {
       for (const prm of paramsLeft) {
         key = String(prm.name);
         // Throw error for required parameters
-        if (prm.default && typeof prm.name === 'string') {
+        if (prm.default !== undefined && typeof prm.name === 'string') {
           context.queryParams[prm.name] = prm.default;
         } else if (prm.required) {
           const decode = getDecoder(prm);

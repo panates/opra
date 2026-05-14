@@ -32,8 +32,8 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.4.0",
-    "@nestjs/platform-express": "^11.1.20",
-    "@nestjs/testing": "^11.1.20",
+    "@nestjs/platform-express": "^11.1.21",
+    "@nestjs/testing": "^11.1.21",
     "express": "^5.2.1",
     "rxjs": "^7.8.2",
     "supertest": "^7.2.2",

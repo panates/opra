@@ -173,7 +173,7 @@ class ApiFieldClass extends DocumentElement {
     options?: DataType.GenerateCodecOptions,
     properties?: any,
   ): Validator {
-    if (this.fixed) return vg.isEqual(this.fixed);
+    if (this.fixed) return vg.fixed(this.fixed);
     let fn =
       this.type?.generateCodec(codec, options, {
         ...properties,

@@ -27,7 +27,7 @@
     "iconv-lite": "^0.7.2",
     "node-events-async": "^1.5.2",
     "tslib": "^2.8.1",
-    "valgen": "^6.1.0"
+    "valgen": "^6.2.0"
   },
   "peerDependencies": {
     "@opra/common": "^1.28.2",

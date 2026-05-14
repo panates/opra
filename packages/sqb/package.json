@@ -23,7 +23,7 @@
   "dependencies": {
     "reflect-metadata": "^0.2.2",
     "tslib": "^2.8.1",
-    "valgen": "^6.1.0"
+    "valgen": "^6.2.0"
   },
   "peerDependencies": {
     "@opra/core": "^1.28.2",

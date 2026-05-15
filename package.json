@@ -18,6 +18,7 @@
     "preclean": "rimraf build coverage",
     "clean": "rman run clean",
     "build": "rman build",
+    "graph": "graphify update .",
     "test": "tsc -b tsconfig-test.json --noEmit && mocha",
     "precover": "rimraf coverage",
     "format": "prettier . --write --log-level=warn",

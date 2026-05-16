@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@browsery/type-is": "^2.0.2-r1",
-    "@jsopen/objects": "^2.2.1",
+    "@jsopen/objects": "^2.2.2",
     "ansi-colors": "^4.1.3",
     "commander": "^14.0.3",
     "js-string-escape": "^1.0.1",

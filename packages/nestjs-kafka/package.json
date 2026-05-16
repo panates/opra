@@ -20,7 +20,7 @@
     "clean:cover": "rimraf ../../coverage/nestjs-kafka"
   },
   "dependencies": {
-    "@jsopen/objects": "^2.2.1",
+    "@jsopen/objects": "^2.2.2",
     "fast-tokenizer": "^1.9.0",
     "putil-promisify": "^1.10.1",
     "reflect-metadata": "^0.2.2",

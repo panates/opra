@@ -21,7 +21,7 @@
     "clean:cover": "rimraf ../../coverage/socketio"
   },
   "dependencies": {
-    "@jsopen/objects": "^2.2.1",
+    "@jsopen/objects": "^2.2.2",
     "@browsery/type-is": "^2.0.2-r1",
     "content-type": "^2.0.0",
     "iconv-lite": "^0.7.2",

@@ -24,7 +24,7 @@
     "@browsery/antlr4": "^4.13.3-r7",
     "@browsery/http-parser": "^0.5.10-r3",
     "@browsery/type-is": "^2.0.2-r1",
-    "@jsopen/objects": "^2.2.1",
+    "@jsopen/objects": "^2.2.2",
     "accepts": "^1.3.8",
     "base64-stream": "^1.0.0",
     "busboy": "^1.6.0",

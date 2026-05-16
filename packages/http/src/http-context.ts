@@ -184,6 +184,7 @@ export class HttpContext extends ExecutionContext {
               projection: '*',
               ignoreReadonlyFields: true,
               allowPatchOperators: __oprDef?.requestBody?.allowPatchOperators,
+              allowNullOptionals: __oprDef?.requestBody?.allowNullOptionals,
               keepKeyFields: __oprDef?.requestBody?.keepKeyFields,
             });
             this.__adapter[kAssetCache].set(mediaType, 'decode', decode);

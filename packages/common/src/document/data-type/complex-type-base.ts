@@ -389,7 +389,9 @@ abstract class ComplexTypeBaseClass extends DataType {
           fn = cacheItem[cacheKey];
           schema[fieldName] =
             context.partial || !field.required
-              ? vg.optional(fn!)
+              ? context.allowNullOptionals
+                ? vg.nullable(fn!)
+                : vg.optional(fn!)
               : vg.required(fn!);
         });
       } else if (!fn) {
@@ -411,7 +413,9 @@ abstract class ComplexTypeBaseClass extends DataType {
       }
       schema[fieldName] =
         context.partial || !(field.required || fn.id === 'required')
-          ? vg.optional(fn)
+          ? context.allowNullOptionals
+            ? vg.nullable(fn)
+            : vg.optional(fn)
           : fn.id === 'required'
             ? fn
             : vg.required(fn);

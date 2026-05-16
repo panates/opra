@@ -30,6 +30,7 @@ HttpOperation.Entity.UpdateMany = function (
       immediateFetch: true,
       partial: 'deep',
       allowPatchOperators: true,
+      allowNullOptionals: true,
       keepKeyFields: true,
       ...args.requestBody,
       required: true,

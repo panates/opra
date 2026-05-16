@@ -255,6 +255,7 @@ declare module '../http/http-operation.js' {
           type?: Type | string;
           immediateFetch?: boolean;
           allowPatchOperators?: boolean;
+          allowNullOptionals?: boolean;
         };
       }
 
@@ -280,6 +281,7 @@ declare module '../http/http-operation.js' {
           type?: Type | string;
           immediateFetch?: boolean;
           allowPatchOperators?: boolean;
+          allowNullOptionals?: boolean;
         };
       }
     }

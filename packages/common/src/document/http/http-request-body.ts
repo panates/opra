@@ -16,6 +16,7 @@ export namespace HttpRequestBody {
     content: HttpMediaType.Metadata[];
     immediateFetch?: boolean;
     allowPatchOperators?: boolean;
+    allowNullOptionals?: boolean;
     keepKeyFields?: boolean;
   }
 
@@ -24,6 +25,7 @@ export namespace HttpRequestBody {
   > {
     immediateFetch?: boolean;
     allowPatchOperators?: boolean;
+    allowNullOptionals?: boolean;
     keepKeyFields?: boolean;
   }
 }
@@ -41,6 +43,7 @@ export class HttpRequestBody extends DocumentElement {
   partial?: boolean | 'deep';
   allowPatchOperators?: boolean;
   keepKeyFields?: boolean;
+  allowNullOptionals?: boolean;
 
   constructor(owner: HttpOperation) {
     super(owner);
@@ -56,6 +59,7 @@ export class HttpRequestBody extends DocumentElement {
         : [],
       partial: this.partial,
       allowPatchOperators: this.allowPatchOperators,
+      allowNullOptionals: this.allowNullOptionals,
     });
   }
 }

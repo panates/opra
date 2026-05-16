@@ -38,6 +38,8 @@ lerna-debug.log*
 
 # IDEs and editors
 /.idea
+/.claude
+/graphify-out
 .project
 .classpath
 .c9/

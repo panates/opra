@@ -632,6 +632,7 @@ export class ElasticEntityService<
     if (operation === 'update') {
       options.partial = 'deep';
       options.keepKeyFields = true;
+      options.allowNullOptionals = true;
     }
     validator = dataType.generateCodec(
       'decode',

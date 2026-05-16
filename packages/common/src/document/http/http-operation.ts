@@ -38,6 +38,7 @@ export namespace HttpOperation {
     requestBody?: HttpRequestBody.Metadata;
     immediateFetch?: boolean;
     allowPatchOperators?: boolean;
+    allowNullOptionals?: boolean;
   }
 
   export interface Options extends Partial<
@@ -49,6 +50,7 @@ export namespace HttpOperation {
       | 'method'
       | 'immediateFetch'
       | 'allowPatchOperators'
+      | 'allowNullOptionals'
     >
   > {
     requestBody?: HttpRequestBody.Options;
@@ -69,6 +71,7 @@ export namespace HttpOperation {
       | 'compositionOptions'
       | 'immediateFetch'
       | 'allowPatchOperators'
+      | 'allowNullOptionals'
     >
   > {}
 }

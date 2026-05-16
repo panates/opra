@@ -396,6 +396,7 @@ export class HttpApiFactory {
     ).immediateFetch;
     target.partial = metadata.partial;
     target.allowPatchOperators = metadata.allowPatchOperators;
+    target.allowNullOptionals = metadata.allowNullOptionals;
     target.keepKeyFields = (metadata as HttpRequestBody.Metadata).keepKeyFields;
     if (metadata.content) {
       await context.enterAsync('.content', async () => {

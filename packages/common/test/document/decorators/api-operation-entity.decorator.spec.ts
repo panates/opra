@@ -713,6 +713,7 @@ describe('common:HttpOperation.Entity.* decorators', () => {
         required: true,
         immediateFetch: true,
         partial: 'deep',
+        allowNullOptionals: true,
         allowPatchOperators: true,
         keepKeyFields: true,
       });
@@ -853,6 +854,7 @@ describe('common:HttpOperation.Entity.* decorators', () => {
         required: true,
         immediateFetch: true,
         partial: 'deep',
+        allowNullOptionals: true,
         allowPatchOperators: true,
         keepKeyFields: true,
       });

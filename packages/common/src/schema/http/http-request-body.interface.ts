@@ -36,4 +36,9 @@ export interface HttpRequestBody {
    *
    */
   allowPatchOperators?: boolean;
+
+  /**
+   * Determines if optional fields can be null
+   */
+  allowNullOptionals?: boolean;
 }

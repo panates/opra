@@ -563,6 +563,7 @@ export class MongoService<
       options.partial = 'deep';
       options.allowPatchOperators = true;
       options.keepKeyFields = true;
+      options.allowNullOptionals = true;
     }
     validator = dataType.generateCodec(
       'decode',

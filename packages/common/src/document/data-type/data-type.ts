@@ -44,6 +44,7 @@ export namespace DataType {
     ignoreReadonlyFields?: boolean;
     ignoreWriteonlyFields?: boolean;
     allowPatchOperators?: boolean;
+    allowNullOptionals?: boolean;
     fieldHook?: (
       field: ApiField,
       currentPath: string,

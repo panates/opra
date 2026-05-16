@@ -386,7 +386,10 @@ export class SqbEntityService<
         return vg.oneOf([defaultGenerator(), vg.isInstanceOf(SqlElement)]);
       },
     };
-    if (operation === 'update') options.partial = 'deep';
+    if (operation === 'update') {
+      options.partial = 'deep';
+      options.allowNullOptionals = true;
+    }
     validator = dataType.generateCodec(
       'decode',
       options,

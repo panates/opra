@@ -104,13 +104,6 @@ export class KafkaAdapter extends PlatformAdapter<KafkaAdapter.Events> {
   get api(): MQApi {
     return this.document.getMqApi();
   }
-  //
-  // /**
-  //  * Gets the Kafka client instance.
-  //  */
-  // get kafka(): Kafka {
-  //   return this._kafka;
-  // }
 
   /**
    * Gets the configuration scope for the adapter.

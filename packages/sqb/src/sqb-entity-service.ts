@@ -163,7 +163,7 @@ export namespace SqbEntityService {
     'documentId'
   > {
     crud: 'create';
-    input: PatchDTO<T>;
+    input: PartialDTO<T>;
     options?: CreateOptions;
   }
 

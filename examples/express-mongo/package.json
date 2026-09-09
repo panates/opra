@@ -10,7 +10,7 @@
     "@opra/mongodb": "^1.29.12",
     "express": "^5.2.1",
     "mongodb": "^7.6.0",
-    "ts-gems": "^3.12.0"
+    "ts-gems": "^4.0.3"
   },
   "scripts": {
     "_build": "tsc && npm run check && npm run lint && npm run format",

@@ -10,8 +10,8 @@
     "@sqb/builder": "^6.0.7",
     "@sqb/connect": "^6.0.7",
     "@sqb/postgres": "^6.0.7",
-    "postgrejs": "^3.0.3",
-    "ts-gems": "^3.12.0"
+    "postgrejs": "^3.0.4",
+    "ts-gems": "^4.0.3"
   },
   "scripts": {
     "_build": "tsc && npm run check && npm run lint && npm run format",

@@ -41,7 +41,7 @@
     "multipart-stream": "^2.0.1",
     "rxjs": "^7.8.2",
     "supertest": "^7.2.2",
-    "ts-gems": "^3.12.0"
+    "ts-gems": "^4.0.3"
   },
   "exports": {
     ".": {

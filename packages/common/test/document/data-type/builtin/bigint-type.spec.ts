@@ -38,6 +38,6 @@ describe('common:Builtin type: bigint', () => {
     const dt = doc.node.getSimpleType('bigint');
     expect(dt).toBeDefined();
     const decode = dt.generateCodec('decode', null, { maxValue: 10 });
-    expect(() => decode(11)).toThrow('Value must be lover than or equal to 10');
+    expect(() => decode(11)).toThrow('Value must be lower than or equal to 10');
   });
 });

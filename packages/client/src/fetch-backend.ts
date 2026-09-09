@@ -2,6 +2,7 @@
 import typeIs from '@browsery/type-is';
 import { omit } from '@jsopen/objects';
 import { isBlob, isFormData } from '@opra/common';
+import { Buffer } from 'buffer';
 import { Observable } from 'rxjs';
 import { isReadableStreamLike } from 'rxjs/internal/util/isReadableStreamLike';
 import type { Combine, StrictOmit } from 'ts-gems';

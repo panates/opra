@@ -4,6 +4,7 @@ import MultipartStream from '@browsery/multipart-stream';
 import typeIs from '@browsery/type-is';
 import { omit } from '@jsopen/objects';
 import { MimeTypes, type URLSearchParamsInit } from '@opra/common';
+import { Buffer } from 'buffer';
 import * as MP from 'multipasta/node';
 import { lastValueFrom, Observable } from 'rxjs';
 import { ClientError } from './client-error.js';
@@ -14,6 +15,29 @@ import { HttpRequestObservable } from './http-request-observable.js';
 import { HttpResponse } from './http-response.js';
 import { serializeHttpRequest } from './http-utils.js';
 import { HttpEventType } from './interfaces/http-event.js';
+
+/**
+ * Fully drains a Node-style Readable into a single Buffer.
+ *
+ * The multipart body is built upfront in memory anyway (every sub-request is
+ * already known), so there is no reason to hand `fetch()` a streaming body —
+ * doing so hits two unrelated environment bugs: `@browsery/stream`'s
+ * `Readable.toWeb()` is unimplemented (its internal `lazyWebStreams()`
+ * returns `{}` and is never populated, so calling it throws), and even a
+ * hand-rolled web-stream body trips Chrome's refusal to send a streaming
+ * (`duplex: "half"`) fetch body over plain HTTP/1.1 — it only allows that
+ * over HTTP/2, so the request fails with `TypeError: Failed to fetch`
+ * before ever reaching the network. A plain `Buffer` body sidesteps both.
+ */
+async function readableToBuffer(readable: Readable): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of readable as unknown as AsyncIterable<
+    Uint8Array | string
+  >) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
 
 /**
  *
@@ -52,28 +76,6 @@ export class HttpBundleObservable<
         return;
       }
 
-      /* Build the multipart body from sub-requests */
-      const multipartStream = new MultipartStream();
-      for (const req of requests) {
-        multipartStream.addPart({
-          headers: {
-            'Content-Type': 'application/http',
-            'Content-Transfer-Encoding': 'binary',
-            'X-Request-Id': req.requestId,
-          },
-          body: serializeHttpRequest(req[kContext]),
-        });
-      }
-
-      /* Convert Node.js Readable → web ReadableStream so FetchBackend
-         recognises it as a stream (checks for getReader()) and sets duplex */
-      this[kContext].body = Readable.toWeb(
-        multipartStream as unknown as Readable,
-      );
-      this[kContext].headers.set(
-        'Content-Type',
-        `multipart/mixed; boundary=${multipartStream.boundary}`,
-      );
       const _this = this;
 
       /* Parsing the multipart response is asynchronous, but the source
@@ -83,120 +85,150 @@ export class HttpBundleObservable<
          is ever called (surfacing as "no elements in sequence" downstream) */
       let handled = false;
 
-      new HttpInterceptorHandler(backend.interceptors || [], this[kBackend])
-        .handle(this[kContext])
-        .subscribe({
-          next(event) {
-            if (event.type === HttpEventType.Response) {
-              handled = true;
-              const { response } = event;
+      /* Building the body is async (it's fully buffered upfront — see
+         readableToBuffer), so the dispatch has to wait for it too */
+      (async () => {
+        /* Build the multipart body from sub-requests */
+        const multipartStream = new MultipartStream();
+        for (const req of requests) {
+          multipartStream.addPart({
+            headers: {
+              'Content-Type': 'application/http',
+              'Content-Transfer-Encoding': 'binary',
+              'X-Request-Id': req.requestId,
+            },
+            body: serializeHttpRequest(req[kContext]),
+          });
+        }
 
-              if (response.status >= 400 && response.status < 600) {
-                const error = new ClientError({
-                  message: response.status + ' ' + response.statusText,
-                  status: response.status,
-                });
-                for (const req of requests) req._finalizeError(error);
-                subscriber.error(error);
-                subscriber.complete();
-                return;
-              }
+        this[kContext].body = await readableToBuffer(
+          multipartStream as unknown as Readable,
+        );
+        this[kContext].headers.set(
+          'Content-Type',
+          `multipart/mixed; boundary=${multipartStream.boundary}`,
+        );
 
-              if (
-                !typeIs.is(response.contentType || '', [
-                  MimeTypes.multipart_mixed,
-                ])
-              ) {
-                const error = new ClientError({
-                  message: 'Server did not return a multipart/mixed response',
-                  status: 500,
-                });
-                for (const req of requests) req._finalizeError(error);
-                subscriber.error(error);
-                subscriber.complete();
-                return;
-              }
+        new HttpInterceptorHandler(backend.interceptors || [], this[kBackend])
+          .handle(this[kContext])
+          .subscribe({
+            next(event) {
+              if (event.type === HttpEventType.Response) {
+                handled = true;
+                const { response } = event;
 
-              /* Parse multipart/mixed response */
-              const rawBody = response.body as ArrayBuffer | undefined;
-              if (!rawBody?.byteLength) {
-                const fallback = new HttpResponse({
-                  status: 0,
-                  statusText: 'No response',
-                });
-                for (const req of requests) {
-                  // @ts-ignore
-                  req._finalize(fallback);
+                if (response.status >= 400 && response.status < 600) {
+                  const error = new ClientError({
+                    message: response.status + ' ' + response.statusText,
+                    status: response.status,
+                  });
+                  for (const req of requests) req._finalizeError(error);
+                  subscriber.error(error);
+                  subscriber.complete();
+                  return;
                 }
-                subscriber.next([]);
-                subscriber.complete();
-                return;
-              }
 
-              /* Match each request by its unique requestId so it can be
-                   finalized as soon as its part is parsed, without waiting
-                   for the rest of the bundle */
-              const requestQueue = new Map(
-                requests.map(req => [req.requestId, req]),
-              );
-              const responseMap = new Map<string, HttpResponse>();
-              /* Must include the boundary parameter, so use the raw header
-                 rather than HttpResponse#contentType (which strips it) */
-              const contentTypeHeader =
-                response.headers.get('content-type') || '';
+                if (
+                  !typeIs.is(response.contentType || '', [
+                    MimeTypes.multipart_mixed,
+                  ])
+                ) {
+                  const error = new ClientError({
+                    message: 'Server did not return a multipart/mixed response',
+                    status: 500,
+                  });
+                  for (const req of requests) req._finalizeError(error);
+                  subscriber.error(error);
+                  subscriber.complete();
+                  return;
+                }
 
-              /* Parse parts via multipasta; each part is matched and its
-                   request finalized as soon as it becomes available */
-              _this
-                ._parseMultipartParts(
-                  Buffer.from(rawBody),
-                  contentTypeHeader,
-                  part => {
-                    const requestId = part.headers['x-request-id'];
-                    if (!requestId) return;
-                    const partResponse = _this._parseRawHttpResponse(part.body);
-                    responseMap.set(requestId, partResponse);
-                    // @ts-ignore
-                    requestQueue.get(requestId)?._finalize(partResponse);
-                    requestQueue.delete(requestId);
-                  },
-                )
-                .then(() => {
-                  /* Finalize any request whose part never arrived so its
-                     subscribers/promises don't hang forever */
-                  for (const req of requestQueue.values()) {
-                    const fallback = new HttpResponse({
-                      status: 0,
-                      statusText: 'No response',
-                    });
-                    responseMap.set(req.requestId, fallback);
+                /* Parse multipart/mixed response */
+                const rawBody = response.body as ArrayBuffer | undefined;
+                if (!rawBody?.byteLength) {
+                  const fallback = new HttpResponse({
+                    status: 0,
+                    statusText: 'No response',
+                  });
+                  for (const req of requests) {
                     // @ts-ignore
                     req._finalize(fallback);
                   }
-                  /* Emit responses in original request order */
-                  const responses = requests.map(req =>
-                    responseMap.get(req.requestId)!,
-                  );
-                  subscriber.next(responses);
+                  subscriber.next([]);
                   subscriber.complete();
-                })
-                .catch(err => {
-                  for (const req of requests) req._finalizeError(err);
-                  subscriber.error(err);
-                });
-            }
-          },
-          error(error) {
-            handled = true;
-            for (const req of requests) req._finalizeError(error);
-            subscriber.error(error);
-          },
-          complete() {
-            /* The Response branch (sync or async) always terminates the
+                  return;
+                }
+
+                /* Match each request by its unique requestId so it can be
+                   finalized as soon as its part is parsed, without waiting
+                   for the rest of the bundle */
+                const requestQueue = new Map(
+                  requests.map(req => [req.requestId, req]),
+                );
+                const responseMap = new Map<string, HttpResponse>();
+                /* Must include the boundary parameter, so use the raw header
+                 rather than HttpResponse#contentType (which strips it) */
+                const contentTypeHeader =
+                  response.headers.get('content-type') || '';
+
+                /* Parse parts via multipasta; each part is matched and its
+                   request finalized as soon as it becomes available */
+                _this
+                  ._parseMultipartParts(
+                    Buffer.from(rawBody),
+                    contentTypeHeader,
+                    part => {
+                      const requestId = part.headers['x-request-id'];
+                      if (!requestId) return;
+                      const partResponse = _this._parseRawHttpResponse(
+                        part.body,
+                      );
+                      responseMap.set(requestId, partResponse);
+                      // @ts-ignore
+                      requestQueue.get(requestId)?._finalize(partResponse);
+                      requestQueue.delete(requestId);
+                    },
+                  )
+                  .then(() => {
+                    /* Finalize any request whose part never arrived so its
+                     subscribers/promises don't hang forever */
+                    for (const req of requestQueue.values()) {
+                      const fallback = new HttpResponse({
+                        status: 0,
+                        statusText: 'No response',
+                      });
+                      responseMap.set(req.requestId, fallback);
+                      // @ts-ignore
+                      req._finalize(fallback);
+                    }
+                    /* Emit responses in original request order */
+                    const responses = requests.map(req =>
+                      responseMap.get(req.requestId)!,
+                    );
+                    subscriber.next(responses);
+                    subscriber.complete();
+                  })
+                  .catch(err => {
+                    for (const req of requests) req._finalizeError(err);
+                    subscriber.error(err);
+                  });
+              }
+            },
+            error(error) {
+              handled = true;
+              for (const req of requests) req._finalizeError(error);
+              subscriber.error(error);
+            },
+            complete() {
+              /* The Response branch (sync or async) always terminates the
                subscriber itself; only act as a fallback if it never ran */
-            if (!handled) subscriber.complete();
-          },
-        });
+              if (!handled) subscriber.complete();
+            },
+          });
+      })().catch(err => {
+        for (const req of requests) req._finalizeError(err);
+        subscriber.error(err);
+      });
     });
     Object.defineProperty(this, kBackend, {
       enumerable: false,

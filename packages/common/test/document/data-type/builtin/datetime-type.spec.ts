@@ -73,7 +73,7 @@ describe('common:Builtin type: datetime', () => {
       maxValue: '2020-02-10',
     });
     expect(() => decode('2020-02-12', { coerce: true })).toThrow(
-      'Value must be lover than or equal to',
+      'Value must be lower than or equal to',
     );
   });
 });

@@ -267,7 +267,7 @@ export class MongoCollectionService<
       const findCommand = command as MongoEntityService.FindOneCommand<T>;
       const documentFilter = await this._getDocumentFilter(command);
       if (documentFilter) {
-        const filter = MongoAdapter.prepareFilter([
+        const filter = MongoAdapter.prepareFilter<T>([
           documentFilter,
           command.options?.filter,
         ]);

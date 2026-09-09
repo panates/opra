@@ -1,5 +1,4 @@
 /* eslint-disable import-x/no-extraneous-dependencies */
-import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,7 +16,7 @@ const external = [
   ...Object.keys(pkgJson.peerDependencies || {}),
   ...Object.keys(pkgJson.devDependencies || {}),
 ];
-external.slice(external.indexOf('multipasta'), 1);
+external.splice(external.indexOf('multipasta'), 1);
 
 await esbuild.build({
   format: 'esm',
@@ -48,21 +47,4 @@ await esbuild.build({
 *****************************************/
 `,
   },
-  plugins: [
-    {
-      name: 'Custom',
-      setup(build) {
-        build.onLoad({ filter: /.*/ }, args => {
-          if (args.path === entryPoint) {
-            const contents =
-              `import { Buffer } from 'buffer';\nglobalThis.Buffer = Buffer;\n` +
-              fs.readFileSync(entryPoint, 'utf-8');
-            return {
-              contents,
-            };
-          }
-        });
-      },
-    },
-  ],
 });

@@ -44,6 +44,6 @@ describe('common:Builtin type: integer', () => {
     const dt = doc.node.getSimpleType('integer');
     expect(dt).toBeDefined();
     const decode = dt.generateCodec('decode', null, { maxValue: 10 });
-    expect(() => decode(11)).toThrow('Value must be lover than or equal to 10');
+    expect(() => decode(11)).toThrow('Value must be lower than or equal to 10');
   });
 });

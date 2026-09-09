@@ -1,4 +1,5 @@
 import { PassThrough } from 'node:stream';
+import { Buffer } from 'buffer';
 
 const CRLF = '\r\n';
 

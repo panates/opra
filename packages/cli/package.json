@@ -1,6 +1,6 @@
 {
   "name": "@opra/cli",
-  "version": "1.29.12",
+  "version": "1.30.0",
   "description": "Opra CLI tools",
   "author": "Panates",
   "license": "MIT",
@@ -32,8 +32,8 @@
     "tslib": "^2.8.1"
   },
   "peerDependencies": {
-    "@opra/client": "^1.29.12",
-    "@opra/common": "^1.29.12"
+    "@opra/client": "^1.30.0",
+    "@opra/common": "^1.30.0"
   },
   "type": "module",
   "module": "./index.js",

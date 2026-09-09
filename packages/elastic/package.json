@@ -1,6 +1,6 @@
 {
   "name": "@opra/elastic",
-  "version": "1.29.12",
+  "version": "1.30.0",
   "description": "Opra Elastic Search adapter package",
   "author": "Panates",
   "license": "MIT",
@@ -28,12 +28,12 @@
   },
   "peerDependencies": {
     "@elastic/elasticsearch": ">=8.7.0 <10",
-    "@opra/common": "^1.29.12",
-    "@opra/core": "^1.29.12"
+    "@opra/common": "^1.30.0",
+    "@opra/core": "^1.30.0"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",
-    "@opra/http": "^1.29.12",
+    "@opra/http": "^1.30.0",
     "expect": "^30.5.1",
     "sinon": "^22.1.0",
     "ts-gems": "^4.0.3"

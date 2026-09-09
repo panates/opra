@@ -37,7 +37,7 @@ describe('common:Builtin type: time', () => {
     const decode = dt.generateCodec('decode', null, { maxValue: '10:00:00' });
     expect(decode('09:30:45')).toStrictEqual('09:30:45');
     expect(() => decode('10:30:45')).toThrow(
-      'Value must be lover than or equal to',
+      'Value must be lower than or equal to',
     );
   });
 });

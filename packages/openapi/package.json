@@ -1,0 +1,62 @@
+{
+  "name": "@opra/openapi",
+  "version": "1.29.12",
+  "description": "Generates OpenAPI (Swagger) documents from an Opra ApiDocument",
+  "author": "Panates",
+  "license": "MIT",
+  "homepage": "https://www.oprajs.com",
+  "scripts": {
+    "compile": "tsc",
+    "prebuild": "npm run check && npm run lint && npm run clean",
+    "build": "tsc -b tsconfig-build.json",
+    "postbuild": "node ../../support/postbuild.cjs",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --max-warnings=0 --fix",
+    "format": "prettier . --write --log-level=warn",
+    "check": "dpdm -T --no-warning --no-tree ./src/index.ts",
+    "test": "mocha",
+    "clean": "npm run clean:src && npm run clean:test && npm run clean:build && npm run clean:cover",
+    "clean:src": "ts-cleanup -s src --all",
+    "clean:test": "ts-cleanup -s test --all",
+    "clean:build": "rimraf build *.tsbuildinfo",
+    "clean:cover": "rimraf ../../coverage/openapi"
+  },
+  "dependencies": {
+    "@jsopen/objects": "^2.3.1",
+    "tslib": "^2.8.1"
+  },
+  "peerDependencies": {
+    "@opra/common": "^1.29.12"
+  },
+  "devDependencies": {
+    "expect": "^30.5.1",
+    "reflect-metadata": "^0.2.2"
+  },
+  "type": "module",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=20.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/panates/opra.git",
+    "directory": "packages/openapi"
+  },
+  "keywords": [
+    "opra",
+    "openapi",
+    "swagger",
+    "schema"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

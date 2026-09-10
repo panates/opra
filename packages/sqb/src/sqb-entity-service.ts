@@ -1,3 +1,4 @@
+import { omitNullish } from '@jsopen/objects';
 import { ComplexType, DataType, InternalServerError } from '@opra/common';
 import { ExecutionContext, ServiceBase } from '@opra/core';
 import { sql, SqlElement } from '@sqb/builder';
@@ -435,7 +436,7 @@ export class SqbEntityService<
     isNotNullish(command.input, { label: 'input' });
     const inputCodec = this.getInputCodec('create');
     const outputCodec = this.getOutputCodec('create');
-    const data = inputCodec(input);
+    const data = inputCodec(omitNullish(input));
     const conn = await this.getConnection();
     const repo = conn.getRepository(this.dataTypeClass);
     const out = await repo.create(data, options);

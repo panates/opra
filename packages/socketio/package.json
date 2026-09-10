@@ -1,6 +1,6 @@
 {
   "name": "@opra/socketio",
-  "version": "1.30.0",
+  "version": "1.30.1",
   "description": "Opra Socket.IO adapter",
   "author": "Panates",
   "license": "MIT",
@@ -31,8 +31,8 @@
     "valgen": "^7.0.0"
   },
   "peerDependencies": {
-    "@opra/common": "^1.30.0",
-    "@opra/core": "^1.30.0",
+    "@opra/common": "^1.30.1",
+    "@opra/core": "^1.30.1",
     "socket.io": ">=4.0.0"
   },
   "devDependencies": {

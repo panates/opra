@@ -1,6 +1,6 @@
 {
   "name": "@opra/openapi",
-  "version": "1.30.0",
+  "version": "1.30.1",
   "description": "Generates OpenAPI (Swagger) documents from an Opra ApiDocument",
   "author": "Panates",
   "license": "MIT",
@@ -26,7 +26,7 @@
     "tslib": "^2.8.1"
   },
   "peerDependencies": {
-    "@opra/common": "^1.30.0"
+    "@opra/common": "^1.30.1"
   },
   "devDependencies": {
     "expect": "^30.5.1",

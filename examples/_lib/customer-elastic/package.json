@@ -1,19 +1,19 @@
 {
   "name": "example-customer-elastic",
   "private": true,
-  "version": "1.30.0",
+  "version": "1.30.1",
   "type": "module",
   "module": "./index.js",
   "dependencies": {
     "@elastic/elasticsearch": "^9.5.1",
-    "@opra/common": "^1.30.0",
-    "@opra/mongodb": "^1.30.0",
+    "@opra/common": "^1.30.1",
+    "@opra/mongodb": "^1.30.1",
     "ts-gems": "^4.0.3"
   },
   "scripts": {
     "_build": "tsc && npm run check && npm run lint && npm run format",
     "lint": "eslint . --max-warnings=0",
-    "check": "dpdm -T --no-warning --no-tree ./index.ts",
+    "check": "dpdm -T --no-warning --no-tree --exit-code circular:1 ./index.ts",
     "format": "prettier . --write --log-level=warn"
   }
 }

@@ -1,13 +1,13 @@
 {
   "name": "example-express-sqb",
   "private": true,
-  "version": "1.30.0",
+  "version": "1.30.1",
   "type": "module",
   "module": "./index.js",
   "dependencies": {
-    "@opra/common": "^1.30.0",
-    "@opra/core": "^1.30.0",
-    "@opra/sqb": "^1.30.0",
+    "@opra/common": "^1.30.1",
+    "@opra/core": "^1.30.1",
+    "@opra/sqb": "^1.30.1",
     "@sqb/connect": "^6.0.7",
     "@sqb/postgres": "^6.0.7",
     "express": "^5.2.1",
@@ -16,7 +16,7 @@
   "scripts": {
     "_build": "tsc && npm run check && npm run lint && npm run format",
     "lint": "eslint . --max-warnings=0",
-    "check": "dpdm -T --no-warning --no-tree ./index.ts",
+    "check": "dpdm -T --no-warning --no-tree --exit-code circular:1 ./index.ts",
     "format": "prettier . --write --log-level=warn",
     "start": "node --loader ../../support/esloader.mjs --experimental-specifier-resolution=node --import=./logerror.js src/start.ts"
   }

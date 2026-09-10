@@ -1,6 +1,6 @@
 {
   "name": "@opra/sqb",
-  "version": "1.30.0",
+  "version": "1.30.1",
   "description": "Opra SQB adapter package",
   "author": "Panates",
   "license": "MIT",
@@ -22,13 +22,14 @@
     "clean:cover": "rimraf ../../coverage/sqb"
   },
   "dependencies": {
+    "@jsopen/objects": "^2.3.1",
     "reflect-metadata": "^0.2.2",
     "tslib": "^2.8.1",
     "valgen": "^7.0.0"
   },
   "peerDependencies": {
-    "@opra/core": "^1.30.0",
-    "@opra/http": "^1.30.0",
+    "@opra/core": "^1.30.1",
+    "@opra/http": "^1.30.1",
     "@sqb/builder": "^5 || ^6",
     "@sqb/connect": "^5 || ^6"
   },

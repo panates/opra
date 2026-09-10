@@ -16,7 +16,7 @@
   "scripts": {
     "_build": "tsc && npm run check && npm run lint && npm run format",
     "lint": "eslint . --max-warnings=0",
-    "check": "dpdm -T --no-warning --no-tree ./index.ts",
+    "check": "dpdm -T --no-warning --no-tree --exit-code circular:1 ./index.ts",
     "format": "prettier . --write --log-level=warn",
     "start": "node --loader ../../support/esloader.mjs --experimental-specifier-resolution=node --import=./logerror.js src/start.ts"
   }

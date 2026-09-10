@@ -1,3 +1,4 @@
+import { expressApiUi } from '@opra/api-ui';
 import { ApiDocument } from '@opra/common';
 import { ExpressAdapter, HttpAdapter } from '@opra/http';
 import express from 'express';
@@ -27,6 +28,15 @@ export class CustomerApplication {
     }
     app.document = await CustomerApiDocument.create(app.db);
     app.express = express();
+    // Mounted before ExpressAdapter — its router is mounted at "/" and
+    // would otherwise swallow "/ui" with a "no endpoint found" error.
+    app.express.use(
+      '/ui',
+      expressApiUi(app.document, {
+        pageTitle: 'Customer Application',
+        scope: 'api',
+      }),
+    );
     app.adapter = new ExpressAdapter(app.express, app.document, {
       scope: 'api',
       ...options,

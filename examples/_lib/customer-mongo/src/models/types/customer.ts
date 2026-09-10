@@ -21,43 +21,64 @@ export class Customer extends MixinType([Record, Person]) {
     super(init);
   }
 
-  @ApiField()
+  @ApiField({ description: 'External/user-facing unique identifier' })
   declare uid?: string;
 
-  @ApiField()
+  @ApiField({ description: 'Whether the customer account is active' })
   declare active: boolean;
 
-  @ApiField()
+  @ApiField({ description: 'ISO 3166-1 alpha-2 country code of the customer' })
   declare countryCode: string;
 
   @ApiField({
+    description: 'Loyalty/pricing rate applied to the customer',
     default: 1,
   })
   declare rate: number;
 
-  @ApiField({ exclusive: true })
+  @ApiField({
+    description: 'Postal address of the customer',
+    exclusive: true,
+  })
   declare address?: Address;
 
-  @ApiField({ type: Note, exclusive: true, isNestedEntity: true })
+  @ApiField({
+    description: 'Notes attached to the customer',
+    type: Note,
+    exclusive: true,
+    isNestedEntity: true,
+  })
   declare notes?: Note[];
 
-  @ApiField({ type: PhoneNumber, exclusive: true })
+  @ApiField({
+    description: 'Phone numbers of the customer',
+    type: PhoneNumber,
+    exclusive: true,
+  })
   declare phoneNumbers?: PhoneNumber[];
 
-  @ApiField({ exclusive: true, readonly: true })
+  @ApiField({
+    description: 'Country of the customer, resolved from countryCode',
+    exclusive: true,
+    readonly: true,
+  })
   declare readonly country?: Country;
 
   @ApiField({
+    description: 'Free-form labels attached to the customer',
     type: ArrayType(String),
   })
   declare tags?: string[];
 
   @ApiField({
+    description: 'Internal field only visible in the "db" scope',
     scopePattern: 'db',
   })
   dbField?: string;
 
   @ApiField({
+    description:
+      'Whether the customer has a branch — either a flag or a branch count',
     type: UnionType([Boolean, Number]),
   })
   declare hasBranch: boolean | number;

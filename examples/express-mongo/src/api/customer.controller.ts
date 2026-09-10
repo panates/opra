@@ -7,11 +7,15 @@ import { type PartialDTO } from 'ts-gems';
 import { CustomerNotesController } from './customer-notes.controller.js';
 
 @(HttpController({
+  description: 'A single customer, addressed by id',
   path: 'Customers',
   controllers: [
     (parent: CustomerController) => new CustomerNotesController(parent.db),
   ],
-}).KeyParam('customerId', 'number'))
+}).KeyParam('customerId', {
+  type: 'number',
+  description: 'Id of the customer',
+}))
 export class CustomerController {
   service: CustomersService;
 
@@ -19,25 +23,34 @@ export class CustomerController {
     this.service = new CustomersService({ db });
   }
 
-  @(HttpOperation.Entity.Get(Customer).QueryParam('xId'))
+  @(HttpOperation.Entity.Get(Customer, {
+    description: 'Returns a single customer by id',
+  }).QueryParam('xId', { description: 'Example of an ad-hoc query parameter' }))
   async get(context: HttpContext): Promise<PartialDTO<Customer> | undefined> {
     const { key, options } = await MongoAdapter.parseRequest(context);
     return this.service.for(context).findById(key, options);
   }
 
-  @HttpOperation.Entity.Delete(Customer)
+  @HttpOperation.Entity.Delete(Customer, {
+    description: 'Deletes a single customer by id',
+  })
   async delete(context: HttpContext) {
     const { key, options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).delete(key, options);
   }
 
-  @HttpOperation.Entity.Update(Customer)
+  @HttpOperation.Entity.Update(Customer, {
+    description: 'Updates a single customer by id',
+  })
   async update(context: HttpContext) {
     const { key, data, options } = await MongoAdapter.parseRequest(context);
     return this.service.for(context).update(key, data, options);
   }
 
-  @(HttpOperation.GET().QueryParam('status', {
+  @(HttpOperation.GET({
+    description: 'Sets the active/hidden status of a customer',
+  }).QueryParam('status', {
+    description: 'New status to set',
     type: EnumType(['active', 'hidden']),
   }))
   async setStatus(context: HttpContext) {

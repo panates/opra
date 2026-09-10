@@ -3,7 +3,8 @@ import { type PartialDTO } from 'ts-gems';
 
 @ComplexType({
   abstract: true,
-  description: 'Base Record schema',
+  description:
+    'Base schema shared by every persisted entity — the storage key and soft-delete/audit timestamps',
   keyField: '_id',
 })
 export class Record {
@@ -12,6 +13,7 @@ export class Record {
   }
 
   @(ApiField({
+    description: 'Unique identifier of the record',
     readonly: true,
   }).Override('db', {
     readonly: false,
@@ -19,6 +21,7 @@ export class Record {
   declare _id: number;
 
   @(ApiField({
+    description: 'Whether the record has been soft-deleted',
     readonly: true,
   }).Override('db', {
     readonly: false,
@@ -26,6 +29,7 @@ export class Record {
   declare deleted?: boolean;
 
   @(ApiField({
+    description: 'Date and time the record was created',
     readonly: true,
   }).Override('db', {
     readonly: false,
@@ -33,6 +37,7 @@ export class Record {
   declare createdAt: Date;
 
   @(ApiField({
+    description: 'Date and time the record was last updated',
     readonly: true,
   }).Override('db', {
     readonly: false,

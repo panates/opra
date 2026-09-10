@@ -10,6 +10,7 @@ export default [
       'packages/*/build/**/*',
       'packages/*/coverage/**/*',
       'packages/common/src/filter/antlr/**/*',
+      'packages/api-ui/assets/**/*',
     ],
   },
   ...panatesEslint.configs.node,

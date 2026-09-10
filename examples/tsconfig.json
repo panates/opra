@@ -6,6 +6,7 @@
     "forceConsistentCasingInFileNames": true,
     "sourceMap": true,
     "paths": {
+      "@opra/api-ui": ["../packages/api-ui/src/index.js"],
       "@opra/common": ["../packages/common/src/index.js"],
       "@opra/core": ["../packages/core/src/index.js"],
       "@opra/http": ["../packages/http/src/index.js"],

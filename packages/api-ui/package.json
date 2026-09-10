@@ -1,0 +1,69 @@
+{
+  "name": "@opra/api-ui",
+  "version": "1.30.0",
+  "description": "Modern, interactive API reference UI rendering an Opra ApiDocument's native schema",
+  "author": "Panates",
+  "license": "MIT",
+  "homepage": "https://www.oprajs.com",
+  "scripts": {
+    "compile": "tsc",
+    "prebuild": "npm run check && npm run lint && npm run clean",
+    "build": "tsc -b tsconfig-build.json",
+    "postbuild": "node ../../support/postbuild.cjs && cp -R assets ./build/assets",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --max-warnings=0 --fix",
+    "format": "prettier . --write --log-level=warn",
+    "check": "dpdm -T --no-warning --no-tree ./src/index.ts",
+    "test": "mocha",
+    "clean": "npm run clean:src && npm run clean:test && npm run clean:build && npm run clean:cover",
+    "clean:src": "ts-cleanup -s src --all",
+    "clean:test": "ts-cleanup -s test --all",
+    "clean:build": "rimraf build *.tsbuildinfo",
+    "clean:cover": "rimraf ../../coverage/api-ui"
+  },
+  "dependencies": {
+    "@jsopen/objects": "^2.3.1",
+    "tslib": "^2.8.1"
+  },
+  "peerDependencies": {
+    "@opra/common": "^1.30.0"
+  },
+  "optionalDependencies": {
+    "express": "^4.0.0 || ^5.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "expect": "^30.5.1",
+    "express": "^5.1.0",
+    "reflect-metadata": "^0.2.2",
+    "supertest": "^7.2.2"
+  },
+  "type": "module",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=20.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/panates/opra.git",
+    "directory": "packages/api-ui"
+  },
+  "keywords": [
+    "opra",
+    "api",
+    "reference",
+    "documentation",
+    "ui"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

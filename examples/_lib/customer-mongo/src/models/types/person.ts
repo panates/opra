@@ -5,20 +5,21 @@ import { Gender } from '../enums/gender.js';
   description: 'Person information',
 })
 export class Person {
-  @ApiField()
+  @ApiField({ description: 'Given (first) name' })
   declare givenName: string;
 
-  @ApiField()
+  @ApiField({ description: 'Family (last) name' })
   declare familyName: string;
 
-  @ApiField({ type: Gender })
+  @ApiField({ description: 'Gender of the person', type: Gender })
   declare gender: Gender;
 
   @ApiField({
+    description: 'Date of birth',
     type: 'date',
   })
   declare birthDate?: Date;
 
-  @ApiField()
+  @ApiField({ description: 'Secondary date field used for testing purposes' })
   declare date2?: string;
 }

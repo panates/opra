@@ -11,6 +11,8 @@ export namespace CustomerApiDocument {
       info: {
         title: 'Customer Application',
         version: '1.0',
+        description:
+          'Sample Opra API demonstrating authentication, a user profile, and a customer/notes CRUD API backed by MongoDB',
       },
       references: {
         cm: () => CustomerModelsDocument.create(),

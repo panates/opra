@@ -4,12 +4,12 @@ import { ApiField, ComplexType } from '@opra/common';
   description: 'Country information',
 })
 export class Country {
-  @ApiField()
+  @ApiField({ description: 'ISO 3166-1 alpha-2 country code' })
   declare code: string;
 
-  @ApiField()
+  @ApiField({ description: 'Country name' })
   declare name: string;
 
-  @ApiField()
+  @ApiField({ description: 'International calling code' })
   declare phoneCode?: string;
 }

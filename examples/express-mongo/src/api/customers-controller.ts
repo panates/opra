@@ -11,6 +11,7 @@ import { Db } from 'mongodb';
 import { type PartialDTO } from 'ts-gems';
 
 @HttpController({
+  description: 'The customers collection',
   path: 'Customers',
 })
 export class CustomersController {
@@ -21,6 +22,7 @@ export class CustomersController {
   }
 
   @HttpOperation.Entity.Create(Customer, {
+    description: 'Creates a new customer',
     requestBody: {
       type: OmitType(Customer, ['_id']),
     },
@@ -30,7 +32,9 @@ export class CustomersController {
     return this.service.for(context).create(data, options);
   }
 
-  @(HttpOperation.Entity.FindMany(Customer)
+  @(HttpOperation.Entity.FindMany(Customer, {
+    description: 'Returns customers matching the given filter',
+  })
     .Filter('_id', ['=', '!=', '<', '>', '>=', '<=', 'in', '!in'])
     .Filter('givenName', ['=', '!=', 'like', '!like', 'ilike', '!ilike'])
     .Filter('familyName', ['=', '!=', 'like', '!like'])
@@ -63,19 +67,17 @@ export class CustomersController {
     return this.service.for(context).findMany(options);
   }
 
-  @(HttpOperation.Entity.DeleteMany(Customer).Filter(
-    '_id',
-    '=, !=, <, >, >=, <=, in, !in',
-  ))
+  @(HttpOperation.Entity.DeleteMany(Customer, {
+    description: 'Deletes multiple customers matching a filter',
+  }).Filter('_id', '=, !=, <, >, >=, <=, in, !in'))
   async deleteMany(context: HttpContext) {
     const { options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).deleteMany(options);
   }
 
-  @(HttpOperation.Entity.UpdateMany(Customer).Filter(
-    '_id',
-    '=, !=, <, >, >=, <=, in, !in',
-  ))
+  @(HttpOperation.Entity.UpdateMany(Customer, {
+    description: 'Updates multiple customers matching a filter',
+  }).Filter('_id', '=, !=, <, >, >=, <=, in, !in'))
   async updateMany(context: HttpContext) {
     const { data, options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).updateMany(data, options);

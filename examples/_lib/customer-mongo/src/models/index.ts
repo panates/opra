@@ -1,4 +1,5 @@
 import { ApiDocument, ApiDocumentFactory, OpraSchema } from '@opra/common';
+import { AddressType } from './enums/address-type.js';
 import { Gender } from './enums/gender.js';
 import { Address } from './types/address.js';
 import { Config } from './types/config.js';
@@ -10,6 +11,7 @@ import { PhoneNumber } from './types/phone-number.js';
 import { Profile } from './types/profile.js';
 import { Record } from './types/record.js';
 
+export * from './enums/address-type.js';
 export * from './enums/gender.js';
 export * from './types/address.js';
 export * from './types/config.js';
@@ -31,6 +33,7 @@ export namespace CustomerModelsDocument {
       description: 'This document contains model definitions of customer app',
     },
     types: [
+      AddressType,
       Gender,
       Address,
       Config,

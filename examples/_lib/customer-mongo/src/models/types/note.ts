@@ -3,7 +3,7 @@ import { type PartialDTO } from 'ts-gems';
 import { Record } from './record.js';
 
 @ComplexType({
-  description: 'Address information',
+  description: 'A note attached to a customer',
   additionalFields: true,
 })
 export class Note extends Record {
@@ -11,15 +11,18 @@ export class Note extends Record {
     super(init);
   }
 
-  @ApiField()
+  @ApiField({ description: 'Short title of the note' })
   declare title: string;
 
-  @ApiField()
+  @ApiField({ description: 'Body text of the note' })
   declare text: string;
 
-  @ApiField()
+  @ApiField({ description: 'Display order of the note' })
   declare rank: number;
 
-  @ApiField({ exclusive: true })
+  @ApiField({
+    description: 'Large content only returned when explicitly requested',
+    exclusive: true,
+  })
   declare largeContent: string;
 }

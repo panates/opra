@@ -1265,8 +1265,9 @@
     if (doc.api && doc.api.url) {
       main.appendChild(el('p', { class: 'description path' }, ['Server: ' + doc.api.url]));
     }
-    renderInfoMeta(main, doc, info);
-
+    // What the API *is* comes first (description, then what it contains);
+    // who owns/licenses it is a footnote, so the license/contact/terms
+    // panel goes last, below everything else.
     var descBlock = mdBlock(doc, info.description);
     if (descBlock) {
       main.appendChild(el('div', { class: 'section' }, [el('h2', {}, ['Description']), descBlock]));
@@ -1280,6 +1281,8 @@
     if (state.docKey === 'root') renderReferencesSection(main);
     renderControllersSection(main, state.docKey, doc);
     renderModelsSection(main, state.docKey, doc);
+
+    renderInfoMeta(main, doc, info);
   }
 
   function renderControllerPage(main, docKey, doc, found, ctrlRoute) {
@@ -1680,7 +1683,7 @@
     if (!filterValue) {
       nav.appendChild(
         el('a', { class: 'nav-link nav-doc-info' + (!activeRoute.length ? ' active' : ''), href: hrefFor(docKey, '') }, [
-          el('span', { class: 'name' }, ['Document Info']),
+          el('span', { class: 'name' }, ['Overview']),
         ]),
       );
     }

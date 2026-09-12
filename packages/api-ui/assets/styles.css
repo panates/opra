@@ -1119,7 +1119,7 @@ table.props code {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin: 16px 0 4px;
+  margin: 28px 0 4px;
   padding: 18px 20px;
   border: 1px solid var(--border);
   border-radius: 10px;

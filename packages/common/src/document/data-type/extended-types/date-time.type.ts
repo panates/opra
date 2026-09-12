@@ -3,14 +3,14 @@ import { type Validator, vg } from 'valgen';
 import { DECODER, ENCODER } from '../../constants.js';
 import { SimpleType } from '../simple-type.js';
 
-@SimpleType({
+@(SimpleType({
   name: 'datetime',
   description: 'A full datetime value',
   nameMappings: {
     js: 'string',
     json: 'string',
   },
-})
+}).Example('2021-04-18T22:30:15'))
 export class DateTimeType {
   designType?: Type;
 

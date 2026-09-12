@@ -112,10 +112,12 @@ describe('common:ComplexType', () => {
         name: {
           type: 'string',
           description: expect.any(String),
+          examples: ['United States', 'Türkiye', 'Germany'],
         },
         phoneCode: {
           type: 'string',
           description: expect.any(String),
+          examples: ['+1', '+90', '+49'],
         },
       },
     });

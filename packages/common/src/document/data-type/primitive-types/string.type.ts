@@ -2,14 +2,14 @@ import { toString, type Validator, vg } from 'valgen';
 import { DATATYPE_METADATA, DECODER, ENCODER } from '../../constants.js';
 import { SimpleType } from '../simple-type.js';
 
-@SimpleType({
+@(SimpleType({
   name: 'string',
   description: 'A sequence of characters',
   nameMappings: {
     js: 'string',
     json: 'string',
   },
-})
+}).Example(' '))
 export class StringType {
   constructor(properties?: Partial<StringType>) {
     if (properties) Object.assign(this, properties);

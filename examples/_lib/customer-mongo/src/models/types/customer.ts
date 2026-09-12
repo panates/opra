@@ -2,6 +2,7 @@ import {
   ApiField,
   ArrayType,
   ComplexType,
+  IntegerType,
   MixinType,
   StringType,
   UnionType,
@@ -156,7 +157,12 @@ will be re-resolved automatically on the next read.
   @ApiField({
     description:
       'Whether the customer has a branch — either a flag or a branch count',
-    type: UnionType([Boolean, Number]),
+    type: UnionType([
+      Boolean,
+      new IntegerType({
+        maxValue: 1,
+      }),
+    ]),
   })
   declare hasBranch: boolean | number;
 }

@@ -1,10 +1,20 @@
 import {
   ApiField,
+  ArrayType,
   ComplexType,
+  type DataType,
   FieldsProjection,
   parseFieldsProjection,
 } from '@opra/common';
 import mongodb, { type Document } from 'mongodb';
+
+/** An array field (`isArray: true`) is declared as `ArrayType(Note)`, not
+ * `Note` directly — its own `.type` is the array wrapper, not the item
+ * type a nested projection needs to recurse into. */
+function unwrapArrayType(type: DataType): DataType {
+  while (type instanceof ArrayType) type = type.type;
+  return type;
+}
 
 /**
  * Prepares the MongoDB projection object based on the data type and requested projection.
@@ -65,12 +75,10 @@ export function prepare(
       continue;
     }
 
-    if (
-      field.type instanceof ComplexType &&
-      typeof p?.projection === 'object'
-    ) {
+    const itemType = unwrapArrayType(field.type);
+    if (itemType instanceof ComplexType && typeof p?.projection === 'object') {
       target[fieldName] = {};
-      prepare(field.type, target[fieldName], p.projection);
+      prepare(itemType, target[fieldName], p.projection);
       continue;
     }
     target[fieldName] = 1;

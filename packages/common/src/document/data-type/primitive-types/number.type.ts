@@ -2,14 +2,14 @@ import { toNumber, type Validator, vg } from 'valgen';
 import { DECODER, ENCODER } from '../../constants.js';
 import { SimpleType } from '../simple-type.js';
 
-@SimpleType({
+@(SimpleType({
   name: 'number',
   description: 'Both Integer as well as Floating-Point numbers',
   nameMappings: {
     js: 'number',
     json: 'number',
   },
-})
+}).Example(3.14))
 export class NumberType {
   constructor(properties?: Partial<NumberType>) {
     if (properties) Object.assign(this, properties);

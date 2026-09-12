@@ -2,12 +2,12 @@ import { ApiField, ComplexType, SimpleType, StringType } from '@opra/common';
 import { Gender } from '../enums/gender.js';
 
 @(SimpleType({
-  embedded: true,
+  name: 'PersonName',
   description: 'A person name, at least 3 characters long',
 })
   .Example('John')
   .Example('Ayşe'))
-class PersonNameType extends StringType {
+export class PersonNameType extends StringType {
   constructor() {
     super({ minLength: 3 });
   }

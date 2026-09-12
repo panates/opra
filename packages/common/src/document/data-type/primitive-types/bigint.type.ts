@@ -3,14 +3,14 @@ import { DECODER, ENCODER } from '../../constants.js';
 import { SimpleType } from '../simple-type.js';
 import { NumberType } from './number.type.js';
 
-@SimpleType({
+@(SimpleType({
   name: 'bigint',
   description: 'BigInt number',
   nameMappings: {
     js: 'bigint',
     json: 'string',
   },
-})
+}).Example('9007199254740993'))
 export class BigintType extends NumberType {
   constructor(attributes?: Partial<BigintType>) {
     super(attributes);

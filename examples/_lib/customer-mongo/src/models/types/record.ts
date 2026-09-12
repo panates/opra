@@ -15,6 +15,7 @@ export class Record {
   @(ApiField({
     description: 'Unique identifier of the record',
     readonly: true,
+    type: 'integer',
   }).Override('db', {
     readonly: false,
   }))

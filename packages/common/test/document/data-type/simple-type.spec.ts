@@ -21,6 +21,7 @@ describe('common:SimpleType', () => {
         js: 'string',
         json: 'string',
       },
+      examples: [{ value: ' ' }],
       attributes: {
         maxLength: {
           format: 'number',

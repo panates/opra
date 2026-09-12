@@ -6,14 +6,14 @@ import { DECODER, ENCODER } from '../../constants.js';
 import { DataType } from '../data-type.js';
 import { SimpleType } from '../simple-type.js';
 
-@SimpleType({
+@(SimpleType({
   name: 'fieldpath',
   description: 'Field path',
   nameMappings: {
     js: 'string',
     json: 'string',
   },
-})
+}).Example('address.city'))
 export class FieldPathType {
   constructor(attributes?: Partial<FieldPathType>) {
     if (attributes) Object.assign(this, attributes);

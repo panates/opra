@@ -2,14 +2,14 @@ import { type Validator, vg } from 'valgen';
 import { DECODER, ENCODER } from '../../constants.js';
 import { SimpleType } from '../simple-type.js';
 
-@SimpleType({
+@(SimpleType({
   name: 'ip',
   description: 'An IP address',
   nameMappings: {
     js: 'string',
     json: 'string',
   },
-})
+}).Example('192.168.1.1'))
 export class IpType {
   constructor(attributes?: Partial<IpType>) {
     if (attributes) Object.assign(this, attributes);

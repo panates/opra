@@ -6,7 +6,7 @@ import { Config } from './types/config.js';
 import { Country, CountryCodeType } from './types/country.js';
 import { Customer } from './types/customer.js';
 import { Note } from './types/note.js';
-import { Person } from './types/person.js';
+import { Person, PersonNameType } from './types/person.js';
 import { PhoneNumber, PhoneNumberType } from './types/phone-number.js';
 import { Profile } from './types/profile.js';
 import { Record } from './types/record.js';
@@ -75,6 +75,7 @@ SOFTWARE.`,
       Customer,
       Note,
       Person,
+      PersonNameType,
       PhoneNumber,
       PhoneNumberType,
       Profile,

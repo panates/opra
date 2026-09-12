@@ -1,5 +1,6 @@
 import { omit } from '@jsopen/objects';
 import {
+  ArrayType,
   ComplexType,
   NotAcceptableError,
   ResourceNotAvailableError,
@@ -276,7 +277,12 @@ export class MongoNestedService<
    * @throws {@link NotAcceptableError} If the data type is not a ComplexType.
    */
   override get dataType(): ComplexType {
-    const t = super.dataType.getField(this.fieldName, this.scope).type;
+    // The field is declared as `ArrayType(Note)` (e.g. `notes: Note[]`) —
+    // its own `.type` is the array wrapper, not the item type directly;
+    // unwrap it (however many `[]` layers deep) before checking, same as
+    // the client-side schema viewer already does for display.
+    let t = super.dataType.getField(this.fieldName, this.scope).type;
+    while (t instanceof ArrayType) t = t.type;
     if (!(t instanceof ComplexType))
       throw new NotAcceptableError(
         `Data type "${t.name}" is not a ComplexType`,

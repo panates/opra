@@ -1,4 +1,4 @@
-import { ApiField, ComplexType } from '@opra/common';
+import { ApiField, ArrayType, ComplexType, type DataType } from '@opra/common';
 import type { UpdateFilter } from 'mongodb';
 import type { PatchDTO } from 'ts-gems';
 
@@ -12,6 +12,15 @@ interface Context {
 }
 
 const FIELD_NAME_PATTERN = /^([-><*:])?(.+)$/;
+
+/** An array field (`isArray: true`) is declared as `ArrayType(Note)`, not
+ * `Note` directly — its own `.type` is the array wrapper. Every "is this
+ * an array-of-nested-entity field" check below needs the item type, not
+ * the wrapper, however many `[]` layers deep it goes. */
+function unwrapArrayType(type: DataType): DataType {
+  while (type instanceof ArrayType) type = type.type;
+  return type;
+}
 
 /**
  * MongoPatchGenerator is responsible for generating MongoDB update patches from DTO objects.
@@ -129,14 +138,15 @@ export class MongoPatchGenerator {
         continue;
       }
 
-      if (field.type instanceof ComplexType) {
+      const itemType = unwrapArrayType(field.type);
+      if (itemType instanceof ComplexType) {
         if (!value) continue;
         if (field.isArray) {
           if (field.isNestedEntity) {
             ctx.initArrayFields = ctx.initArrayFields || [];
             ctx.initArrayFields.push(pathDot + field.name);
             if (!value.length) continue;
-            keyField = field.keyField || field.type.keyField;
+            keyField = field.keyField || itemType.keyField;
             if (keyField) {
               for (let v of value) {
                 /* Increase arrayIndex and determine a new name for array filter  */
@@ -151,7 +161,7 @@ export class MongoPatchGenerator {
                 if (
                   this._processComplexType(
                     ctx,
-                    field.type,
+                    itemType,
                     pathDot + field.name + `.$[${arrayFilterName}]`,
                     v,
                     scope,
@@ -174,7 +184,7 @@ export class MongoPatchGenerator {
           if (
             this._processComplexType(
               ctx,
-              field.type,
+              itemType,
               pathDot + field.name,
               value,
               scope,
@@ -211,14 +221,15 @@ export class MongoPatchGenerator {
       field = dataType.getField(key, scope);
       if (!(field && field.isArray)) continue;
       ctx.$push = ctx.$push || {};
-      if (field.type instanceof ComplexType) {
-        keyField = field.keyField || field.type.keyField;
+      const itemType = unwrapArrayType(field.type);
+      if (itemType instanceof ComplexType) {
+        keyField = field.keyField || itemType.keyField;
         if (keyField) {
           if (Array.isArray(value)) {
             value.forEach(v => {
               if (!v[keyField!]) {
                 throw new TypeError(
-                  `You must provide a key value of ${field!.type.name} for $push operation.`,
+                  `You must provide a key value of ${itemType.name} for $push operation.`,
                 );
               }
             });
@@ -227,7 +238,7 @@ export class MongoPatchGenerator {
           } else {
             if (!value[keyField]) {
               throw new TypeError(
-                `You must provide a key value of ${field!.type.name} for $push operation.`,
+                `You must provide a key value of ${itemType.name} for $push operation.`,
               );
             }
             ctx.$push[pathDot + key] = value;
@@ -263,8 +274,9 @@ export class MongoPatchGenerator {
       field = dataType.getField(key, scope);
       if (!(field && field.isArray)) continue;
       ctx.$pull = ctx.$pull || {};
-      if (field.type instanceof ComplexType) {
-        keyField = field.keyField || field.type.keyField;
+      const itemType = unwrapArrayType(field.type);
+      if (itemType instanceof ComplexType) {
+        keyField = field.keyField || itemType.keyField;
         if (!keyField) continue;
         ctx.$pull[pathDot + key] = {
           $elemMatch: {

@@ -10,6 +10,7 @@ import {
 import { type PartialDTO } from 'ts-gems';
 import { Address } from './address.js';
 import { Country } from './country.js';
+import { DriversLicense, NationalId, Passport } from './identity-document.js';
 import { Note } from './note.js';
 import { Person } from './person.js';
 import { PhoneNumber } from './phone-number.js';
@@ -165,4 +166,13 @@ will be re-resolved automatically on the next read.
     ]),
   })
   declare hasBranch: boolean | number;
+
+  @ApiField({
+    description: `The customer's identity document, if one has been verified — a passport, driver's license, or national ID card.
+
+Exactly one of these three shapes is stored; which one it is can be told apart by which fields are present (e.g. only a \`Passport\` has \`expiryDate\`).`,
+    type: UnionType([Passport, DriversLicense, NationalId]),
+    exclusive: true,
+  })
+  declare identityDocument?: Passport | DriversLicense | NationalId;
 }

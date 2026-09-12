@@ -5,6 +5,7 @@ import { Address } from './types/address.js';
 import { Config } from './types/config.js';
 import { Country, CountryCodeType } from './types/country.js';
 import { Customer } from './types/customer.js';
+import { DriversLicense, NationalId, Passport } from './types/identity-document.js';
 import { Note } from './types/note.js';
 import { Person, PersonNameType } from './types/person.js';
 import { PhoneNumber, PhoneNumberType } from './types/phone-number.js';
@@ -17,6 +18,7 @@ export * from './types/address.js';
 export * from './types/config.js';
 export * from './types/country.js';
 export * from './types/customer.js';
+export * from './types/identity-document.js';
 export * from './types/note.js';
 export * from './types/person.js';
 export * from './types/phone-number.js';
@@ -73,7 +75,10 @@ SOFTWARE.`,
       Country,
       CountryCodeType,
       Customer,
+      DriversLicense,
+      NationalId,
       Note,
+      Passport,
       Person,
       PersonNameType,
       PhoneNumber,

@@ -67,6 +67,9 @@ describe('common:ApiDocument', () => {
       'Note',
       'PhoneNumber',
       'PhoneNumberValue',
+      'Passport',
+      'DriversLicense',
+      'NationalId',
       'Profile',
     ]);
   });
@@ -91,6 +94,9 @@ describe('common:ApiDocument', () => {
       'Note',
       'PhoneNumber',
       'PhoneNumberValue',
+      'Passport',
+      'DriversLicense',
+      'NationalId',
       'Profile',
     ]);
   });

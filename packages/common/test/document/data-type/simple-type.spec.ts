@@ -24,7 +24,7 @@ describe('common:SimpleType', () => {
       attributes: {
         maxLength: {
           format: 'number',
-          description: 'Minimum number of characters',
+          description: 'Maximum number of characters',
         },
         minLength: {
           format: 'number',

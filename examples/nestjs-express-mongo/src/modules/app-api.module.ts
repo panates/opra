@@ -16,6 +16,13 @@ import { AppDbModule } from './app-db.module.js';
       info: {
         title: 'Customer Application',
         version: '1.0',
+        description:
+          'Sample Opra API demonstrating a NestJS integration with authentication and a customer/notes CRUD API backed by MongoDB',
+        termsOfService: 'https://panates.com/terms-of-service',
+        contact: [
+          { name: 'Panates', email: 'info@panates.com', url: 'https://panates.com' },
+        ],
+        license: { name: 'MIT', url: 'https://opensource.org/licenses/MIT' },
       },
       references: {
         cm: () => CustomerModelsDocument.create(),

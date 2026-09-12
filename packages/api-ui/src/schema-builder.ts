@@ -3,6 +3,7 @@ import {
   type ApiDocument,
   type ApiField,
   ArrayType,
+  BUILTIN,
   ComplexType,
   DataType,
   EnumType,
@@ -18,6 +19,15 @@ import {
   SimpleType,
   UnionType,
 } from '@opra/common';
+
+/** Whether `dataType` belongs to OPRA's own shared built-in types document
+ * (`string`, `number`, `datetime`, ...) rather than the application's own
+ * document — see the identity-instability note in `mapTypeRef`. */
+function isBuiltin(dataType: DataType): boolean {
+  return !!(dataType.node.getDocument() as unknown as Record<symbol, unknown>)[
+    BUILTIN
+  ];
+}
 
 /**
  * Builds the plain JSON tree `@opra/api-ui` embeds into the page, by walking
@@ -65,17 +75,23 @@ export namespace ApiUiSchemaBuilder {
       });
     }
 
-    // Registers every type the document declares, in addition to whatever
-    // the controller/operation walk above already reached — catching a
-    // declared-but-otherwise-unreferenced type. SimpleTypes are always
-    // inlined (see `mapTypeRef`), so `ctx.types` only ever holds "model"
-    // kinds (object-like, enum, union) — a clean list for the sidebar, with
-    // no separate declared-vs-referenced bookkeeping needed.
+    // Registers every type the document declares (`document.types` — what
+    // was actually passed via `types: [...]` at construction), in addition
+    // to whatever the controller/operation walk above already reached
+    // incidentally as some field's/parameter's type. `ctx.types` ends up
+    // holding both, since a field referencing an undeclared type still
+    // needs a real page to link/expand to — but `declaredTypes` tracks
+    // only the former, so the client's sidebar "Models" list reflects the
+    // document's own declared type list rather than everything transitively
+    // reachable through it.
+    const declaredTypes: string[] = [];
     for (const dataType of document.types.values()) {
-      if (dataType.name && dataType.inScope(ctx.scope))
-        mapTypeRef(dataType, ctx);
+      if (!(dataType.name && dataType.inScope(ctx.scope))) continue;
+      const name = mapTypeRef(dataType, ctx);
+      if (typeof name === 'string') declaredTypes.push(name);
     }
     if (Object.keys(ctx.types).length) out.types = ctx.types;
+    if (declaredTypes.length) out.declaredTypes = declaredTypes;
 
     return omitUndefined(out);
   }
@@ -123,13 +139,66 @@ function isFieldsBearing(
   );
 }
 
-function mapField(field: ApiField, ctx: BuildContext) {
+function mapField(
+  field: ApiField,
+  ctx: BuildContext,
+  owner: ComplexType | MappedType | MixinType,
+) {
   return omitUndefined({
     type: mapTypeRef(field.type, ctx),
     description: field.description,
     required: field.required || undefined,
     deprecated: field.deprecated || undefined,
+    readonly: field.readonly || undefined,
+    writeonly: field.writeonly || undefined,
+    exclusive: field.exclusive || undefined,
+    localization: field.localization || undefined,
+    examples: field.examples || undefined,
+    // Set only when the field is inherited (via `extends` or a mixin) rather
+    // than declared directly on `owner` — the client shows a small link
+    // icon next to it, pointing back at whichever type actually declared it.
+    from:
+      field.origin && field.origin !== owner
+        ? mapTypeRef(field.origin, ctx)
+        : undefined,
   });
+}
+
+/**
+ * Describes how a ComplexType/MappedType/MixinType is composed, purely for
+ * display (e.g. "Extends Record" / "Mixin of (Record, Person)") — the
+ * `fields` list is already fully flattened regardless, so nothing here is
+ * needed to *read* the type, only to explain its shape.
+ */
+function mapInherits(
+  dataType: ComplexType | MappedType | MixinType,
+  ctx: BuildContext,
+) {
+  if (dataType instanceof MixinType) {
+    return {
+      kind: 'mixin',
+      types: dataType.types.map(t => mapTypeRef(t, ctx)),
+    };
+  }
+  if (dataType instanceof MappedType) {
+    return { kind: 'mapped', types: [mapTypeRef(dataType.base, ctx)] };
+  }
+  const base = dataType.base;
+  if (!base) return undefined;
+  if (base instanceof MixinType) {
+    return { kind: 'mixin', types: base.types.map(t => mapTypeRef(t, ctx)) };
+  }
+  // A ComplexType whose base is itself a MappedType — e.g. `class X
+  // extends OmitType(Y, [...]) {}`, OPRA's pattern for a *named* mapped
+  // type — is shown as "Mapped from Y" directly, skipping the anonymous
+  // intermediate MappedType the framework inserts as `base` (otherwise
+  // this would misleadingly read as "Extends" an unnamed/"embedded" type).
+  if (base instanceof MappedType) {
+    let root: ComplexType | MappedType | MixinType = base.base;
+    while (root instanceof MappedType) root = root.base;
+    return { kind: 'mapped', types: [mapTypeRef(root, ctx)] };
+  }
+  return { kind: 'extends', types: [mapTypeRef(base, ctx)] };
 }
 
 function mapObjectLike(
@@ -139,9 +208,12 @@ function mapObjectLike(
   const fields: Record<string, unknown> = {};
   for (const field of dataType.fields('*')) {
     if (!field.inScope(ctx.scope)) continue;
-    fields[field.name] = mapField(field, ctx);
+    fields[field.name] = mapField(field, ctx, dataType);
   }
-  return Object.keys(fields).length ? { fields } : {};
+  return omitUndefined({
+    fields: Object.keys(fields).length ? fields : undefined,
+    inherits: mapInherits(dataType, ctx),
+  });
 }
 
 function mapEnumType(dataType: EnumType) {
@@ -184,16 +256,52 @@ function mapSimpleTypeProperties(dataType: SimpleType) {
     : undefined;
 }
 
+/** A description for each of `properties`' own keys, where the type (or
+ * one of its bases — `SimpleType.attributes` is already merged down the
+ * base chain at construction time, same as `EnumType.attributes`) has
+ * one declared via `@SimpleType.Attribute({ description: ... })` — e.g.
+ * `StringType`'s own `pattern`/`minLength`/`maxLength`. Most of a custom
+ * SimpleType's constraints are inherited from a builtin this way, so
+ * this is rarely empty even for a type that declares no attributes of
+ * its own. */
+function mapSimpleTypePropertyDescriptions(
+  dataType: SimpleType,
+  properties: unknown,
+): Record<string, string> | undefined {
+  if (!properties || typeof properties !== 'object') return undefined;
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(properties)) {
+    // A class field declared without an initializer (e.g. `StringType`'s
+    // `pattern?: string | RegExp;`) is still its own enumerable property
+    // on the instance, just `undefined` — `Object.keys` alone can't tell
+    // "declared but not set" apart from "actually set", so this would
+    // otherwise attach a description to every constraint the *type*
+    // supports rather than just the ones this particular instance uses
+    // (which is all that ends up in the embedded `properties` object —
+    // `JSON.stringify` drops `undefined` values, so keeping them here
+    // would silently create description entries with no matching value).
+    if (value === undefined) continue;
+    const description = dataType.attributes?.[key]?.description;
+    if (description) out[key] = description;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 function mapDataType(dataType: DataType, ctx: BuildContext) {
   let out: Record<string, unknown>;
   if (dataType instanceof SimpleType) {
     // Always inlined (see `mapTypeRef`) — `name` carries the builtin's own
     // name (e.g. "string", "datetime") purely for display, since it's never
     // used as a lookup key here.
+    const properties = mapSimpleTypeProperties(dataType);
     out = {
       kind: dataType.kind,
       name: dataType.name,
-      properties: mapSimpleTypeProperties(dataType),
+      properties,
+      propertyDescriptions: mapSimpleTypePropertyDescriptions(
+        dataType,
+        properties,
+      ),
     };
   } else if (isFieldsBearing(dataType)) {
     out = { kind: dataType.kind, ...mapObjectLike(dataType, ctx) };
@@ -203,6 +311,8 @@ function mapDataType(dataType: DataType, ctx: BuildContext) {
     out = {
       kind: dataType.kind,
       type: dataType.type ? mapTypeRef(dataType.type, ctx) : undefined,
+      minOccurs: dataType.minOccurs,
+      maxOccurs: dataType.maxOccurs,
     };
   } else if (dataType instanceof UnionType) {
     out = {
@@ -214,6 +324,7 @@ function mapDataType(dataType: DataType, ctx: BuildContext) {
     out = { kind: dataType.kind };
   }
   out.description = dataType.description;
+  out.examples = dataType.examples;
   return omitUndefined(out);
 }
 
@@ -223,14 +334,18 @@ function mapDataType(dataType: DataType, ctx: BuildContext) {
  * once, on first reference); an anonymous DataType is inlined directly.
  */
 function mapTypeRef(dataType: DataType, ctx: BuildContext): unknown {
-  // Always inlined, even named/builtin ones (`string`, `datetime`, ...): the
+  // A framework builtin (`string`, `datetime`, ...) is always inlined: the
   // same conceptual builtin can reach here through more than one DataType
   // object instance (repeated `node.getDataType('string')`-style lookups
   // aren't guaranteed to return the same object), which would otherwise
   // collide against this context's collision-safe name registry and mint
   // spurious "string2"-style duplicates. `mapDataType()` still carries the
-  // real name (see above) so the client can display it.
-  if (dataType instanceof SimpleType) return mapDataType(dataType, ctx);
+  // real name (see above) so the client can display it. A *custom* named
+  // SimpleType — the user's own `class X extends StringType {}` — doesn't
+  // have that instability (it's a single, stable class reference) and gets
+  // a real page like any other named type.
+  if (dataType instanceof SimpleType && (!dataType.name || isBuiltin(dataType)))
+    return mapDataType(dataType, ctx);
   const name = ctx.getTypeName(dataType);
   if (!name) return mapDataType(dataType, ctx);
   if (!ctx.hasType(name)) {

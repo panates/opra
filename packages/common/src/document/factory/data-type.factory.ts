@@ -491,6 +491,8 @@ export class DataTypeFactory {
     metadata: (ArrayType.Metadata | OpraSchema.ArrayType) & { ctor?: Type },
   ): Promise<void> {
     await this._prepareDataTypeArgs(context, initArgs, metadata);
+    initArgs.minOccurs = metadata.minOccurs;
+    initArgs.maxOccurs = metadata.maxOccurs;
     await context.enterAsync('.type', async () => {
       const baseArgs = await this._importDataTypeArgs(
         context,

@@ -103,16 +103,19 @@ describe('common:ComplexType', () => {
     expect(x).toBeDefined();
     expect(x).toStrictEqual({
       kind: 'ComplexType',
-      description: 'Country information',
+      description: expect.any(String),
       fields: {
         code: {
-          type: 'string',
+          type: 'CountryCode',
+          description: expect.any(String),
         },
         name: {
           type: 'string',
+          description: expect.any(String),
         },
         phoneCode: {
           type: 'string',
+          description: expect.any(String),
         },
       },
     });

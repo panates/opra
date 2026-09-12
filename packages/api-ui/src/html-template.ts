@@ -27,6 +27,9 @@ function readAsset(name: string): string {
 
 const STYLES = readAsset('styles.css');
 const APP_SCRIPT = readAsset('app.js');
+/** Base64 data URI so the default logo needs no extra request — the page
+ *  stays a single self-contained file like the rest of this renderer. */
+const DEFAULT_LOGO_SRC = `data:image/svg+xml;base64,${Buffer.from(readAsset('logo.svg')).toString('base64')}`;
 
 function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -72,6 +75,16 @@ export function renderApiUiHtml(
 
   const styleTag = `<style${nonceAttr}>${STYLES}${customCss ? `\n${customCss}` : ''}</style>`;
 
+  // `logo` is `undefined` (not given) vs. explicit `null` (given, meaning
+  // "show none") are different outcomes — only the former falls back to
+  // OPRA's own logo, so this can't collapse to a single `options.logo ||
+  // default` check.
+  const logo =
+    options.logo === null
+      ? null
+      : (options.logo ?? { src: DEFAULT_LOGO_SRC, alt: 'OPRA', label: 'OPRA' });
+  const ui = { logo };
+
   return `<!doctype html>
 <html data-theme="${theme}">
   <head>
@@ -83,6 +96,7 @@ export function renderApiUiHtml(
   <body>
     <div id="app"></div>
     <script${nonceAttr}>window.__OPRA_DOCS__ = ${serializeForScript(docs)};</script>
+    <script${nonceAttr}>window.__OPRA_UI__ = ${serializeForScript(ui)};</script>
     <script${nonceAttr}>${APP_SCRIPT}</script>
   </body>
 </html>`;

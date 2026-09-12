@@ -1,4 +1,4 @@
-import { ApiField, ComplexType, MixinType } from '@opra/common';
+import { ApiField, ArrayType, ComplexType, MixinType } from '@opra/common';
 import { type PartialDTO } from 'ts-gems';
 import { Address } from './address.js';
 import { Country } from './country.js';
@@ -29,7 +29,7 @@ export class Customer extends MixinType([Record, Person]) {
   @ApiField({ exclusive: true })
   declare address?: Address;
 
-  @ApiField({ type: Note, exclusive: true })
+  @ApiField({ type: ArrayType(Note), exclusive: true })
   declare notes?: Note[];
 
   @ApiField({ exclusive: true })

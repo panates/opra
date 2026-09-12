@@ -1,12 +1,35 @@
 :root {
+  /* Without this, native UI (scrollbars, form controls) follows the OS/
+     browser's own preference rather than this page's actual theme — a
+     dark-mode OS renders a dark native scrollbar over this dark palette's
+     own custom-styled one below, or a mismatched one over the light
+     theme. Declaring it per theme keeps native chrome in sync with
+     `data-theme` (see `html[data-theme='light']` below). */
+  color-scheme: dark;
   --bg: #14161a;
   --bg-elevated: #1c1f26;
   --bg-hover: #262a33;
   --border: #2b2f38;
   --text: #e6e8eb;
-  --text-muted: #8b909c;
+  --text-muted: #a8adb8;
   --accent: #7aa2ff;
-  --code-bg: #101216;
+  /* Lighter than --bg, not darker — an "elevated surface" (matches how
+     Docusaurus/Infima render code blocks: a ~10% white overlay on the
+     page background, never a recessed well). The previous #101216 was
+     darker than --bg itself, which read as a hole in the page rather
+     than a raised block. */
+  --code-bg: #23262e;
+  /* A clearly distinct interactive-control surface — search input,
+     document picker — as opposed to `--code-bg`'s much subtler "elevated
+     surface" tint (right for a big block of code, too faint for a small
+     control that needs to read as obviously clickable against
+     `--bg-elevated`, which is what the header/doc-bar rows behind it
+     use). */
+  --surface: #3a3e46;
+  /* Lighter than `--border` — that's *darker* than `--surface` itself,
+     so it barely read as an outline around it; a visibly distinct
+     contour is the point (search input, document picker). */
+  --surface-border: #4c515c;
   --get: #4fb0ff;
   --post: #49cc90;
   --put: #f0b429;
@@ -22,31 +45,89 @@
   --c-union: #ecc94b;
   --c-mixin: #f5647a;
   --c-mapped: #9aa1ac;
+  --tooltip-bg: #262b36;
+  --tooltip-border: #4a5266;
+  --json-string: #49cc90;
+  --json-number: #c297ff;
+  --json-boolean: #f0b429;
   /* Used for descriptions/prose. Deliberately distinct from --font-mono,
      which is reserved for identifiers (class/field/enum/operation names,
-     paths, code). Inter is the modern "web app" default (GitHub, Linear,
-     Figma, ...); falls back to each OS's own modern UI font when absent —
-     no network fetch, no bundled font file. */
+     paths, code). Same stack Docusaurus/Infima ships by default:
+     `system-ui` first — each OS's own modern UI font (San Francisco,
+     Segoe UI Variable, Roboto, ...) rather than a specific bundled
+     typeface — with explicit fallbacks for engines that don't resolve
+     `system-ui` itself. No network fetch, no bundled font file. */
   --font-sans:
-    Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
-    Arial, sans-serif;
+    system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell,
+    'Noto Sans', 'Helvetica Neue', Arial, sans-serif;
   --font-mono:
-    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+    'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
 }
 
 html[data-theme='light'] {
+  color-scheme: light;
   --bg: #ffffff;
   --bg-elevated: #f6f7f9;
   --bg-hover: #eceef1;
   --border: #e2e5ea;
   --text: #1a1d23;
-  --text-muted: #6b7280;
+  --text-muted: #565e6c;
   --accent: #3457d5;
   --code-bg: #f2f3f5;
+  --surface: #e3e6ea;
+  --surface-border: #c7ccd3;
+  --tooltip-bg: #ffffff;
+  --tooltip-border: #c7cbd3;
+  --json-string: #1a7f4e;
+  --json-number: #7c3aed;
+  --json-boolean: #b7791f;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Thin, theme-matched scrollbars for the three independently-scrolling
+   panels (sidebar nav, main content, TOC rail) — the `color-scheme`
+   declarations above already fix the native default's light/dark
+   mismatch, but a custom-styled bar (vs. each browser/OS's own chunky
+   default) fits this UI's own look better. Firefox uses the two-value
+   `scrollbar-color` shorthand; Chrome/Safari/Edge use the `::-webkit-*`
+   pseudo-elements — both are declared since neither engine understands
+   the other's API. */
+.main,
+.sidebar,
+.toc {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.main::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar,
+.toc::-webkit-scrollbar {
+  width: 10px;
+}
+
+.main::-webkit-scrollbar-track,
+.sidebar::-webkit-scrollbar-track,
+.toc::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.main::-webkit-scrollbar-thumb,
+.sidebar::-webkit-scrollbar-thumb,
+.toc::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  background-clip: content-box;
+  border: 2px solid transparent;
+  border-radius: 8px;
+}
+
+.main::-webkit-scrollbar-thumb:hover,
+.sidebar::-webkit-scrollbar-thumb:hover,
+.toc::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-muted);
 }
 
 html,
@@ -56,15 +137,37 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 16px;
+  /* Docusaurus/Infima sets all three of these globally — without them,
+     the exact same font stack at the exact same size and weight still
+     renders visibly heavier/rougher (this is what actually reads as
+     "our font is thicker/smaller" even once the family/size/weight
+     numbers themselves match). */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 #app {
   display: grid;
-  grid-template-columns: 300px 1fr;
-  grid-template-rows: 56px 1fr;
-  grid-template-areas: 'header header' 'sidebar main';
+  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-rows: 56px 52px 1fr;
+  grid-template-areas:
+    'header header'
+    'search-bar main'
+    'sidebar main';
   height: 100vh;
+}
+
+@media (max-width: 1000px) {
+  /* Below this width the reading column plus the TOC rail no longer both
+     fit comfortably — drop the rail rather than squeeze the content
+     column further (see `.content-col`'s own max-width, which is what
+     actually keeps text/dividers/code blocks aligned; the TOC is a bonus
+     for wide viewports, not load-bearing). */
+  .toc {
+    display: none;
+  }
 }
 
 a {
@@ -117,34 +220,199 @@ a {
   color: var(--c-mapped);
 }
 
-/* ---------- header & document picker ---------- */
+/* ---------- header, logo & search ---------- */
 
 .header {
   grid-area: header;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 12px;
+  gap: 16px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-elevated);
   position: relative;
 }
 
-.picker-wrap {
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.header-logo img {
+  display: block;
+  height: 28px;
+  width: auto;
+}
+
+.header-logo-label {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Pushed to the header's right edge — Docusaurus's own navbar layout
+   (brand left, everything else right) — regardless of whether a logo
+   precedes it. Holds the version badge, theme toggle, and search box, in
+   that order. */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.header-version {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 999px;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+  /* As bright as the search input (`--surface`), not `--bg-hover` — that
+     one is actually darker than `--surface` now, so this would have
+     dimmed on hover instead of lighting up. */
+  background: var(--surface);
+  color: var(--text);
+}
+
+.search {
+  width: 240px;
   position: relative;
 }
 
+/* A plain currentColor-masked magnifying glass — avoids a second DOM
+   element (and an icon-font/sprite dependency) just to put a search icon
+   in front of the input; only the SVG's alpha shape matters to a mask,
+   so its own stroke color is irrelevant. */
+.search::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translateY(-50%);
+  background: var(--text-muted);
+  pointer-events: none;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.search input {
+  width: 100%;
+  height: 32px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 0 46px 0 38px;
+  font-size: 15px;
+}
+
+.search input:focus {
+  outline: 1px solid var(--accent);
+}
+
+.search input::placeholder {
+  color: var(--text-muted);
+}
+
+/* The "⌘K"/"Ctrl K" hint — sits inside the search box's own right edge,
+   over the input rather than beside it, matching how most sites present
+   an inline keyboard-shortcut affordance. `pointer-events: none` so a
+   click there still lands on the input underneath. */
+.search-kbd {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* ---------- document picker ---------- */
+
+/* Sits where the search box used to (above the sidebar it controls),
+   now that search has moved up into the header. */
+/* `z-index` matters here even though this row never overlaps anything
+   by itself: grid items paint in DOM order among ties (Grid's own
+   stacking rules apply `z-index` to items as if `position: relative`
+   were set, even though it isn't) — `.sidebar` comes *after* this row in
+   the markup, so without this, its opaque background would always
+   paint over `.picker-menu`'s dropdown despite that menu's own
+   `z-index: 20`, since that z-index only wins comparisons against
+   siblings *inside* this same grid item, not against `.sidebar` itself. */
+.search-bar {
+  grid-area: search-bar;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+.picker-wrap {
+  position: relative;
+  width: 100%;
+}
+
+/* `--code-bg` (the "elevated surface" token also used for code blocks)
+   instead of `--bg-hover` — that used to sit at almost the same
+   brightness as this row's own `--bg-elevated` background, so the
+   button read as a plain label, not a distinct clickable control. */
 .picker {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--bg-hover);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 10px;
+  width: 100%;
+  height: 32px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  padding: 0 10px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+}
+
+.picker:hover {
+  /* Not `--bg-hover` — that's actually *darker* than `--surface` now, so
+     hovering would have dimmed the button instead of lifting it. */
+  background: color-mix(in srgb, var(--surface) 85%, var(--accent) 15%);
 }
 
 .picker-label {
@@ -154,12 +422,23 @@ a {
   max-width: 220px;
 }
 
+.picker .icon:last-child {
+  margin-left: auto;
+}
+
+/* `--code-bg` (the same "elevated surface" token used for code blocks
+   and the picker button itself), not `--bg-elevated` — that's the exact
+   color `.sidebar` behind it already uses, so a fully opaque, correctly
+   stacked menu still visually blended into the sidebar it was floating
+   over. A real color difference is what actually reads as "a floating
+   panel," not the border/shadow alone. */
 .picker-menu {
   position: absolute;
   top: 42px;
   left: 0;
+  right: 0;
   min-width: 220px;
-  background: var(--bg-elevated);
+  background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
@@ -183,9 +462,20 @@ a {
   cursor: pointer;
 }
 
+/* An accent-tinted background, not `--bg-hover` — that sits at almost
+   the same brightness as this menu's own `--code-bg`, so hovering barely
+   changed anything now that the two use the same "elevated surface"
+   palette. Tinting with the accent color (like `.type-chip`'s own
+   hover elsewhere) stays visible regardless of what the menu's base
+   color happens to be. */
 .picker-item:hover,
 .picker-item.sel {
-  background: var(--bg-hover);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.picker-item:hover .t,
+.picker-item.sel .t {
+  color: var(--accent);
 }
 
 .picker-item .t {
@@ -195,25 +485,6 @@ a {
 .picker-item .s {
   font-size: 11.5px;
   color: var(--text-muted);
-}
-
-.search {
-  margin-left: auto;
-  width: 220px;
-}
-
-.search input {
-  width: 100%;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 14px;
-}
-
-.search input:focus {
-  outline: 1px solid var(--accent);
 }
 
 /* ---------- sidebar ---------- */
@@ -226,35 +497,131 @@ a {
   padding: 8px 0 24px;
 }
 
+/* No divider line — a section's own bold/uppercase title (see
+   `.group-title`) is what signals a new section, same as Docusaurus's
+   own sidebar; a rule on top of that read as one more thing separating
+   it from the rest of the list rather than helping. */
 .sidebar .group {
   padding: 4px 0;
+  margin-top: 4px;
 }
 
-.sidebar .group-title {
-  padding: 8px 16px 4px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+/* Note: this no longer matches `Controllers` — "Document Info" (see
+   `buildSidebar`) precedes it as a bare sibling, so it's `.sidebar`'s
+   *second* child, not first. That's deliberate: it means `Controllers`
+   falls through to the plain `.sidebar .group` divider above instead,
+   the same one separating every other pair of sections, rather than a
+   special-cased gap that read as inconsistent with the rest. */
+.sidebar .group:first-child {
+  margin-top: 0;
+  border-top: none;
+}
+
+/* Bold + uppercase, matching `.group-title`'s own weight — "Document
+   Info" represents the document itself, the same rank as "Controllers"/
+   "Models" below it, not a lighter/plainer entry. No chevron (nothing to
+   collapse), so it doesn't share the rest of `.group-title`'s layout. */
+.sidebar a.nav-doc-info {
+  font-weight: 700;
   text-transform: uppercase;
-  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+/* Both are clickable section headers (Docusaurus-style collapsible
+   sidebar categories — see `collapsibleTitle` in app.js), not static
+   labels — the trailing chevron (`.group-chevron`, pushed to the row's
+   far right) is what signals that, matching where Docusaurus itself
+   puts a category's collapse arrow. */
+.sidebar .group-title,
+.sidebar .kind-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sidebar .group-title:hover,
+.sidebar .kind-title:hover {
+  color: var(--accent);
+}
+
+/* Accent-colored only while the current page is actually inside this
+   section (`.title-active`, set in `collapsibleTitle` from the active
+   route) — matching Docusaurus, which doesn't tint every category title
+   all the time, only the one the reader is actually in. */
+.sidebar .group-title {
+  padding: 12px 16px 4px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text);
 }
 
 .sidebar .kind-title {
   padding: 8px 16px 2px 28px;
-  font-size: 10.5px;
-  letter-spacing: 0.03em;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--text);
+}
+
+.sidebar .group-title.title-active,
+.sidebar .kind-title.title-active {
+  color: var(--accent);
+}
+
+/* Always the same (expanded-state) chevron glyph, rotated -90deg when
+   collapsed rather than swapped for a visually different "collapsed"
+   icon — see `collapsibleTitle`/`buildControllerNodes` in app.js. That
+   makes the turn itself an animatable property instead of a jump-cut
+   between two icons. */
+.group-chevron {
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: transform 0.18s ease;
+}
+
+.group-chevron.collapsed {
+  transform: rotate(-90deg);
+}
+
+/* The collapse/expand animation for a section's contents (controller
+   folder children, a Models kind's link list, or a whole top-level
+   group's body) — see `collapseWrap` in app.js. `grid-template-rows`
+   between `1fr` (open) and `0fr` (shut) is what's actually transitioned;
+   it works on `height: auto` content without ever having to measure a
+   pixel height in JS. The inner wrapper is what clips the content as
+   that row shrinks — `min-height: 0` overrides a grid item's default
+   automatic minimum (behaves like `min-content`), which would otherwise
+   refuse to shrink past the content's own height and defeat the whole
+   animation. */
+.nav-children {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.2s ease;
+}
+
+.nav-children.collapsed {
+  grid-template-rows: 0fr;
+}
+
+.nav-children-inner {
+  overflow: hidden;
+  min-height: 0;
 }
 
 .sidebar a.nav-link {
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 5px 16px;
+  padding: 4px 16px;
+  margin: 4px 0 0;
   color: var(--text);
   text-decoration: none;
-  font-size: 13.5px;
+  font-size: 14px;
   border-left: 2px solid transparent;
 }
 
@@ -274,8 +641,36 @@ a {
   white-space: nowrap;
 }
 
+/* A controller folder is a collapsible nested category, same role as
+   e.g. Docusaurus's own nested sidebar categories — those render at the
+   same bold weight as a top-level category, not a lighter in-between
+   weight. */
 .sidebar a.nav-ctrl {
-  font-weight: 500;
+  font-weight: 700;
+}
+
+/* Pushed to the row's far right (Docusaurus puts a category's collapse
+   arrow there, not leading the label/name) — a childless folder row
+   omits this element outright rather than reserving its space, so
+   nothing needs a matching spacer on the left. */
+.nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: transform 0.18s ease;
+}
+
+.nav-toggle.collapsed {
+  transform: rotate(-90deg);
+}
+
+.nav-toggle:hover {
+  color: var(--text);
 }
 
 .sidebar a.nav-op .method-badge {
@@ -341,17 +736,144 @@ a {
   padding: 32px 40px;
 }
 
+/* Holds a page's own content column side by side with its TOC rail (see
+   `.toc` below) — a plain flex row, not a 3rd grid track spanning the
+   rest of the viewport: on a wide screen a fixed-width viewport-edge
+   column leaves the rail visually stranded, disconnected from the
+   content it describes, with a growing gap between them. Keeping both as
+   flex children that only take the width they need means they stay
+   clumped together regardless of viewport width — any extra space ends
+   up as blank margin trailing the rail, not as a gap splitting them. */
+.page-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+}
+
+/* Everything a page renders — headings, dividers, field-list borders,
+   code blocks — shares this one width, instead of stretching to fill
+   whatever's left of `.page-row`: a `.field-row` border stretching
+   further right than the text it separates reads as a layout bug, not a
+   design choice, so nothing in a page gets its own separate, narrower
+   cap (`.markdown`/`.field-description` used to; removed in favor of
+   this). `min-width: 0` keeps a flex item's default content-based
+   minimum from overriding the cap on a very wide `.main`. */
+.content-col {
+  max-width: 760px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* ---------- "on this page" TOC rail ---------- */
+
+/* A flex child of `.page-row`, not a grid area of its own — see that
+   rule's comment. `position: sticky` (relative to `.main`, the nearest
+   scrolling ancestor) is what actually keeps it in view while the
+   content column scrolls underneath, standing in for the pinning a
+   dedicated grid track used to give it for free. Hidden below `.toc`'s
+   narrow-viewport breakpoint instead of being load-bearing there. */
+/* No border-left of its own — `.toc-list` below already draws the one
+   rail this panel needs; a second one here (this panel's own edge, ~20px
+   to that rail's left) was a leftover from before that rail existed and
+   just read as a stray duplicate line next to it. Separation from
+   `.content-col` comes from `.page-row`'s own `gap` instead. */
+.toc {
+  flex: 0 0 220px;
+  width: 220px;
+  position: sticky;
+  top: 20px;
+  max-height: calc(100vh - 56px - 52px - 40px);
+  overflow-y: auto;
+}
+
+.toc-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+/* One continuous rail for the whole list (Docusaurus-style) — the
+   active entry is distinguished by text color alone (below), rather than
+   also overlaying its own colored border segment on top of this same
+   line: that used to rely on a pixel-perfect negative-margin overlap
+   that rendered, in practice, as two adjacent lines instead of one. */
+.toc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 1px solid var(--border);
+}
+
+/* Full `--text` contrast by default, same as Docusaurus's TOC links (it
+   barely dims inactive entries at all) — only the active one needs to
+   read as visually different, via accent color + weight below, not
+   every other entry being a hard-to-read gray. */
+.toc-link {
+  padding: 5px 0 5px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.toc-link:hover {
+  color: var(--accent);
+}
+
+.toc-link.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.toc-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .main h1 {
-  margin: 0 0 8px;
-  font-size: 26px;
+  margin: 0 0 20px;
+  font-size: 40px;
+  line-height: 1.2;
+  font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.inherits {
+  margin: 8px 0;
+  font-size: 14.5px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.inherits .type-chip {
+  font-size: 0.85em;
+}
+
+.from-flag {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+a.from-flag:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .main h2 {
-  margin: 0 0 12px;
-  font-size: 19px;
+  margin: 0 0 20px;
+  font-size: 28px;
+  line-height: 1.25;
+  font-weight: 700;
 }
 
 .main .description {
@@ -385,7 +907,14 @@ a {
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 1px 6px;
+}
+
+.badge:not(.kind-badge) {
   color: var(--text-muted);
+}
+
+.kind-badge {
+  border-color: color-mix(in srgb, currentColor 40%, transparent);
 }
 
 .badge.deprecated {
@@ -454,38 +983,384 @@ table.props code {
   border-radius: 4px;
 }
 
-.tree {
+.field-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.field-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+}
+
+.field-row:last-child {
+  border-bottom: none;
+}
+
+.field-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+
+.field-list .key {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.field-list code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--code-bg);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* Positions the whole-block copy button (`.copy-btn-lg`) inside the code
+   box's own top-right corner — the box is the thing being copied, so the
+   action belongs on it, not up on the "Example" heading. */
+.example-json-wrap {
+  position: relative;
+}
+
+.example-json {
+  margin: 0;
+  padding: 14px 44px 14px 16px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--code-bg);
-  padding: 10px 14px;
-  font-family: var(--font-mono);
-  font-size: 13.5px;
   overflow-x: auto;
 }
 
-.tree .node {
-  padding: 3px 0;
+.example-json code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre;
 }
 
-.tree .indent {
-  margin-left: 18px;
-  border-left: 1px solid var(--border);
-  padding-left: 12px;
-}
-
-.tree .key {
+.example-json .json-key {
   color: var(--accent);
 }
 
-.tree .type {
+.example-json .json-string {
+  color: var(--json-string);
+}
+
+.example-json .json-number {
+  color: var(--json-number);
+}
+
+.example-json .json-boolean {
+  color: var(--json-boolean);
+}
+
+.example-json .json-null {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.field-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   color: var(--text-muted);
 }
 
-.tree .flag {
+.field-head .flag {
   font-size: 11px;
   color: var(--text-muted);
-  margin-left: 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 5px;
+  margin-left: 2px;
+}
+
+.field-nested {
+  margin: 10px 0 0 18px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+
+.field-properties {
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  color: var(--text);
+  margin: 8px 0 0;
+}
+
+.field-properties .prop-row {
+  margin: 4px 0;
+}
+
+.field-properties .prop-key {
+  color: var(--text);
+}
+
+.field-properties code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--code-bg);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* ---------- Document Info metadata (license / contact / terms) ---------- */
+/* `renderInfoMeta` — license/contact/terms sit right under the page's own
+   big h1, so a small uppercase label over normal body-sized content reads
+   as an intentional "About"-style panel rather than the cramped, tiny
+   `.field-properties` rows used for a type's own constraints elsewhere. */
+.doc-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 16px 0 4px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--code-bg);
+}
+
+.doc-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.doc-meta-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.doc-meta-body {
+  font-size: 14.5px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.doc-meta-license-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.doc-meta-value {
+  font-weight: 600;
+}
+
+a.doc-meta-value {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a.doc-meta-value:hover {
+  text-decoration: underline;
+}
+
+.text-toggle-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.text-toggle-btn:hover {
+  text-decoration: underline;
+}
+
+.license-content {
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  color: var(--text-muted);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.contact-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.contact-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  min-width: 220px;
+}
+
+.contact-name {
+  font-weight: 700;
+  font-size: 14.5px;
+  color: var(--text);
+}
+
+.contact-line {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.contact-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.contact-link:hover {
+  color: var(--accent);
+}
+
+.contact-link .icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.contact-link .label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contact-line .copy-btn {
+  flex-shrink: 0;
+}
+
+.terms-text {
+  white-space: pre-wrap;
+}
+
+.terms-text.clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.prop-row.example-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* A single example value: the raw value in `<code>` plus a small
+   copy-to-clipboard icon button, boxed together so it reads as one
+   distinct, individually-copyable item rather than plain running text —
+   used both inline under a field (`renderFieldExamples`) and on a named
+   type's own "Examples" section (`renderTypeExamples`). */
+.example-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 4px 2px 8px;
+}
+
+.example-chip code {
+  background: none;
+  padding: 0;
+}
+
+/* On a type's own "Examples" section (`renderTypeExamples`) the chip is
+   the actual answer to "what does this look like" — sized a step above
+   its neighbors (the "Example N" label, the description after it) so it
+   still reads as the important part despite being visually the smallest
+   *shape* on the row. */
+.field-head .example-chip {
+  font-size: 15px;
+}
+
+/* Same line as the chip, not a paragraph of its own below it — deliberately
+   smaller and muted so it can't be mistaken for the example value itself,
+   just what that value means. */
+.example-desc {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.example-desc code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--code-bg);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.copy-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+.copy-btn.copied {
+  color: var(--accent);
+}
+
+/* The whole-block variant used for `renderExampleBlock`'s JSON box —
+   bigger and pinned to that box's top-right corner (see
+   `.example-json-wrap`), since a page-level "copy everything" action
+   deserves a more prominent target than an inline per-value one. */
+.copy-btn-lg {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+}
+
+.copy-btn-lg:hover {
+  background: var(--bg-hover);
 }
 
 .response-block {
@@ -526,11 +1401,16 @@ table.props code {
 
 /* ---------- markdown descriptions ---------- */
 
+/* Full `--text` contrast, not `--text-muted` — this is the actual body
+   copy (page/field descriptions), not secondary chrome. Docusaurus (and
+   most doc sites) render prose at the same near-full-contrast color as
+   headings and lean on size/weight, not a dimmer color, to signal
+   hierarchy; muting the one thing people came here to read was the
+   actual legibility problem, not font size or family. */
 .markdown {
   font-family: var(--font-sans);
-  color: var(--text-muted);
-  line-height: 1.6;
-  max-width: 720px;
+  color: var(--text);
+  line-height: 1.65;
 }
 
 .markdown > *:first-child {
@@ -550,33 +1430,90 @@ table.props code {
 }
 
 .markdown h3 {
-  font-size: 16px;
+  font-size: 17px;
 }
 .markdown h4,
 .markdown h5,
 .markdown h6 {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .markdown p {
-  margin: 0 0 10px;
+  margin: 0 0 16px;
 }
 
 .markdown ul,
 .markdown ol {
-  margin: 0 0 10px;
+  margin: 0 0 16px;
   padding-left: 22px;
 }
 
 .markdown li {
-  margin: 2px 0;
+  margin: 4px 0;
 }
 
 .markdown blockquote {
-  margin: 0 0 10px;
+  margin: 0 0 16px;
   padding: 4px 12px;
   border-left: 3px solid var(--border);
   color: var(--text-muted);
+}
+
+/* Docusaurus-style admonitions (`:::tip ... :::` etc. — see `mdToHtml`):
+   a tinted, rounded callout with a colored left border and an
+   icon+label heading, one flavor per `--adm-color`. The tint itself is
+   a low-opacity mix of that color over the elevated code surface, so it
+   stays readable and on-theme in both light and dark rather than a
+   fixed hardcoded background per type. */
+.admonition {
+  margin: 0 0 16px;
+  padding: 12px 16px 14px;
+  border-radius: 8px;
+  border-left: 4px solid var(--adm-color);
+  background: color-mix(in srgb, var(--adm-color) 12%, var(--code-bg));
+}
+
+.admonition-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: var(--adm-color);
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.admonition-icon {
+  display: inline-flex;
+}
+
+.admonition-content {
+  color: var(--text);
+}
+
+.admonition-content > *:first-child {
+  margin-top: 0;
+}
+.admonition-content > *:last-child {
+  margin-bottom: 0;
+}
+
+.admonition-note {
+  --adm-color: var(--c-mapped);
+}
+.admonition-tip {
+  --adm-color: var(--post);
+}
+.admonition-info {
+  --adm-color: var(--get);
+}
+.admonition-warning {
+  --adm-color: var(--put);
+}
+.admonition-danger {
+  --adm-color: var(--delete);
 }
 
 .markdown code {
@@ -591,9 +1528,125 @@ table.props code {
   color: var(--accent);
 }
 
-.field-description,
-.enum-value-description {
+.field-description {
+  font-size: 13.5px;
+  margin: 8px 0 10px;
+}
+
+.reference-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* GitHub-markdown-style chip for a `#/model/Name` cross-reference inside a
+   description: the target type's own icon on the left, in a rounded box
+   tinted with that type's color. */
+.type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px 1px 6px;
+  border-radius: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  text-decoration: none;
+  white-space: nowrap;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+}
+
+.type-chip:hover {
+  background: color-mix(in srgb, currentColor 22%, transparent);
+}
+
+.type-chip .icon {
+  display: inline-flex;
+  color: currentColor;
+}
+
+/* Kind-grouped model counts on the Document Info page (`renderModelsSection`)
+   — a fixed-size stand-in for listing every declared type by name, since
+   that list has no upper bound. Sized up from `.type-chip` (which is meant
+   to sit inline inside body text) since these are the page's own content. */
+.stat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 13.5px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+}
+
+.stat-chip .stat-count {
+  color: var(--text);
+}
+
+.stat-chip:hover {
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.stat-chip .icon {
+  color: currentColor;
+}
+
+.stat-count {
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+/* ---------- data-type hover tooltip ---------- */
+
+.type-tooltip {
+  position: fixed;
+  z-index: 30;
+  max-width: 320px;
+  background: var(--tooltip-bg);
+  border: 1px solid var(--tooltip-border);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+  padding: 10px 12px;
   font-size: 12.5px;
-  max-width: 560px;
-  margin: 3px 0 6px;
+  color: var(--text);
+  line-height: 1.5;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
+  pointer-events: none;
+}
+
+.type-tooltip.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.type-tooltip-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.type-tooltip-head .mono {
+  font-family: var(--font-mono);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.type-tooltip-desc.empty {
+  font-style: italic;
+  opacity: 0.7;
 }

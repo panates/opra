@@ -97,6 +97,28 @@ describe('api-ui:ApiUiFactory', () => {
     expect(customerType.base).toBeUndefined();
   });
 
+  it('Should describe a MixinType-derived ComplexType as "mixin of" its constituent types', () => {
+    const html = ApiUiFactory.render(doc);
+    const match = /window\.__OPRA_DOCS__\s*=\s*(\{.*?\});/s.exec(html);
+    const docs = JSON.parse(match![1]);
+    const customerType = docs.root.types.Customer;
+    expect(customerType.inherits).toStrictEqual({
+      kind: 'mixin',
+      types: ['Record', 'Person'],
+    });
+  });
+
+  it('Should mark a mixed-in field with "from" naming the type that actually declared it', () => {
+    const html = ApiUiFactory.render(doc);
+    const match = /window\.__OPRA_DOCS__\s*=\s*(\{.*?\});/s.exec(html);
+    const docs = JSON.parse(match![1]);
+    const customerType = docs.root.types.Customer;
+    expect(customerType.fields.id.from).toStrictEqual('Record');
+    expect(customerType.fields.name.from).toStrictEqual('Person');
+    // Declared directly on Customer itself — no "from".
+    expect(customerType.fields.status.from).toBeUndefined();
+  });
+
   it('Should merge an EnumType with its base into a single flat "values" map', () => {
     const html = ApiUiFactory.render(doc);
     const match = /window\.__OPRA_DOCS__\s*=\s*(\{.*?\});/s.exec(html);

@@ -17,7 +17,7 @@ export class Note extends Record {
   @ApiField({ description: 'Body text of the note' })
   declare text: string;
 
-  @ApiField({ description: 'Display order of the note' })
+  @ApiField({ description: 'Display order of the note', default: 1 })
   declare rank: number;
 
   @ApiField({

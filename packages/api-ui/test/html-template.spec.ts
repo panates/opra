@@ -6,7 +6,7 @@ describe('api-ui:html-template', () => {
     const html = renderApiUiHtml({
       root: { spec: '1.0', id: 'x', info: { title: 'x' } },
       refs: {},
-    });
+    } as any);
     expect(html).toContain('window.__OPRA_DOCS__');
     expect(html).toContain('"title":"x"');
   });

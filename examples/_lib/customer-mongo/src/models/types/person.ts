@@ -1,14 +1,34 @@
-import { ApiField, ComplexType } from '@opra/common';
+import { ApiField, ComplexType, SimpleType, StringType } from '@opra/common';
 import { Gender } from '../enums/gender.js';
+
+@(SimpleType({
+  embedded: true,
+  description: 'A person name, at least 3 characters long',
+})
+  .Example('John')
+  .Example('Ayşe'))
+class PersonNameType extends StringType {
+  constructor() {
+    super({ minLength: 3 });
+  }
+}
 
 @ComplexType({
   description: 'Person information',
 })
 export class Person {
-  @ApiField({ description: 'Given (first) name' })
+  @ApiField({
+    description: 'Given (first) name',
+    type: PersonNameType,
+    examples: ['John', 'Ayşe'],
+  })
   declare givenName: string;
 
-  @ApiField({ description: 'Family (last) name' })
+  @ApiField({
+    description: 'Family (last) name',
+    type: PersonNameType,
+    examples: ['Smith', 'Yılmaz'],
+  })
   declare familyName: string;
 
   @ApiField({ description: 'Gender of the person', type: Gender })

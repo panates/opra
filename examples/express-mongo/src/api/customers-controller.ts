@@ -1,4 +1,5 @@
 import {
+  ComplexType,
   HttpController,
   HttpOperation,
   OmitType,
@@ -9,6 +10,16 @@ import { MongoAdapter } from '@opra/mongodb';
 import { Customer, CustomersService } from 'example-customer-mongo';
 import { Db } from 'mongodb';
 import { type PartialDTO } from 'ts-gems';
+
+// `Customer` minus its server-generated `_id`, used as the create
+// operation's request body. Naming it (rather than passing
+// `OmitType(Customer, ['_id'])` inline) gives it its own page in the API
+// reference, reachable like any other model — this `@ComplexType() class
+// ... extends OmitType(...)` shape is OPRA's own pattern for a *named*
+// mapped type (a bare `OmitType(...)` result only carries a name when
+// wrapped this way; its `base` is the underlying (anonymous) MappedType).
+@ComplexType()
+export class CustomerCreateInput extends OmitType(Customer, ['_id']) {}
 
 @HttpController({
   description: 'The customers collection',
@@ -24,7 +35,7 @@ export class CustomersController {
   @HttpOperation.Entity.Create(Customer, {
     description: 'Creates a new customer',
     requestBody: {
-      type: OmitType(Customer, ['_id']),
+      type: CustomerCreateInput,
     },
   })
   async create(context: HttpContext): Promise<PartialDTO<Customer>> {

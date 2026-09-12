@@ -31,7 +31,7 @@ export class StringType {
   minLength?: number;
 
   @SimpleType.Attribute({
-    description: 'Minimum number of characters',
+    description: 'Maximum number of characters',
   })
   maxLength?: number;
 

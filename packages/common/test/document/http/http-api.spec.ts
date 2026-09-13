@@ -15,6 +15,9 @@ describe('common:HttpApi', () => {
     expect(api.transport).toEqual('http');
     expect(api.description).toEqual('test service');
     expect(api.url).toEqual('/test');
+    expect(api.servers).toStrictEqual([
+      { url: 'https://api.example.com', description: 'Test server' },
+    ]);
   });
 
   it('Should create controller instances', async () => {

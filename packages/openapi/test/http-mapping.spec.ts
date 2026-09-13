@@ -80,6 +80,29 @@ describe('openapi:HTTP mapping', () => {
     expect(result.servers).toStrictEqual([{ url: '/test' }]);
   });
 
+  it('Should prefer HttpApi#servers over HttpApi#url when both are set', async () => {
+    const docWithServers = await ApiDocumentFactory.createDocument({
+      spec: OpraSchema.SpecVersion,
+      info: { title: 'TestApi', version: 'v1' },
+      types: [Customer],
+      api: {
+        transport: 'http',
+        name: 'TestApi',
+        url: '/test',
+        servers: [
+          { url: 'https://api.example.com', description: 'Production' },
+          { url: 'https://staging.example.com' },
+        ],
+        controllers: [CustomerController, CustomersController],
+      },
+    });
+    const result = OpenApiDocumentFactory.generate(docWithServers);
+    expect(result.servers).toStrictEqual([
+      { url: 'https://api.example.com', description: 'Production' },
+      { url: 'https://staging.example.com' },
+    ]);
+  });
+
   it('Should convert ":param" path templates to "{param}"', () => {
     const result = OpenApiDocumentFactory.generate(doc);
     expect(Object.keys(result.paths)).toContain('/Customers@{customerId}');

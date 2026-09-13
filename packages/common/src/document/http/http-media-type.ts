@@ -48,6 +48,7 @@ export const HttpMediaType = function (
   }
   _this.description = initArgs.description;
   _this.contentEncoding = initArgs.contentEncoding;
+  _this.example = initArgs.example;
   _this.examples = initArgs.examples;
   _this.multipartFields = [];
   _this.maxParts = initArgs.maxParts;

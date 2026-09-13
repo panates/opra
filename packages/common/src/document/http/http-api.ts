@@ -26,10 +26,12 @@ export class HttpApi extends ApiBase {
   readonly transport = 'http';
   controllers: ResponsiveMap<HttpController> = new ResponsiveMap();
   url?: string;
+  servers?: OpraSchema.HttpServer[];
 
   constructor(init: HttpApi.InitArguments) {
     super(init);
     this.url = init.url;
+    this.servers = init.servers?.map(s => ({ ...s }));
   }
 
   findController(controller: Type): HttpController | undefined;
@@ -60,6 +62,7 @@ export class HttpApi extends ApiBase {
       ...schema,
       transport: this.transport,
       url: this.url,
+      servers: this.servers,
       controllers: {},
     };
     for (const v of this.controllers.values()) {

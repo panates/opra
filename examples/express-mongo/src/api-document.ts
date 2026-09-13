@@ -67,6 +67,9 @@ SOFTWARE.`,
       api: {
         name: 'CustomerApi',
         transport: 'http',
+        servers: [
+          { url: 'http://localhost:3001', description: 'Local dev server' },
+        ],
         controllers: [
           new AuthController(db),
           new CustomerController(db),

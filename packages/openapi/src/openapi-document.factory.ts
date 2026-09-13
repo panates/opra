@@ -78,7 +78,11 @@ export namespace OpenApiDocumentFactory {
       }),
       paths,
     };
-    if (api.url) out.servers = [{ url: api.url }];
+    if (api.servers?.length) {
+      out.servers = api.servers.map(s =>
+        omitUndefined({ url: s.url, description: s.description }),
+      );
+    } else if (api.url) out.servers = [{ url: api.url }];
     if (Object.keys(ctx.schemas).length)
       out.components = { schemas: ctx.schemas };
 

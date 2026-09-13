@@ -24,6 +24,9 @@ export namespace TestHttpApiDocument {
         name: 'TestService',
         description: 'test service',
         url: '/test',
+        servers: [
+          { url: 'https://api.example.com', description: 'Test server' },
+        ],
         controllers: [
           AuthController,
           CountriesController,

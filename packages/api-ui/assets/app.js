@@ -508,20 +508,6 @@
     return { name: r.name, def: r.def, prefix: '', suffix: suffix, arrayConstraints: arrayConstraints };
   }
 
-  function typeLabel(doc, ref) {
-    var u = unwrapArray(doc, ref);
-    // `u.name` is set only for a *referenced* (named, non-inlined) type.
-    // SimpleTypes are always inlined (even named/builtin ones — see
-    // `schema-builder.ts`), so their own name travels on `u.def.name`
-    // instead; fall back to the generic kind only for a truly anonymous type.
-    var inner =
-      u.name ||
-      (u.def && u.def.name) ||
-      (u.def && u.def.kind.replace('Type', '').toLowerCase()) ||
-      'any';
-    return u.prefix + inner + u.suffix;
-  }
-
   /** A type-chip (icon + name, tinted by kind — same look as a markdown
    *  cross-reference) linking to that model's page, or an inline type's
    *  best label when it has no page of its own. A fields-bearing type with
@@ -529,13 +515,43 @@
    *  declared `{ embedded: true }`, meant to live only inside a field) —
    *  labeled as such rather than showing the uninformative raw kind name,
    *  since that's also why it isn't a clickable link. */
-  function typeRefNode(doc, ref) {
+  function typeRefNode(doc, ref, suffix) {
     var u = unwrapArray(doc, ref);
     var d = u.def;
-    var embedded = !!(d && !u.name && !d.name && d.fields);
-    var name = u.name || (d && d.name) || (embedded ? 'embedded' : d && d.kind) || 'unknown';
     var iconKind = d ? dataTypeIconKind(d.kind) : 'cube';
-    var attrs = { class: 'type-chip c-' + iconKind };
+
+    // An anonymous union — one chip holding all of its member types as
+    // smaller pills ("⋃ UnionType | boolean number"), instead of a bare
+    // "UnionType" label with the members spelled out in a separate nested
+    // block below the field. Hover is scoped to just the "UnionType" label
+    // for the union's own tooltip; each member pill is a full recursive
+    // `typeRefNode` (own icon, own link if named, own hover), just
+    // restyled a shade darker and borderless via `.type-chip-member` so it
+    // reads as *part of* the union chip rather than a sibling of it.
+    if (d && !u.name && d.kind === 'UnionType' && d.types && d.types.length) {
+      var unionLabel = el('span', { class: 'type-chip-union-label' }, [iconFor(iconKind), 'UnionType' + (suffix || '')]);
+      attachTypeHover(unionLabel, doc, ref);
+      var unionNode = el('span', { class: 'type-chip c-' + iconKind + ' type-chip-union' }, [
+        unionLabel,
+        el('span', { class: 'type-chip-sep' }, ['|']),
+      ]);
+      d.types.forEach(function (t) {
+        var member = typeRefNode(doc, t);
+        member.classList.add('type-chip-member');
+        unionNode.appendChild(member);
+      });
+      return unionNode;
+    }
+
+    var embedded = !!(d && !u.name && !d.name && d.fields);
+    var name = (u.name || (d && d.name) || (embedded ? 'embedded' : d && d.kind) || 'unknown') + (suffix || '');
+    // `d.anonymous` (see `mapDataType` in schema-builder.ts) covers both
+    // this — an embedded ComplexType/Mixin/Mapped type with no name — and
+    // a SimpleType customized inline for one field/parameter (which still
+    // *displays* a borrowed name like "string", not "embedded", but is
+    // just as much "not a real standalone type"). The dashed border is a
+    // quiet visual cue for that; `showTypeTooltip` spells it out.
+    var attrs = { class: 'type-chip c-' + iconKind + (d && d.anonymous ? ' type-chip-anonymous' : '') };
     if (u.name) attrs.href = hrefFor(state.docKey, 'model/' + encodeURIComponent(u.name));
     var node = el(u.name ? 'a' : 'span', attrs, [iconFor(iconKind), name]);
     attachTypeHover(node, doc, ref);
@@ -545,21 +561,40 @@
   // ---------- data-type hover tooltip ----------
 
   var typeTooltipEl = null;
-  var typeTooltipTimer = null;
+  var typeTooltipShowTimer = null;
+  var typeTooltipHideTimer = null;
+
+  function cancelTypeTooltipHide() {
+    if (typeTooltipHideTimer) {
+      clearTimeout(typeTooltipHideTimer);
+      typeTooltipHideTimer = null;
+    }
+  }
 
   function ensureTypeTooltip() {
     if (!typeTooltipEl) {
       typeTooltipEl = el('div', { class: 'type-tooltip' });
+      // The tooltip itself is interactive now (copy buttons on its
+      // examples), so it needs to survive the pointer traveling from the
+      // chip down into it — cancel the pending hide on entry, and only
+      // hide once the pointer actually leaves the tooltip too.
+      typeTooltipEl.addEventListener('mouseenter', cancelTypeTooltipHide);
+      typeTooltipEl.addEventListener('mouseleave', function () {
+        typeTooltipHideTimer = setTimeout(function () {
+          typeTooltipEl.classList.remove('visible');
+        }, 150);
+      });
       document.body.appendChild(typeTooltipEl);
     }
     return typeTooltipEl;
   }
 
-  function hideTypeTooltip() {
-    if (typeTooltipTimer) {
-      clearTimeout(typeTooltipTimer);
-      typeTooltipTimer = null;
+  function hideTypeTooltipNow() {
+    if (typeTooltipShowTimer) {
+      clearTimeout(typeTooltipShowTimer);
+      typeTooltipShowTimer = null;
     }
+    cancelTypeTooltipHide();
     if (typeTooltipEl) typeTooltipEl.classList.remove('visible');
   }
 
@@ -597,12 +632,35 @@
         iconFor(iconKind, 'c-' + iconKind),
         el('span', { class: 'mono' }, [name]),
         el('span', { class: 'badge kind-badge c-' + iconKind }, [d.kind]),
+        // Set by `mapDataType` whenever this instance has no name of its
+        // own — an embedded ComplexType/Mixin/Mapped type, or a SimpleType
+        // customized inline for this one field/parameter. Either way,
+        // `name` above is borrowed (from the base type, or the literal
+        // word "embedded"), not this instance's own — flagged here since
+        // that's easy to miss otherwise, especially when it still reads
+        // as an ordinary type name like "string".
+        d.anonymous
+          ? el('span', {
+              class: 'badge',
+              title: 'Defined inline for this specific field or parameter — not a standalone type with its own page.',
+            }, ['embedded'])
+          : null,
       ]),
     );
     var brief = briefText(d.description, 220);
     tip.appendChild(
       el('div', { class: 'type-tooltip-desc' + (brief ? '' : ' empty') }, [brief || 'No description.']),
     );
+    // The type's own examples — same copyable chip as everywhere else,
+    // but without each one's description (there's no room for it here,
+    // and the tooltip is meant to be a quick glance, not the full page).
+    if (d.examples && d.examples.length) {
+      var exWrap = el('div', { class: 'type-tooltip-examples' });
+      d.examples.forEach(function (ex) {
+        exWrap.appendChild(exampleChip(ex.value));
+      });
+      tip.appendChild(exWrap);
+    }
 
     var rect = anchor.getBoundingClientRect();
     tip.style.left = rect.left + 'px';
@@ -618,17 +676,31 @@
     });
   }
 
-  /** Shows a small info popover (name, kind, description) after a short
-   *  hover delay over any element that represents a reference to a data
-   *  type — a field's type label, an Extends/Mixin link, a markdown
-   *  type-chip. */
+  /** Shows a small info popover (name, kind, description, examples) after
+   *  a short hover delay over any element that represents a reference to
+   *  a data type — a field's type label, an Extends/Mixin link, a
+   *  markdown type-chip. Leaving the chip doesn't close it right away —
+   *  there's a short grace period (see `ensureTypeTooltip`) so the
+   *  pointer can travel down into the tooltip itself, e.g. to copy an
+   *  example, without it vanishing first. */
   function attachTypeHover(node, doc, ref) {
     node.addEventListener('mouseenter', function () {
-      typeTooltipTimer = setTimeout(function () {
+      cancelTypeTooltipHide();
+      typeTooltipShowTimer = setTimeout(function () {
         showTypeTooltip(node, doc, ref);
       }, 450);
     });
-    node.addEventListener('mouseleave', hideTypeTooltip);
+    node.addEventListener('mouseleave', function () {
+      if (typeTooltipShowTimer) {
+        clearTimeout(typeTooltipShowTimer);
+        typeTooltipShowTimer = null;
+      }
+      if (typeTooltipEl) {
+        typeTooltipHideTimer = setTimeout(function () {
+          typeTooltipEl.classList.remove('visible');
+        }, 150);
+      }
+    });
   }
 
   /** What each field flag means — shown as its hover tooltip, since the
@@ -686,16 +758,19 @@
 
   /** A field's type: the same tinted icon-chip used everywhere else on the
    *  page (Mixin of / References to this Resource / markdown cross-refs),
-   *  with a TypeScript-style `[]` suffix (muted, plain text, after the
-   *  chip) per array layer — `string[]`, or `string[][]` for an array of
-   *  arrays. Every named type — including EnumType — is just a chip here:
-   *  hovering shows a quick summary, clicking goes to its own page for the
-   *  full detail (e.g. an enum's full value list). */
-  function fieldTypeNode(doc, ref) {
+   *  with a TypeScript-style `[]` suffix per array layer — `string[]`, or
+   *  `string[][]` for an array of arrays — folded into the chip itself
+   *  (not sitting next to it as separate muted text), so an array's type
+   *  still reads as one clickable/hoverable unit. `extraSuffix` lets a
+   *  caller (e.g. a parameter with `arraySeparator`) add its own "[]" the
+   *  same way, without the type itself being a real ArrayType. Every named
+   *  type — including EnumType — is just a chip here: hovering shows a
+   *  quick summary, clicking goes to its own page for the full detail
+   *  (e.g. an enum's full value list). */
+  function fieldTypeNode(doc, ref, extraSuffix) {
     var u = unwrapArray(doc, ref);
-    var chip = typeRefNode(doc, ref);
-    if (!u.prefix && !u.suffix) return chip;
-    return el('span', { class: 'field-type' }, [u.prefix, chip, u.suffix]);
+    var suffix = (u.suffix || '') + (extraSuffix || '');
+    return typeRefNode(doc, ref, suffix || undefined);
   }
 
   /** "minValue" -> "Min value" — for labeling a SimpleType property whose
@@ -722,10 +797,17 @@
     keys.forEach(function (key) {
       var value = properties[key];
       var desc = descriptions && descriptions[key];
+      // `pattern` (a RegExp source) and any non-primitive value (e.g. the
+      // builtin filter type's `rules` map) are boxed in `<code>` — a bare
+      // `String(value)` on an object/array would otherwise print the
+      // useless "[object Object]".
+      var isObject = value !== null && typeof value === 'object';
       container.appendChild(
         el('div', { class: 'prop-row' }, [
           el('span', { class: 'prop-key', title: desc || null }, [humanizePropKey(key) + ': ']),
-          key === 'pattern' ? el('code', {}, [String(value)]) : text(String(value)),
+          key === 'pattern' || isObject
+            ? el('code', {}, [isObject ? JSON.stringify(value) : String(value)])
+            : text(String(value)),
         ]),
       );
     });
@@ -793,6 +875,149 @@
     );
   }
 
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function escapeRegExp(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  /** None of these are general-purpose tokenizers for their language — same
+   *  "hand-rolled, no dependency" spirit as `highlightJson`, just scoped to
+   *  exactly the tokens the `format*Snippet` functions themselves ever emit
+   *  (we generate this code, so we already know everything that can appear
+   *  in it), rather than trying to parse arbitrary input. Each uses one
+   *  combined regex with a capture group per token category (mirroring
+   *  `highlightJson`'s single-pass style), reusing its color classes
+   *  (`.json-string`/`.json-number`/`.json-boolean`/`.json-key`) plus two
+   *  new ones (`.code-keyword`, `.code-comment`) for things JSON never had:
+   *  command/function names and the `// filename`/`# filename` notes in
+   *  generated multipart snippets. */
+  function highlightShell(code) {
+    var escaped = escapeHtml(code);
+    return escaped.replace(/('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")|(\b(?:curl|http)\b|-[A-Za-z]\b|--[a-z-]+\b)/g, function (match, str, kw) {
+      if (str !== undefined) return '<span class="json-string">' + str + '</span>';
+      return '<span class="code-keyword">' + kw + '</span>';
+    });
+  }
+
+  /** `extraKeywords` lets each JS-family caller (jQuery/XHR alongside the
+   *  original Fetch/Axios) highlight its own handful of extra identifiers
+   *  (`$`/`ajax`, `XMLHttpRequest`/`open`/`send`, ...) without every caller
+   *  needing its own near-duplicate regex. */
+  function highlightJs(code, extraKeywords) {
+    var keywords = ['const', 'var', 'new', 'require', 'fetch', 'axios', 'JSON', 'stringify', 'FormData'].concat(extraKeywords || []);
+    var escaped = escapeHtml(code);
+    var re = new RegExp(
+      "('(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\"|//[^\\n]*)|(\\b(?:" +
+        keywords.map(escapeRegExp).join('|') +
+        ')\\b)|(\\b[A-Za-z_$][A-Za-z0-9_$]*)(?=\\s*:)|(-?\\d+(?:\\.\\d+)?)',
+      'g',
+    );
+    return escaped.replace(re, function (match, str, kw, key, num) {
+      if (str !== undefined) {
+        if (str.charAt(0) === '/') return '<span class="code-comment">' + str + '</span>';
+        return '<span class="json-string">' + str + '</span>';
+      }
+      if (kw !== undefined) return '<span class="code-keyword">' + kw + '</span>';
+      if (key !== undefined) return '<span class="json-key">' + key + '</span>';
+      if (num !== undefined) return '<span class="json-number">' + num + '</span>';
+      return match;
+    });
+  }
+
+  function highlightPython(code, extraKeywords) {
+    var keywords = ['import', 'open', 'requests', 'response'].concat(extraKeywords || []);
+    var escaped = escapeHtml(code);
+    var re = new RegExp(
+      "('(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\"|#[^\\n]*)|(\\b(?:" +
+        keywords.map(escapeRegExp).join('|') +
+        ')\\b)|(\\b(?:True|False|None)\\b)|(\\b[A-Za-z_][A-Za-z0-9_]*)(?=\\=(?!=))|(-?\\d+(?:\\.\\d+)?)',
+      'g',
+    );
+    return escaped.replace(re, function (match, str, kw, boolNull, kwarg, num) {
+      if (str !== undefined) {
+        if (str.charAt(0) === '#') return '<span class="code-comment">' + str + '</span>';
+        return '<span class="json-string">' + str + '</span>';
+      }
+      if (kw !== undefined) return '<span class="code-keyword">' + kw + '</span>';
+      if (boolNull !== undefined) return '<span class="json-boolean">' + boolNull + '</span>';
+      if (kwarg !== undefined) return '<span class="json-key">' + kwarg + '</span>';
+      if (num !== undefined) return '<span class="json-number">' + num + '</span>';
+      return match;
+    });
+  }
+
+  /** A shared highlighter for the remaining C-like-enough languages (PHP,
+   *  Java, Go, C#, Swift) plus Ruby — one `keywords` list per caller instead
+   *  of a bespoke regex each, since their token *shapes* (quoted strings,
+   *  `//`/`#` comments, a handful of language keywords, numbers) are close
+   *  enough to share one pattern; only the keyword list actually varies. */
+  function highlightGeneric(code, keywords) {
+    var escaped = escapeHtml(code);
+    var re = new RegExp(
+      "('(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\"|//[^\\n]*|#[^\\n]*)|(\\b(?:" +
+        keywords.map(escapeRegExp).join('|') +
+        ')\\b)|(\\b[A-Za-z_][A-Za-z0-9_]*)(?=\\s*[:=](?!=))|(-?\\d+(?:\\.\\d+)?)',
+      'g',
+    );
+    return escaped.replace(re, function (match, str, kw, key, num) {
+      if (str !== undefined) {
+        if (str.charAt(0) === '/' || str.charAt(0) === '#') return '<span class="code-comment">' + str + '</span>';
+        return '<span class="json-string">' + str + '</span>';
+      }
+      if (kw !== undefined) return '<span class="code-keyword">' + kw + '</span>';
+      if (key !== undefined) return '<span class="json-key">' + key + '</span>';
+      if (num !== undefined) return '<span class="json-number">' + num + '</span>';
+      return match;
+    });
+  }
+
+  /** Splits a URL into the pieces a raw-socket-style client (Node's `http`
+   *  module, Python's `http.client`) needs separately rather than as one
+   *  string — hostname, port (`''` when default), and path+query. Uses the
+   *  browser's own `URL` — this runs client-side, so it's always available,
+   *  no polyfill needed. */
+  function parseUrlParts(url) {
+    try {
+      var u = new URL(url);
+      return { hostname: u.hostname, port: u.port, path: (u.pathname || '/') + u.search, protocol: u.protocol.replace(':', '') };
+    } catch (e) {
+      return { hostname: url, port: '', path: '/', protocol: 'http' };
+    }
+  }
+
+  /** A nested PHP array literal (`'key' => value`) for a JSON-like example
+   *  value — mirrors `pyLiteral`'s role for Python, just PHP's own array
+   *  syntax instead of a dict/list literal. */
+  function phpLiteral(value, indent) {
+    indent = indent || '';
+    if (value === null || value === undefined) return 'null';
+    if (typeof value === 'boolean') return value ? 'true' : 'false';
+    if (typeof value === 'number') return String(value);
+    if (typeof value === 'string') return "'" + value.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
+    var nextIndent = indent + '  ';
+    if (Array.isArray(value)) {
+      var items = value.map(function (v) {
+        return nextIndent + phpLiteral(v, nextIndent);
+      });
+      return '[\n' + items.join(',\n') + '\n' + indent + ']';
+    }
+    var keys = Object.keys(value);
+    var lines = keys.map(function (k) {
+      return nextIndent + "'" + k + "' => " + phpLiteral(value[k], nextIndent);
+    });
+    return '[\n' + lines.join(',\n') + '\n' + indent + ']';
+  }
+
+  /** A C# string literal for an already-formatted JSON string — escapes
+   *  backslashes/quotes and turns real newlines into literal `\n` escapes,
+   *  since the JSON text is embedded in a normal (non-verbatim) C# string. */
+  function csharpStringLiteral(str) {
+    return '"' + str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"';
+  }
+
   /** A field's own declared example value(s) (`ApiField.examples` — either
    *  a plain array of values or a name-keyed record of them), shown as a
    *  row of boxed, individually-copyable chips under the field's
@@ -852,7 +1077,13 @@
     var head = el('span', { class: 'field-head' }, [
       name ? el('span', { class: 'key' }, [name]) : null,
       name ? text(': ') : null,
-      fieldTypeNode(doc, ref2),
+      // A parameter (unlike a field) can accept multiple values through a
+      // single string value rather than the type itself being an ArrayType
+      // — e.g. a query parameter with `arraySeparator: ','` splits a
+      // comma-separated string into several values of its own (non-array)
+      // type. Given the same "[]" suffix as a real array, folded into the
+      // chip itself (see `fieldTypeNode`) rather than sitting next to it.
+      fieldTypeNode(doc, ref2, extra && extra.arraySeparator ? '[]' : null),
     ]);
     if (extra && extra.required) head.appendChild(flagBadge('required'));
     if (extra && extra.deprecated) {
@@ -874,9 +1105,11 @@
     var fieldExamplesNode = renderFieldExamples(extra && extra.examples);
     if (fieldExamplesNode) row.appendChild(fieldExamplesNode);
 
-    // Anything unnamed (embedded ComplexType/MappedType/MixinType fields,
-    // and anonymous unions) is walked inline — there's nowhere else to
-    // point a reader to see it. Anything named (including EnumType) is
+    // Anything unnamed and fields-bearing (embedded ComplexType/MappedType/
+    // MixinType) is walked inline — there's nowhere else to point a reader
+    // to see it. An anonymous union is fully represented by the chip
+    // itself now (see `typeRefNode`'s member pills), so it needs no
+    // separate nested block here. Anything named (including EnumType) is
     // just the chip above.
     if (d && !u.name && d.fields) {
       var nestedFields = el('div', { class: 'field-nested' });
@@ -884,12 +1117,6 @@
         nestedFields.appendChild(r);
       });
       row.appendChild(nestedFields);
-    } else if (d && !u.name && d.kind === 'UnionType') {
-      var nested = el('div', { class: 'field-nested' });
-      (d.types || []).forEach(function (t) {
-        nested.appendChild(renderFieldNode(doc, null, t, null));
-      });
-      row.appendChild(nested);
     } else if (d && d.kind === 'SimpleType' && d.properties) {
       var propsNode = renderSimpleTypeProperties(d.properties, d.propertyDescriptions);
       if (propsNode) row.appendChild(propsNode);
@@ -1003,11 +1230,6 @@
     }
     container.appendChild(renderTypeTree(doc, ref));
     return container;
-  }
-
-  function statusClass(code) {
-    if (typeof code !== 'number') return '';
-    return 'status-' + Math.floor(code / 100);
   }
 
   function formatStatusCode(sc) {
@@ -1206,7 +1428,6 @@
       var n = countOperations(ctrl);
       section.appendChild(
         el('a', { class: 'row-link', href: hrefFor(docKey, 'ctl/' + encodeURIComponent(name)) }, [
-          iconFor('folder', 'c-folder'),
           el('span', { class: 'mono' }, [name]),
           el('span', { class: 'row-desc' }, [n + (n === 1 ? ' operation' : ' operations')]),
         ]),
@@ -1285,12 +1506,1235 @@
     renderInfoMeta(main, doc, info);
   }
 
+  /** One table per parameter location (path/query/header/cookie), each
+   *  only shown when it actually has entries — shared by a controller's
+   *  own page (its directly-declared parameters, e.g. a `customerId`
+   *  path parameter) and an operation's page (its own parameters *plus*
+   *  every ancestor controller's, already merged server-side — see
+   *  `mapHttpOperation` in schema-builder.ts). */
+  function renderParametersSections(main, doc, parameters) {
+    if (!parameters || !parameters.length) return;
+    ['path', 'query', 'header', 'cookie'].forEach(function (loc) {
+      var params = parameters.filter(function (p) {
+        return p.location === loc;
+      });
+      if (!params.length) return;
+      var section = el('div', { class: 'section' }, [
+        el('h2', {}, [loc.charAt(0).toUpperCase() + loc.slice(1) + ' parameters']),
+      ]);
+      // Same `renderFieldNode` used for a model's own Fields — a plain
+      // Name/Type/Required/Description table gave a parameter's type only
+      // a bare text label, with no link to its own page and no visibility
+      // into a SimpleType's own properties (pattern, min/max, examples).
+      // Reusing the field renderer gives a parameter's type the same
+      // clickable chip, hover tooltip, and inline properties a field gets.
+      var list = el('div', { class: 'field-list' });
+      params.forEach(function (p) {
+        list.appendChild(
+          renderFieldNode(doc, p.name, p.type, {
+            required: p.required,
+            deprecated: p.deprecated,
+            description: p.description,
+            arraySeparator: p.arraySeparator,
+          }),
+        );
+      });
+      section.appendChild(list);
+      main.appendChild(section);
+    });
+  }
+
+  /** A media type's own `example` (a single value) or `examples` (a named
+   *  map of values) — shown as copyable chips, same as everywhere else.
+   *  The two are mutually exclusive per the schema, so at most one of
+   *  these ever produces anything. */
+  function renderMediaTypeExamples(media) {
+    if (media.example !== undefined) {
+      return el('div', { class: 'field-properties' }, [
+        el('div', { class: 'prop-row example-row' }, [
+          el('span', { class: 'prop-key' }, ['Example: ']),
+          exampleChip(media.example),
+        ]),
+      ]);
+    }
+    var names = media.examples ? Object.keys(media.examples) : [];
+    if (!names.length) return null;
+    return el(
+      'div',
+      { class: 'field-properties' },
+      names.map(function (name) {
+        return el('div', { class: 'prop-row example-row' }, [
+          el('span', { class: 'prop-key' }, [name + ': ']),
+          exampleChip(media.examples[name]),
+        ]);
+      }),
+    );
+  }
+
+  /** One entry of a `multipart/form-data` body — structurally just a field
+   *  (name, type, required), so it's rendered with the same `renderFieldNode`
+   *  every other field uses (chip, hover tooltip, nested properties...),
+   *  with two extra badges appended for what a plain field doesn't have:
+   *  whether this part is a `field` or an uploaded `file`, and its own
+   *  `contentType` when set (e.g. `image/*` on a file part). A part with
+   *  no declared `type` at all (common for a raw file upload) falls back
+   *  to the generic `any` type rather than showing nothing. */
+  function renderMultipartFieldRow(doc, f) {
+    var nameLabel = typeof f.fieldName === 'string' ? f.fieldName : '/' + f.fieldName + '/';
+    var row = renderFieldNode(doc, nameLabel, f.type || 'any', {
+      required: f.required,
+      description: f.description,
+    });
+    var head = row.firstChild;
+    head.appendChild(el('span', { class: 'badge' }, [f.fieldType]));
+    if (f.contentType) {
+      head.appendChild(
+        el('span', { class: 'flag' }, [Array.isArray(f.contentType) ? f.contentType.join(', ') : f.contentType]),
+      );
+    }
+    // Size limits declared on *this specific part* (as opposed to the
+    // container-level ones already shown at the top of the panel) —
+    // e.g. a per-file `maxPartSize` distinct from the whole body's
+    // `maxTotalSize`.
+    var limitRows = [];
+    if (f.maxPartSize != null) limitRows.push(['Max size', text(formatBytes(f.maxPartSize))]);
+    if (f.maxFieldSize != null) limitRows.push(['Max size', text(formatBytes(f.maxFieldSize))]);
+    if (limitRows.length) {
+      row.appendChild(
+        el(
+          'div',
+          { class: 'field-properties' },
+          limitRows.map(function (r) {
+            return el('div', { class: 'prop-row' }, [el('span', { class: 'prop-key' }, [r[0] + ': ']), r[1]]);
+          }),
+        ),
+      );
+    }
+    var exNode = renderMediaTypeExamples(f);
+    if (exNode) row.appendChild(exNode);
+    return row;
+  }
+
+  /** "5242880" -> "5 MB" — the size-limit properties (`maxPartSize`,
+   *  `maxTotalSize`, ...) are declared in bytes; shown in whichever unit
+   *  reads as a single reasonable number instead of a long digit string. */
+  function formatBytes(n) {
+    if (n >= 1024 * 1024) return (n / (1024 * 1024)).toFixed(n % (1024 * 1024) ? 1 : 0) + ' MB';
+    if (n >= 1024) return (n / 1024).toFixed(n % 1024 ? 1 : 0) + ' KB';
+    return n + ' B';
+  }
+
+  /** A `HttpMediaType`'s own properties (content type, encoding, multipart
+   *  size limits) as a plain labeled list — same `.field-properties`/
+   *  `.prop-row` look used for a SimpleType's own constraints elsewhere,
+   *  rather than a row of inline badges competing for attention with the
+   *  content-type itself. Only present properties get a row. */
+  function renderMediaTypeProps(media) {
+    var rows = [];
+    var contentTypeLabel = Array.isArray(media.contentType)
+      ? media.contentType.join(', ')
+      : media.contentType || 'application/json';
+    rows.push(['Content-Type', el('code', {}, [contentTypeLabel])]);
+    if (media.contentEncoding) rows.push(['Encoding', text(media.contentEncoding)]);
+    if (media.maxParts != null) rows.push(['Max parts', text(String(media.maxParts))]);
+    if (media.maxPartSize != null) rows.push(['Max part size', text(formatBytes(media.maxPartSize))]);
+    if (media.maxFieldSize != null) rows.push(['Max field size', text(formatBytes(media.maxFieldSize))]);
+    if (media.maxTotalSize != null) rows.push(['Max total size', text(formatBytes(media.maxTotalSize))]);
+    return el(
+      'div',
+      { class: 'field-properties' },
+      rows.map(function (r) {
+        return el('div', { class: 'prop-row' }, [el('span', { class: 'prop-key' }, [r[0] + ': ']), r[1]]);
+      }),
+    );
+  }
+
+  /** One alternative representation of a request body — a single
+   *  `HttpMediaType` entry. Its own properties (content type, encoding,
+   *  size limits) come first as a labeled list, then its description,
+   *  then whichever of a typed schema (`type`), example value(s), or
+   *  multipart fields it actually declares — falling back to a plain "no
+   *  schema" note when it's a bare `contentType` with none of those (e.g.
+   *  a raw upload with no further structure). */
+  function renderMediaTypePanel(doc, media) {
+    var panel = el('div', { class: 'media-type-panel' });
+    panel.appendChild(renderMediaTypeProps(media));
+
+    var descBlock = mdBlock(doc, media.description);
+    if (descBlock) panel.appendChild(descBlock);
+
+    var hasContent = false;
+    if (media.type) {
+      panel.appendChild(renderTypeTreeWithInherits(doc, media.type));
+      hasContent = true;
+    }
+    var exNode = renderMediaTypeExamples(media);
+    if (exNode) {
+      panel.appendChild(exNode);
+      hasContent = true;
+    }
+    if (media.multipartFields && media.multipartFields.length) {
+      var mpList = el('div', { class: 'field-list' });
+      media.multipartFields.forEach(function (f) {
+        mpList.appendChild(renderMultipartFieldRow(doc, f));
+      });
+      panel.appendChild(mpList);
+      hasContent = true;
+    }
+
+    if (!hasContent) {
+      panel.appendChild(el('div', { class: 'empty-note' }, ['Raw body — no further schema declared.']));
+    }
+    return panel;
+  }
+
+  /** A typed alternative's synthesized whole-object JSON example — same
+   *  idea as a model's own "Example" section, just rendered into the
+   *  page's side rail — see `render()` — instead of the reading column, so
+   *  it's the thing that stays in view while the field descriptions scroll
+   *  underneath it. `null` for multipart/raw content: there's no one JSON
+   *  value that represents a multipart stream. */
+  function requestBodyJsonExample(doc, media) {
+    if (!media.type) return null;
+    var json = JSON.stringify(buildExampleValue(doc, media.type), null, 2);
+    var copyBtn = copyButton(json, 15);
+    copyBtn.classList.add('copy-btn-lg');
+    return {
+      content: el('pre', { class: 'example-json' }, [el('code', { html: highlightJson(json) })]),
+      copyBtn: copyBtn,
+    };
+  }
+
+  /** Base URL for generated request snippets (cURL/Fetch/Axios/Python) — the
+   *  document's own first declared server (`OpraSchema.HttpServer`, exposed
+   *  client-side as `doc.api.servers`), falling back to this page's own
+   *  origin when no server is declared, since this reference UI is
+   *  typically served from the same host as the API it documents. */
+  function apiBaseUrl(doc) {
+    var servers = doc.api && doc.api.servers;
+    if (servers && servers.length && servers[0].url) return servers[0].url;
+    return window.location.origin;
+  }
+
+  /** Substitutes every `:paramName` token in `path` with that path
+   *  parameter's own example value — path parameter tokens are
+   *  colon-prefixed (e.g. `Customers@:customerId`, from `.KeyParam()`) and
+   *  survive verbatim into the real registered Express route
+   *  (`currentPath + operation.path`, registered as-is), so a real request
+   *  must send the substituted value in exactly that position, `@`
+   *  included — nothing about `@` needs special handling here. */
+  function interpolatePath(doc, path, params) {
+    var pathParams = (params || []).filter(function (p) {
+      return p.location === 'path';
+    });
+    return path.replace(/:([A-Za-z_$][A-Za-z0-9_$]*)/g, function (m, name) {
+      var p = null;
+      for (var i = 0; i < pathParams.length; i++) {
+        if (pathParams[i].name === name) {
+          p = pathParams[i];
+          break;
+        }
+      }
+      if (!p) return m;
+      var val = p.default !== undefined ? p.default : buildExampleValue(doc, p.type);
+      return encodeURIComponent(String(val));
+    });
+  }
+
+  /** A representative value for one multipart field — a plain 'field's own
+   *  example, or a plausible placeholder filename for a 'file' field (there
+   *  is no real file to point at in a synthesized example). */
+  function multipartFieldExampleValue(doc, f) {
+    if (f.fieldType === 'file') return firstFieldExampleValue(f.examples) || 'example.png';
+    return buildExampleValue(doc, f.type);
+  }
+
+  /** A plain, transport-agnostic description of one request — method, full
+   *  URL, query/header entries, and body — that every `format*Snippet`
+   *  function below renders into its own language. Kept separate from the
+   *  formatters so adding a new client only ever means adding one new
+   *  `format*Snippet(model)` over this exact same shape. */
+  function buildRequestModel(doc, ctrlPath, op, media) {
+    var fullPath = interpolatePath(doc, operationPath(ctrlPath, op), op.parameters);
+    var query = (op.parameters || [])
+      .filter(function (p) {
+        return p.location === 'query' && p.required;
+      })
+      .map(function (p) {
+        return { name: p.name, value: p.default !== undefined ? p.default : buildExampleValue(doc, p.type) };
+      });
+    var headers = (op.parameters || [])
+      .filter(function (p) {
+        return p.location === 'header';
+      })
+      .map(function (p) {
+        return { name: p.name, value: p.default !== undefined ? p.default : buildExampleValue(doc, p.type) };
+      });
+    var body = null;
+    if (media) {
+      if (media.multipartFields && media.multipartFields.length) {
+        body = {
+          kind: 'multipart',
+          fields: media.multipartFields.map(function (f) {
+            return { name: f.fieldName, type: f.fieldType, value: multipartFieldExampleValue(doc, f) };
+          }),
+        };
+      } else if (media.type) {
+        // `media.contentType` is already a single comma-joined string by the
+        // time it reaches the client (see `mapHttpMediaType` in
+        // schema-builder.ts) even when the alternative accepts several
+        // content types — fine as a multi-value *label* elsewhere on this
+        // page, but a real request only ever sends one, so a generated
+        // snippet picks just the first.
+        var contentTypeList = (Array.isArray(media.contentType) ? media.contentType.join(',') : media.contentType || 'application/json').split(',');
+        headers.push({ name: 'Content-Type', value: contentTypeList[0].trim() });
+        body = { kind: 'json', value: buildExampleValue(doc, media.type) };
+      }
+    }
+    var baseUrl = apiBaseUrl(doc);
+    return {
+      method: op.method,
+      baseUrl: baseUrl,
+      // Relative path without the host — what OPRA's own client (an
+      // `OpraHttpClient` constructed once against `baseUrl`) actually
+      // takes per call, unlike every other snippet here which needs the
+      // full URL up front (see `formatOpraClientSnippet`).
+      path: fullPath.charAt(0) === '/' ? fullPath.slice(1) : fullPath,
+      url: baseUrl + fullPath,
+      query: query,
+      headers: headers,
+      body: body,
+    };
+  }
+
+  function urlWithQuery(url, query) {
+    if (!query || !query.length) return url;
+    var qs = query
+      .map(function (q) {
+        return encodeURIComponent(q.name) + '=' + encodeURIComponent(String(q.value));
+      })
+      .join('&');
+    return url + (url.indexOf('?') === -1 ? '?' : '&') + qs;
+  }
+
+  /** OPRA's own client (`@opra/client`'s `OpraHttpClient`) — shown first
+   *  since it's the one library that actually understands this exact
+   *  document, not a generic HTTP call. Verified against
+   *  `packages/client/src/http-client-base.ts`'s real verb-shortcut API
+   *  (`.get`/`.post`/`.put`/`.patch`/`.delete`, falling back to the
+   *  low-level `.request(path, {method, body})` for anything else) and
+   *  `packages/client/test/client.spec.ts`'s real usage: a body object is
+   *  auto-JSON-encoded (own `Content-Type`, no manual `JSON.stringify`)
+   *  and a `FormData` body is sent as-is (the runtime sets its own
+   *  multipart boundary) — see `fetch-backend.ts:216-227` — so unlike
+   *  every other snippet here, this one never sets `Content-Type` itself.
+   *  Query/header parameters are the client's own `.param()`/`.header()`
+   *  fluent modifiers, chained onto the call before resolving with
+   *  `.getBody()`. */
+  function formatOpraClientSnippet(model) {
+    var isMultipart = model.body && model.body.kind === 'multipart';
+    var methodLower = model.method.toLowerCase();
+    var hasShortcut = ['get', 'delete', 'post', 'put', 'patch'].indexOf(methodLower) !== -1;
+    var takesBodyArg = ['post', 'put', 'patch'].indexOf(methodLower) !== -1;
+
+    var pre = ["import { OpraHttpClient } from '@opra/client';", '', "const client = new OpraHttpClient('" + model.baseUrl + "');", ''];
+    var bodyExpr = null;
+    if (isMultipart) {
+      pre.push('const form = new FormData();');
+      model.body.fields.forEach(function (f) {
+        if (f.type === 'file') pre.push("form.append('" + f.name + "', fileInput.files[0]); // " + f.value);
+        else pre.push("form.append('" + f.name + "', '" + f.value + "');");
+      });
+      pre.push('');
+      bodyExpr = 'form';
+    } else if (model.body && model.body.kind === 'json') {
+      bodyExpr = JSON.stringify(model.body.value, null, 2);
+    }
+
+    var otherHeaders = model.headers.filter(function (h) {
+      return h.name !== 'Content-Type';
+    });
+
+    var callArgs = ["'" + model.path + "'"];
+    var callMethodName = hasShortcut ? methodLower : 'request';
+    if (hasShortcut) {
+      if (takesBodyArg) callArgs.push(bodyExpr !== null ? bodyExpr : '{}');
+    } else {
+      var optLines = ["  method: '" + model.method + "'"];
+      if (bodyExpr !== null) optLines.push('  body: ' + bodyExpr);
+      callArgs.push('{\n' + optLines.join(',\n') + '\n}');
+    }
+
+    var chain = 'client.' + callMethodName + '(' + callArgs.join(', ') + ')';
+    if (model.query.length) {
+      var queryObj = {};
+      model.query.forEach(function (q) {
+        queryObj[q.name] = q.value;
+      });
+      chain += '\n  .param(' + JSON.stringify(queryObj, null, 2) + ')';
+    }
+    if (otherHeaders.length) {
+      var headerObj = {};
+      otherHeaders.forEach(function (h) {
+        headerObj[h.name] = h.value;
+      });
+      chain += '\n  .header(' + JSON.stringify(headerObj, null, 2) + ')';
+    }
+    chain += '\n  .getBody();';
+
+    return pre.concat(['const result = await ' + chain]).join('\n');
+  }
+
+  function formatCurlSnippet(model) {
+    var lines = ['curl -X ' + model.method + " '" + urlWithQuery(model.url, model.query) + "'"];
+    model.headers.forEach(function (h) {
+      lines.push("  -H '" + h.name + ': ' + h.value + "'");
+    });
+    if (model.body) {
+      if (model.body.kind === 'json') {
+        lines.push("  -d '" + JSON.stringify(model.body.value, null, 2) + "'");
+      } else if (model.body.kind === 'multipart') {
+        model.body.fields.forEach(function (f) {
+          var val = f.type === 'file' ? '@' + f.value : f.value;
+          lines.push("  -F '" + f.name + '=' + val + "'");
+        });
+      }
+    }
+    return lines.join(' \\\n');
+  }
+
+  function formatFetchSnippet(model) {
+    var url = urlWithQuery(model.url, model.query);
+    var isMultipart = model.body && model.body.kind === 'multipart';
+    var headers = model.headers.filter(function (h) {
+      return !(isMultipart && h.name === 'Content-Type');
+    });
+    var pre = [];
+    var opts = ["  method: '" + model.method + "',"];
+    if (headers.length) {
+      opts.push('  headers: {');
+      headers.forEach(function (h, i) {
+        opts.push("    '" + h.name + "': '" + h.value + "'" + (i < headers.length - 1 ? ',' : ''));
+      });
+      opts.push('  },');
+    }
+    if (model.body) {
+      if (model.body.kind === 'json') {
+        opts.push('  body: JSON.stringify(' + JSON.stringify(model.body.value, null, 2) + '),');
+      } else if (isMultipart) {
+        pre.push('const formData = new FormData();');
+        model.body.fields.forEach(function (f) {
+          if (f.type === 'file') pre.push("formData.append('" + f.name + "', fileInput.files[0]); // " + f.value);
+          else pre.push("formData.append('" + f.name + "', '" + f.value + "');");
+        });
+        pre.push('');
+        opts.push('  body: formData,');
+      }
+    }
+    return pre.concat(["fetch('" + url + "', {"], opts, ['})']).join('\n');
+  }
+
+  function formatAxiosSnippet(model) {
+    var url = urlWithQuery(model.url, model.query);
+    var method = model.method.toLowerCase();
+    var isMultipart = model.body && model.body.kind === 'multipart';
+    var headers = model.headers.filter(function (h) {
+      return !(isMultipart && h.name === 'Content-Type');
+    });
+    var config = null;
+    if (headers.length) {
+      var configLines = ['  headers: {'];
+      headers.forEach(function (h, i) {
+        configLines.push("    '" + h.name + "': '" + h.value + "'" + (i < headers.length - 1 ? ',' : ''));
+      });
+      configLines.push('  }');
+      config = configLines.join('\n');
+    }
+    var pre = [];
+    var dataArg;
+    if (isMultipart) {
+      pre.push('const formData = new FormData();');
+      model.body.fields.forEach(function (f) {
+        if (f.type === 'file') pre.push("formData.append('" + f.name + "', fileInput.files[0]); // " + f.value);
+        else pre.push("formData.append('" + f.name + "', '" + f.value + "');");
+      });
+      pre.push('');
+      dataArg = 'formData';
+    } else if (model.body && model.body.kind === 'json') {
+      dataArg = JSON.stringify(model.body.value, null, 2);
+    }
+    var args = ["'" + url + "'"];
+    if (dataArg !== undefined) args.push(dataArg);
+    if (config) args.push('{\n' + config + '\n}');
+    return pre.concat(['axios.' + method + '(' + args.join(', ') + ')']).join('\n');
+  }
+
+  function pyLiteral(value) {
+    return JSON.stringify(value, null, 4)
+      .replace(/\btrue\b/g, 'True')
+      .replace(/\bfalse\b/g, 'False')
+      .replace(/\bnull\b/g, 'None');
+  }
+
+  function formatPythonSnippet(model) {
+    var url = urlWithQuery(model.url, model.query);
+    var method = model.method.toLowerCase();
+    var isMultipart = model.body && model.body.kind === 'multipart';
+    var headers = model.headers.filter(function (h) {
+      return !(isMultipart && h.name === 'Content-Type');
+    });
+    var args = ["    '" + url + "'"];
+    if (headers.length) {
+      var headerDict = {};
+      headers.forEach(function (h) {
+        headerDict[h.name] = h.value;
+      });
+      args.push('    headers=' + pyLiteral(headerDict));
+    }
+    if (model.body) {
+      if (model.body.kind === 'json') {
+        args.push('    json=' + pyLiteral(model.body.value));
+      } else if (isMultipart) {
+        var files = {};
+        var data = {};
+        model.body.fields.forEach(function (f) {
+          if (f.type === 'file') files[f.name] = "open('" + f.value + "', 'rb')";
+          else data[f.name] = f.value;
+        });
+        var fileKeys = Object.keys(files);
+        if (fileKeys.length) {
+          var filesLines = fileKeys.map(function (k) {
+            return "        '" + k + "': " + files[k];
+          });
+          args.push('    files={\n' + filesLines.join(',\n') + '\n    }');
+        }
+        if (Object.keys(data).length) args.push('    data=' + pyLiteral(data));
+      }
+    }
+    return ['import requests', '', 'response = requests.' + method + '(', args.join(',\n'), ')'].join('\n');
+  }
+
+  function formatHttpieSnippet(model) {
+    var url = urlWithQuery(model.url, model.query);
+    var isMultipart = model.body && model.body.kind === 'multipart';
+    var lines = ['http' + (isMultipart ? ' --form' : '') + ' ' + model.method + " '" + url + "'"];
+    model.headers.forEach(function (h) {
+      if (isMultipart && h.name === 'Content-Type') return;
+      lines.push("  '" + h.name + ':' + h.value + "'");
+    });
+    if (model.body) {
+      if (model.body.kind === 'json') {
+        lines.push("  --raw='" + JSON.stringify(model.body.value, null, 2) + "'");
+      } else if (isMultipart) {
+        model.body.fields.forEach(function (f) {
+          lines.push("  '" + f.name + (f.type === 'file' ? '@' : '=') + f.value + "'");
+        });
+      }
+    }
+    return lines.join(' \\\n');
+  }
+
+  function formatJQuerySnippet(model) {
+    var url = urlWithQuery(model.url, model.query);
+    var isMultipart = model.body && model.body.kind === 'multipart';
+    var pre = [];
+    var opts = ["  url: '" + url + "',", "  method: '" + model.method + "',"];
+    var otherHeaders = model.headers.filter(function (h) {
+      return h.name !== 'Content-Type';
+    });
+    if (otherHeaders.length) {
+      opts.push('  headers: {');
+      otherHeaders.forEach(function (h, i) {
+        opts.push("    '" + h.name + "': '" + h.value + "'" + (i < otherHeaders.length - 1 ? ',' : ''));
+      });
+      opts.push('  },');
+    }
+    if (isMultipart) {
+      pre.push('var formData = new FormData();');
+      model.body.fields.forEach(function (f) {
+        if (f.type === 'file') pre.push("formData.append('" + f.name + "', fileInput.files[0]); // " + f.value);
+        else pre.push("formData.append('" + f.name + "', '" + f.value + "');");
+      });
+      pre.push('');
+      opts.push('  data: formData,', '  processData: false,', '  contentType: false,');
+    } else if (model.body && model.body.kind === 'json') {
+      opts.push("  contentType: 'application/json',");
+      opts.push('  data: JSON.stringify(' + JSON.stringify(model.body.value, null, 2) + '),');
+    }
+    return pre.concat(['$.ajax({'], opts, ['})']).join('\n');
+  }
+
+  function formatXhrSnippet(model) {
+    var url = urlWithQuery(model.url, model.query);
+    var isMultipart = model.body && model.body.kind === 'multipart';
+    var lines = [];
+    if (isMultipart) {
+      lines.push('var formData = new FormData();');
+      model.body.fields.forEach(function (f) {
+        if (f.type === 'file') lines.push("formData.append('" + f.name + "', fileInput.files[0]); // " + f.value);
+        else lines.push("formData.append('" + f.name + "', '" + f.value + "');");
+      });
+      lines.push('');
+    }
+    lines.push('var xhr = new XMLHttpRequest();');
+    lines.push("xhr.open('" + model.method + "', '" + url + "');");
+    model.headers.forEach(function (h) {
+      if (isMultipart && h.name === 'Content-Type') return;
+      lines.push("xhr.setRequestHeader('" + h.name + "', '" + h.value + "');");
+    });
+    if (model.body && model.body.kind === 'json') {
+      lines.push('xhr.send(JSON.stringify(' + JSON.stringify(model.body.value, null, 2) + '));');
+    } else if (isMultipart) {
+      lines.push('xhr.send(formData);');
+    } else {
+      lines.push('xhr.send();');
+    }
+    return lines.join('\n');
+  }
+
+  /** Raw sockets, not a library — Node's own `http`/`https` module has no
+   *  built-in multipart encoder, so that case gets an honest one-line note
+   *  pointing at `fetch`/`FormData` (available in Node 18+) or a
+   *  multipart-encoding package, rather than hand-rolling a boundary
+   *  encoder here. */
+  function formatNodeSnippet(model) {
+    var parts = parseUrlParts(model.url);
+    var mod = parts.protocol === 'https' ? 'https' : 'http';
+    var isMultipart = model.body && model.body.kind === 'multipart';
+    if (isMultipart) {
+      return [
+        "const " + mod + " = require('" + mod + "');",
+        '',
+        "// Node's http/https module has no built-in multipart encoder —",
+        "// use fetch() with FormData (Node 18+), or a package like 'form-data'.",
+      ].join('\n');
+    }
+    var bodyJson = model.body && model.body.kind === 'json' ? JSON.stringify(model.body.value, null, 2) : null;
+    var headers = model.headers.slice();
+    var lines = ["const " + mod + " = require('" + mod + "');", ''];
+    if (bodyJson) lines.push('const data = JSON.stringify(' + bodyJson + ');', '');
+    lines.push('const options = {');
+    lines.push("  hostname: '" + parts.hostname + "',");
+    if (parts.port) lines.push('  port: ' + parts.port + ',');
+    lines.push("  path: '" + urlWithQuery(parts.path, model.query) + "',");
+    lines.push("  method: '" + model.method + "',");
+    if (headers.length) {
+      lines.push('  headers: {');
+      headers.forEach(function (h, i) {
+        lines.push("    '" + h.name + "': '" + h.value + "'" + (i < headers.length - 1 ? ',' : ''));
+      });
+      lines.push('  },');
+    }
+    lines.push('};', '');
+    lines.push('const req = ' + mod + '.request(options, (res) => {');
+    lines.push("  let body = '';");
+    lines.push("  res.on('data', (chunk) => { body += chunk; });");
+    lines.push("  res.on('end', () => { console.log(body); });");
+    lines.push('});');
+    if (bodyJson) lines.push('req.write(data);');
+    lines.push('req.end();');
+    return lines.join('\n');
+  }
+
+  /** `http.client` (stdlib) has no built-in multipart encoder either — same
+   *  honest-note approach as the Node snippet above, pointing at `requests`
+   *  (see `formatPythonSnippet`) instead of hand-rolling one. */
+  function formatPythonHttpClientSnippet(model) {
+    var parts = parseUrlParts(model.url);
+    var isMultipart = model.body && model.body.kind === 'multipart';
+    if (isMultipart) {
+      return [
+        'import http.client',
+        '',
+        '# http.client has no built-in multipart encoder — see the "Python (Requests)"',
+        '# example instead, or build the multipart body by hand.',
+      ].join('\n');
+    }
+    var conn = parts.protocol === 'https' ? 'HTTPSConnection' : 'HTTPConnection';
+    var lines = ['import http.client'];
+    var bodyJson = model.body && model.body.kind === 'json' ? JSON.stringify(model.body.value, null, 2) : null;
+    if (bodyJson) lines.push('import json');
+    lines.push('', 'conn = http.client.' + conn + "('" + parts.hostname + (parts.port ? "', " + parts.port : "'") + ')');
+    if (bodyJson) lines.push('payload = json.dumps(' + pyLiteral(model.body.value) + ')');
+    if (model.headers.length) {
+      lines.push('headers = ' + pyLiteral(model.headers.reduce(function (acc, h) {
+        acc[h.name] = h.value;
+        return acc;
+      }, {})));
+    }
+    var reqArgs = ["'" + model.method + "'", "'" + urlWithQuery(parts.path, model.query) + "'"];
+    if (bodyJson) reqArgs.push('payload');
+    if (model.headers.length) reqArgs.push('headers');
+    lines.push('conn.request(' + reqArgs.join(', ') + ')');
+    lines.push('res = conn.getresponse()');
+    lines.push('print(res.read().decode())');
+    return lines.join('\n');
+  }
+
+  function formatPhpCurlSnippet(model) {
+    var isMultipart = model.body && model.body.kind === 'multipart';
+    var lines = ['<?php', '$curl = curl_init();', 'curl_setopt_array($curl, [', "  CURLOPT_URL => '" + urlWithQuery(model.url, model.query) + "',", '  CURLOPT_RETURNTRANSFER => true,', "  CURLOPT_CUSTOMREQUEST => '" + model.method + "',"];
+    var headers = model.headers.filter(function (h) {
+      return !(isMultipart && h.name === 'Content-Type');
+    });
+    if (headers.length) {
+      lines.push('  CURLOPT_HTTPHEADER => [');
+      headers.forEach(function (h, i) {
+        lines.push("    '" + h.name + ': ' + h.value + "'" + (i < headers.length - 1 ? ',' : ''));
+      });
+      lines.push('  ],');
+    }
+    if (model.body) {
+      if (model.body.kind === 'json') {
+        lines.push('  CURLOPT_POSTFIELDS => json_encode(' + phpLiteral(model.body.value, '  ') + '),');
+      } else if (isMultipart) {
+        lines.push('  CURLOPT_POSTFIELDS => [');
+        model.body.fields.forEach(function (f, i) {
+          var val = f.type === 'file' ? "new CURLFile('" + f.value + "')" : "'" + f.value + "'";
+          lines.push("    '" + f.name + "' => " + val + (i < model.body.fields.length - 1 ? ',' : ''));
+        });
+        lines.push('  ],');
+      }
+    }
+    lines.push(']);', '', '$response = curl_exec($curl);', 'curl_close($curl);', 'echo $response;');
+    return lines.join('\n');
+  }
+
+  function formatJavaOkHttpSnippet(model) {
+    var isMultipart = model.body && model.body.kind === 'multipart';
+    var lines = ['OkHttpClient client = new OkHttpClient();'];
+    var bodyVar = null;
+    if (isMultipart) {
+      lines.push('MultipartBody body = new MultipartBody.Builder()', '  .setType(MultipartBody.FORM)');
+      model.body.fields.forEach(function (f) {
+        if (f.type === 'file') lines.push("  .addFormDataPart('" + f.name + "', '" + f.value + "', RequestBody.create(MediaType.parse('application/octet-stream'), new File('" + f.value + "')))");
+        else lines.push("  .addFormDataPart(\"" + f.name + '", "' + f.value + '")');
+      });
+      lines.push('  .build();');
+      bodyVar = 'body';
+    } else if (model.body && model.body.kind === 'json') {
+      lines.push('MediaType mediaType = MediaType.parse("application/json");');
+      lines.push('RequestBody body = RequestBody.create(mediaType, "' + JSON.stringify(model.body.value).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '");');
+      bodyVar = 'body';
+    }
+    lines.push('Request request = new Request.Builder()');
+    lines.push('  .url("' + urlWithQuery(model.url, model.query) + '")');
+    lines.push('  .method("' + model.method + '", ' + (bodyVar || 'null') + ')');
+    model.headers.forEach(function (h) {
+      if (isMultipart && h.name === 'Content-Type') return;
+      lines.push('  .addHeader("' + h.name + '", "' + h.value + '")');
+    });
+    lines.push('  .build();');
+    lines.push('Response response = client.newCall(request).execute();');
+    return lines.join('\n');
+  }
+
+  function formatGoSnippet(model) {
+    var isMultipart = model.body && model.body.kind === 'multipart';
+    if (isMultipart) {
+      // Go's standard library builds a multipart body via mime/multipart's
+      // own Writer (no one-liner) — a real stub here would need to import
+      // and use it, unlike the "fmt"/"net/http" imports below, so this
+      // stays a short note instead of unused-import code that wouldn't
+      // actually compile.
+      return ['// multipart/form-data: build the body with mime/multipart.Writer', "// (see Go's standard library docs), then POST it via net/http as usual."].join('\n');
+    }
+    var lines = ['package main', '', 'import (', '\t"fmt"', '\t"net/http"'];
+    if (model.body && model.body.kind === 'json') lines.push('\t"strings"');
+    lines.push(')', '', 'func main() {');
+    lines.push('\turl := "' + urlWithQuery(model.url, model.query) + '"');
+    if (model.body && model.body.kind === 'json') {
+      lines.push('\tpayload := strings.NewReader(`' + JSON.stringify(model.body.value, null, 2) + '`)');
+      lines.push('\treq, _ := http.NewRequest("' + model.method + '", url, payload)');
+    } else {
+      lines.push('\treq, _ := http.NewRequest("' + model.method + '", url, nil)');
+    }
+    model.headers.forEach(function (h) {
+      lines.push('\treq.Header.Add("' + h.name + '", "' + h.value + '")');
+    });
+    lines.push('\tres, _ := http.DefaultClient.Do(req)');
+    lines.push('\tdefer res.Body.Close()');
+    lines.push('\tfmt.Println(res.Status)');
+    lines.push('}');
+    return lines.join('\n');
+  }
+
+  function formatRubySnippet(model) {
+    var isMultipart = model.body && model.body.kind === 'multipart';
+    var methodClass = model.method.charAt(0) + model.method.slice(1).toLowerCase();
+    var lines = ["require 'net/http'"];
+    if (!isMultipart) lines.push("require 'json'");
+    lines.push('', "uri = URI('" + urlWithQuery(model.url, model.query) + "')", 'http = Net::HTTP.new(uri.host, uri.port)');
+    if (isHttpsUrl(model.url)) lines.push('http.use_ssl = true');
+    lines.push('request = Net::HTTP::' + methodClass + '.new(uri)');
+    model.headers.forEach(function (h) {
+      if (isMultipart && h.name === 'Content-Type') return;
+      lines.push("request['" + h.name + "'] = '" + h.value + "'");
+    });
+    if (model.body && model.body.kind === 'json') {
+      lines.push('request.body = ' + rubyHash(model.body.value) + '.to_json');
+    } else if (isMultipart) {
+      lines.push('# multipart bodies: see net/http\'s Net::HTTP::Post::Multipart (net-http-multipart gem)');
+      lines.push('# or build a multipart/form-data body by hand.');
+    }
+    lines.push('response = http.request(request)', 'puts response.read_body');
+    return lines.join('\n');
+  }
+
+  function isHttpsUrl(url) {
+    return url.indexOf('https://') === 0;
+  }
+
+  /** A Ruby hash literal (`"key" => value`) for a JSON-like example value —
+   *  same role as `pyLiteral`/`phpLiteral`, Ruby's own hash syntax. */
+  function rubyHash(value, indent) {
+    indent = indent || '';
+    if (value === null || value === undefined) return 'nil';
+    if (typeof value === 'boolean' || typeof value === 'number') return String(value);
+    if (typeof value === 'string') return '"' + value.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+    var nextIndent = indent + '  ';
+    if (Array.isArray(value)) {
+      var items = value.map(function (v) {
+        return nextIndent + rubyHash(v, nextIndent);
+      });
+      return '[\n' + items.join(',\n') + '\n' + indent + ']';
+    }
+    var keys = Object.keys(value);
+    var lines = keys.map(function (k) {
+      return nextIndent + '"' + k + '" => ' + rubyHash(value[k], nextIndent);
+    });
+    return '{\n' + lines.join(',\n') + '\n' + indent + '}';
+  }
+
+  function formatCsharpSnippet(model) {
+    var isMultipart = model.body && model.body.kind === 'multipart';
+    var lines = ['using System.Net.Http;', 'using System.Text;', 'using System.IO;', '', 'var client = new HttpClient();'];
+    lines.push('var request = new HttpRequestMessage(new HttpMethod("' + model.method + '"), "' + urlWithQuery(model.url, model.query) + '");');
+    // `Content-Type` is a *content* header in HttpClient's model — setting
+    // it via `request.Headers.Add` (a request-header collection) throws at
+    // runtime; it's passed as `StringContent`'s own 3rd argument below
+    // instead, so it's excluded here regardless of body kind.
+    var headers = model.headers.filter(function (h) {
+      return h.name !== 'Content-Type';
+    });
+    headers.forEach(function (h) {
+      lines.push('request.Headers.Add("' + h.name + '", "' + h.value + '");');
+    });
+    if (isMultipart) {
+      lines.push('var content = new MultipartFormDataContent();');
+      model.body.fields.forEach(function (f) {
+        if (f.type === 'file') lines.push('content.Add(new StreamContent(File.OpenRead("' + f.value + '")), "' + f.name + '", "' + f.value + '");');
+        else lines.push('content.Add(new StringContent("' + f.value + '"), "' + f.name + '");');
+      });
+      lines.push('request.Content = content;');
+    } else if (model.body && model.body.kind === 'json') {
+      lines.push('request.Content = new StringContent(' + csharpStringLiteral(JSON.stringify(model.body.value, null, 2)) + ', Encoding.UTF8, "application/json");');
+    }
+    lines.push('var response = await client.SendAsync(request);');
+    return lines.join('\n');
+  }
+
+  function formatSwiftSnippet(model) {
+    var isMultipart = model.body && model.body.kind === 'multipart';
+    var lines = ['import Foundation', '', 'let url = URL(string: "' + urlWithQuery(model.url, model.query) + '")!', 'var request = URLRequest(url: url)', 'request.httpMethod = "' + model.method + '"'];
+    var headers = model.headers.filter(function (h) {
+      return !(isMultipart && h.name === 'Content-Type');
+    });
+    headers.forEach(function (h) {
+      lines.push('request.setValue("' + h.value + '", forHTTPHeaderField: "' + h.name + '")');
+    });
+    if (model.body && model.body.kind === 'json') {
+      var jsonStr = JSON.stringify(model.body.value, null, 2).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      lines.push('request.httpBody = "' + jsonStr + '".data(using: .utf8)');
+    } else if (isMultipart) {
+      lines.push('// multipart/form-data: build a boundary-delimited Data body by hand,');
+      lines.push('// or use a library like Alamofire.');
+    }
+    lines.push('', 'let task = URLSession.shared.dataTask(with: request) { data, response, error in', '  // handle response', '}', 'task.resume()');
+    return lines.join('\n');
+  }
+
+  /** `{key, label}` items ungrouped render as top-level `<option>`s (just
+   *  "Body"); `{group, items}` ones render as an `<optgroup>` — one group
+   *  per language, several client/library variants inside, matching how
+   *  Scalar's own request-snippet picker is organized. */
+  var REQUEST_SNIPPET_KINDS = [
+    { key: 'body', label: 'Body' },
+    {
+      group: 'Shell',
+      items: [
+        { key: 'curl', label: 'cURL' },
+        { key: 'httpie', label: 'HTTPie' },
+      ],
+    },
+    {
+      group: 'JavaScript',
+      items: [
+        { key: 'opra', label: 'OPRA Client' },
+        { key: 'fetch', label: 'Fetch' },
+        { key: 'axios', label: 'Axios' },
+        { key: 'jquery', label: 'jQuery' },
+        { key: 'xhr', label: 'XHR' },
+      ],
+    },
+    { group: 'Node.js', items: [{ key: 'node', label: 'HTTP' }] },
+    {
+      group: 'Python',
+      items: [
+        { key: 'python', label: 'Requests' },
+        { key: 'python_httpclient', label: 'http.client' },
+      ],
+    },
+    { group: 'PHP', items: [{ key: 'php', label: 'cURL' }] },
+    { group: 'Java', items: [{ key: 'java', label: 'OkHttp' }] },
+    { group: 'Go', items: [{ key: 'go', label: 'net/http' }] },
+    { group: 'Ruby', items: [{ key: 'ruby', label: 'Net::HTTP' }] },
+    { group: 'C#', items: [{ key: 'csharp', label: 'HttpClient' }] },
+    { group: 'Swift', items: [{ key: 'swift', label: 'URLSession' }] },
+  ];
+
+  var REQUEST_SNIPPET_FORMATTERS = {
+    opra: formatOpraClientSnippet,
+    curl: formatCurlSnippet,
+    httpie: formatHttpieSnippet,
+    fetch: formatFetchSnippet,
+    axios: formatAxiosSnippet,
+    jquery: formatJQuerySnippet,
+    xhr: formatXhrSnippet,
+    node: formatNodeSnippet,
+    python: formatPythonSnippet,
+    python_httpclient: formatPythonHttpClientSnippet,
+    php: formatPhpCurlSnippet,
+    java: formatJavaOkHttpSnippet,
+    go: formatGoSnippet,
+    ruby: formatRubySnippet,
+    csharp: formatCsharpSnippet,
+    swift: formatSwiftSnippet,
+  };
+
+  var REQUEST_SNIPPET_HIGHLIGHTERS = {
+    opra: function (code) {
+      return highlightJs(code, ['OpraHttpClient', 'FormData']);
+    },
+    curl: highlightShell,
+    httpie: highlightShell,
+    fetch: highlightJs,
+    axios: highlightJs,
+    jquery: function (code) {
+      return highlightJs(code, ['ajax']);
+    },
+    xhr: function (code) {
+      return highlightJs(code, ['XMLHttpRequest', 'open', 'send', 'setRequestHeader']);
+    },
+    node: function (code) {
+      return highlightJs(code, ['http', 'https', 'request']);
+    },
+    python: highlightPython,
+    python_httpclient: function (code) {
+      return highlightPython(code, ['json', 'http', 'client']);
+    },
+    php: function (code) {
+      return highlightGeneric(code, ['curl_init', 'curl_setopt_array', 'curl_exec', 'curl_close', 'json_encode', 'echo', 'new', 'CURLFile']);
+    },
+    java: function (code) {
+      return highlightGeneric(code, ['new', 'OkHttpClient', 'MediaType', 'RequestBody', 'MultipartBody', 'Request', 'Response', 'File']);
+    },
+    go: function (code) {
+      return highlightGeneric(code, ['package', 'import', 'func', 'main', 'http', 'strings', 'defer']);
+    },
+    ruby: function (code) {
+      return highlightGeneric(code, ['require', 'Net', 'HTTP', 'URI', 'new', 'puts']);
+    },
+    csharp: function (code) {
+      return highlightGeneric(code, ['var', 'new', 'await', 'HttpClient', 'HttpRequestMessage', 'HttpMethod', 'StringContent', 'MultipartFormDataContent', 'StreamContent', 'File']);
+    },
+    swift: function (code) {
+      return highlightGeneric(code, ['import', 'let', 'var', 'URL', 'URLRequest', 'URLSession']);
+    },
+  };
+
+  /** `requestBody.content` is an array precisely because an operation can
+   *  accept more than one alternative representation of the same body
+   *  (e.g. `application/json` *or* `multipart/form-data` for the same
+   *  upload endpoint) — a tab per alternative, only shown at all once
+   *  there's more than one; a single alternative (the common case) just
+   *  renders its panel directly with no tab chrome around it.
+   *
+   *  The `HttpRequestBody`-level bits (whether a body is required at all,
+   *  and its own description) are kept in their own group at the top —
+   *  a distinct concern from any one alternative's own properties below,
+   *  so the two shouldn't visually blend into one paragraph.
+   *
+   *  `railExample` (the page's own rail — see `render()`) is a "Request"
+   *  panel: a header (method + full path) and a dropdown that switches
+   *  between the *currently selected* alternative's own JSON body and
+   *  generated cURL/Fetch/Axios/Python snippets built from the operation's
+   *  real method/path/parameters/body (`buildRequestModel`) — switching the
+   *  content-type tab regenerates whichever snippet kind is currently
+   *  selected, not just the JSON view. Structured like
+   *  `renderResponsesSection`'s own rail (header / scrollable content /
+   *  absolutely-positioned copy button that doesn't scroll away with long
+   *  content — see `.response-rail-content-wrap` in styles.css, mirrored
+   *  here as `.request-rail-content-wrap`), just without a footer. */
+  function renderRequestBodySection(main, doc, op, ctrlPath, railExample) {
+    var requestBody = op.requestBody;
+    var section = el('div', { class: 'section' }, [el('h2', {}, ['Request body'])]);
+
+    var metaChildren = [];
+    if (requestBody.required) metaChildren.push(flagBadge('required'));
+    var descBlock = mdBlock(doc, requestBody.description);
+    if (descBlock) metaChildren.push(descBlock);
+    if (metaChildren.length) section.appendChild(el('div', { class: 'request-body-meta' }, metaChildren));
+
+    var selectedKind = 'body';
+    var currentMedia = null;
+    var railContent = null;
+    var railCopyHolder = null;
+
+    function renderRail() {
+      if (!railContent || !currentMedia) return;
+      clear(railContent);
+      clear(railCopyHolder);
+      if (selectedKind === 'body') {
+        var jsonView = requestBodyJsonExample(doc, currentMedia);
+        if (jsonView) {
+          railContent.appendChild(jsonView.content);
+          railCopyHolder.appendChild(jsonView.copyBtn);
+        } else {
+          railContent.appendChild(el('div', { class: 'empty-note' }, ['No JSON body for this alternative.']));
+        }
+        return;
+      }
+      var model = buildRequestModel(doc, ctrlPath, op, currentMedia);
+      var snippet = REQUEST_SNIPPET_FORMATTERS[selectedKind](model);
+      var highlighted = REQUEST_SNIPPET_HIGHLIGHTERS[selectedKind](snippet);
+      railContent.appendChild(el('pre', { class: 'example-json' }, [el('code', { html: highlighted })]));
+      var copyBtn = copyButton(snippet, 15);
+      copyBtn.classList.add('copy-btn-lg');
+      railCopyHolder.appendChild(copyBtn);
+    }
+
+    function showExample(media) {
+      currentMedia = media;
+      renderRail();
+    }
+
+    if (railExample) {
+      railExample.classList.add('request-rail');
+      var fullPath = operationPath(ctrlPath, op);
+      var header = el('div', { class: 'request-rail-header' }, [
+        el('span', { class: 'request-rail-path mono' }, [methodBadge(op.method), ' ', fullPath]),
+      ]);
+      var select = el('select', { class: 'request-rail-select' });
+      REQUEST_SNIPPET_KINDS.forEach(function (k) {
+        if (k.group) {
+          var group = el('optgroup', { label: k.group });
+          k.items.forEach(function (item) {
+            group.appendChild(el('option', { value: item.key }, [item.label]));
+          });
+          select.appendChild(group);
+        } else {
+          select.appendChild(el('option', { value: k.key }, [k.label]));
+        }
+      });
+      select.addEventListener('change', function () {
+        selectedKind = select.value;
+        renderRail();
+      });
+      header.appendChild(select);
+      railExample.appendChild(header);
+      railContent = el('div', { class: 'request-rail-content' });
+      railCopyHolder = el('div', { class: 'request-rail-copy' });
+      railExample.appendChild(el('div', { class: 'request-rail-content-wrap' }, [railContent, railCopyHolder]));
+    }
+
+    var contents = requestBody.content || [];
+    if (contents.length > 1) {
+      var panels = contents.map(function (media) {
+        return renderMediaTypePanel(doc, media);
+      });
+      var tabBar = el('div', { class: 'content-tabs' });
+      contents.forEach(function (media, i) {
+        var label = Array.isArray(media.contentType)
+          ? media.contentType.join(', ')
+          : media.contentType || 'application/json';
+        var tabBtn = el('button', { class: 'content-tab' + (i === 0 ? ' active' : ''), type: 'button' }, [label]);
+        tabBtn.addEventListener('click', function () {
+          Array.prototype.forEach.call(tabBar.children, function (b) {
+            b.classList.remove('active');
+          });
+          tabBtn.classList.add('active');
+          panels.forEach(function (p, j) {
+            p.hidden = j !== i;
+          });
+          showExample(media);
+        });
+        tabBar.appendChild(tabBtn);
+      });
+      section.appendChild(tabBar);
+      section.appendChild(
+        el('p', { class: 'content-alt-note' }, [
+          'This operation accepts more than one request format — pick one above to see its schema.',
+        ]),
+      );
+      panels.forEach(function (p, i) {
+        p.hidden = i !== 0;
+        section.appendChild(p);
+      });
+      showExample(contents[0]);
+    } else if (contents.length === 1) {
+      section.appendChild(renderMediaTypePanel(doc, contents[0]));
+      showExample(contents[0]);
+    }
+    main.appendChild(section);
+  }
+
+  /** Each response collapses to just its status line by default (a plain
+   *  `<details>`, not a custom widget — the browser's own disclosure
+   *  triangle and keyboard support come for free, and `name` groups them
+   *  so opening one closes whichever other response was already open,
+   *  Scalar-style) — a page with several responses documented reads as a
+   *  short list of status codes first, each one's full schema only a
+   *  click away, instead of every response's type tree dumped on screen
+   *  at once. Deliberately plain (a divider between rows, no per-row
+   *  border/background/status-color) rather than looking like the
+   *  request body's own bordered `.media-type-panel`s — those are
+   *  reference material for a body you're about to construct yourself,
+   *  while these are more like a short index of outcomes, and coloring or
+   *  boxing every single one made them read as louder than that.
+   *
+   *  `railResponseExample` (the "Responses" row's own rail — see
+   *  `render()`) is a self-contained mini status-code switcher, not just
+   *  a passive mirror of whichever `<details>` is open: its own tab bar
+   *  (`response-tabs`) can pick a different response independently, a
+   *  "Show Schema" checkbox swaps its content pane between the
+   *  synthesized JSON example and the actual type tree, and a fixed
+   *  footer (status code + description) stays put below that pane —
+   *  only the pane itself scrolls internally when its content runs
+   *  long (see `.response-rail` in styles.css), so the tabs and footer
+   *  are never pushed out of view. Opening a `<details>` on the left
+   *  still re-syncs the rail to that same response, but the rail's own
+   *  tabs are the primary way to flip through responses without leaving
+   *  a schema expanded. */
+  function renderResponsesSection(main, doc, responses, railResponseExample) {
+    var section = el('div', { class: 'section' }, [el('h2', {}, ['Responses'])]);
+    var list = el('div', { class: 'responses-list' });
+
+    var showSchema = false;
+    var activeIndex = 0;
+    var tabButtons = [];
+    var railContent = null;
+    var railCopyHolder = null;
+    var railFooterCode = null;
+    var railFooterDesc = null;
+
+    // "Show Schema" is the raw OPRA type definition (what `resolveType`
+    // resolves a `type` reference down to — the same schema envelope
+    // `schema-builder.ts` emits for every named type), not
+    // `renderTypeTreeWithInherits`'s own human-readable field list: that's
+    // documentation rendered FROM the schema, and showing it here under a
+    // "schema" toggle would just be the same content twice in two
+    // different outfits rather than an actual look at the schema itself.
+    //
+    // The copy button lives in `railCopyHolder`, a sibling of `railContent`
+    // rather than something nested inside it — this rail has its own
+    // internal scroll (see `.response-rail-content` in styles.css), and a
+    // button positioned relative to something that scrolls would scroll
+    // right along with it, off screen with the rest of the content instead
+    // of staying put like the tabs/footer around it (the request body's
+    // own rail — `renderRequestBodySection` — uses the exact same
+    // `railCopyHolder`-as-sibling pattern for the same reason).
+    function renderRailContent(r) {
+      if (!railContent) return;
+      clear(railContent);
+      clear(railCopyHolder);
+      var json = null;
+      if (showSchema) {
+        var def = r.type ? resolveType(doc, r.type).def : null;
+        json = def ? JSON.stringify(def, null, 2) : null;
+      } else if (r.type) {
+        json = JSON.stringify(buildExampleValue(doc, r.type), null, 2);
+      }
+      if (json) {
+        railContent.appendChild(el('pre', { class: 'example-json' }, [el('code', { html: highlightJson(json) })]));
+        var copyBtn = copyButton(json, 15);
+        copyBtn.classList.add('copy-btn-lg');
+        railCopyHolder.appendChild(copyBtn);
+      } else {
+        railContent.appendChild(el('div', { class: 'empty-note' }, ['No body']));
+      }
+      railFooterCode.textContent = formatStatusCode(r.statusCode);
+      railFooterDesc.textContent = r.description || '';
+    }
+
+    function selectResponse(i) {
+      activeIndex = i;
+      tabButtons.forEach(function (b, j) {
+        b.classList.toggle('active', j === i);
+      });
+      renderRailContent(responses[i]);
+    }
+
+    if (railResponseExample) {
+      railResponseExample.classList.add('response-rail');
+      var tabsBar = el('div', { class: 'response-tabs' });
+      responses.forEach(function (r, i) {
+        var tabBtn = el('button', { class: 'response-tab' + (i === 0 ? ' active' : ''), type: 'button' }, [formatStatusCode(r.statusCode)]);
+        tabBtn.addEventListener('click', function () {
+          selectResponse(i);
+        });
+        tabButtons.push(tabBtn);
+        tabsBar.appendChild(tabBtn);
+      });
+      var schemaCheckbox = el('input', { type: 'checkbox' });
+      schemaCheckbox.addEventListener('change', function () {
+        showSchema = schemaCheckbox.checked;
+        renderRailContent(responses[activeIndex]);
+      });
+      tabsBar.appendChild(el('label', { class: 'show-schema-toggle' }, [schemaCheckbox, 'Show Schema']));
+      railResponseExample.appendChild(tabsBar);
+      railContent = el('div', { class: 'response-rail-content' });
+      railCopyHolder = el('div', { class: 'response-rail-copy' });
+      railResponseExample.appendChild(el('div', { class: 'response-rail-content-wrap' }, [railContent, railCopyHolder]));
+      railFooterCode = el('code', {}, ['']);
+      railFooterDesc = el('div', { class: 'footer-desc' }, ['']);
+      railResponseExample.appendChild(
+        el('div', { class: 'response-rail-footer' }, [
+          el('div', { class: 'footer-status' }, ['HTTP Status Code: ', railFooterCode]),
+          railFooterDesc,
+        ]),
+      );
+      renderRailContent(responses[0]);
+    }
+
+    responses.forEach(function (r, i) {
+      var details = el('details', { class: 'response-row', name: 'op-responses' });
+      details.appendChild(
+        el('summary', {}, [
+          el('span', { class: 'mono response-status' }, [formatStatusCode(r.statusCode)]),
+          r.description ? el('span', { class: 'response-desc' }, [r.description]) : null,
+        ]),
+      );
+      var body = el('div', { class: 'body' });
+      if (r.type) body.appendChild(renderTypeTreeWithInherits(doc, r.type));
+      else body.appendChild(el('div', { class: 'empty-note' }, ['No body']));
+      details.appendChild(body);
+      details.addEventListener('toggle', function () {
+        if (details.open) selectResponse(i);
+      });
+      list.appendChild(details);
+    });
+    section.appendChild(list);
+    main.appendChild(section);
+  }
+
   function renderControllerPage(main, docKey, doc, found, ctrlRoute) {
     var ctrl = found.ctrl;
     main.appendChild(el('h1', { class: 'mono' }, [found.name]));
     main.appendChild(el('p', { class: 'description path' }, [found.ctrlPath || '/']));
     var ctrlDescBlock = mdBlock(doc, ctrl.description);
     if (ctrlDescBlock) main.appendChild(ctrlDescBlock);
+    renderParametersSections(main, doc, ctrl.parameters);
 
     var ops = ctrl.operations ? Object.keys(ctrl.operations) : [];
     if (ops.length) {
@@ -1301,7 +2745,12 @@
           el(
             'a',
             { class: 'row-link', href: hrefFor(docKey, ctrlRoute + '/' + encodeURIComponent(opKey)) },
-            [methodBadge(op.method), el('span', { class: 'mono' }, [opKey + '()']), op.description ? el('span', { class: 'row-desc' }, [op.description]) : null],
+            [
+              methodBadge(op.method),
+              el('span', { class: 'mono' }, [opKey + '()']),
+              el('span', { class: 'row-path' }, [operationPath(found.ctrlPath || '/', op)]),
+              op.description ? el('span', { class: 'row-desc' }, [op.description]) : null,
+            ],
           ),
         );
       });
@@ -1315,7 +2764,6 @@
         var child = ctrl.controllers[name];
         childSection.appendChild(
           el('a', { class: 'row-link', href: hrefFor(docKey, ctrlRoute + '/' + encodeURIComponent(name)) }, [
-            iconFor('folder', 'c-folder'),
             el('span', { class: 'mono' }, [name]),
             el('span', { class: 'row-desc path' }, [controllerPath(child, found.ctrlPath)]),
           ]),
@@ -1329,15 +2777,30 @@
     }
   }
 
-  function renderOperationPage(main, docKey, doc, found) {
+  /** `topMain`, `bodyMain` and `responsesMain` are up to three separate
+   *  containers (see `render()`), not one flowing column: everything
+   *  through the parameter sections goes in `topMain`, next to the TOC's
+   *  own rail; "Request body" (if any) goes in `bodyMain`, next to
+   *  `railExample`'s own rail; "Responses" (if any) goes in
+   *  `responsesMain`, next to `railResponseExample`'s own rail. Each rail
+   *  element's sticky range is bounded to the one row it corresponds to,
+   *  which is exactly why these are three separate rows rather than one
+   *  flowing column with two rails bolted on the side — `railExample` and
+   *  `railResponseExample` show two *different* things (the request
+   *  body's own example vs. a response's own example), so neither should
+   *  stay pinned while the reader has scrolled into the other's section.
+   *  A row that has nothing to show (no request body, or no responses at
+   *  all) doesn't get created, so `render()` passes `topMain` for that
+   *  container instead (with the matching rail as `null`). */
+  function renderOperationPage(topMain, bodyMain, responsesMain, docKey, doc, found, railExample, railResponseExample) {
     var op = found.op;
     var fullPath = operationPath(found.ctrlPath, op);
 
-    main.appendChild(el('h1', { class: 'mono' }, [found.opKey + '()']));
+    topMain.appendChild(el('h1', { class: 'mono' }, [found.opKey + '()']));
     var sub = el('p', { class: 'op-sub' }, [methodBadge(op.method), el('span', { class: 'path' }, [fullPath])]);
-    main.appendChild(sub);
+    topMain.appendChild(sub);
     if (found.ctrlName) {
-      main.appendChild(
+      topMain.appendChild(
         el('p', { class: 'description' }, [
           'Part of ',
           el('a', { href: hrefFor(docKey, found.ctrlRoute) }, [found.ctrlName]),
@@ -1346,69 +2809,22 @@
     }
 
     if (op.deprecated) {
-      main.appendChild(
+      topMain.appendChild(
         el('span', { class: 'badge deprecated' }, [typeof op.deprecated === 'string' ? 'deprecated: ' + op.deprecated : 'deprecated']),
       );
     }
-    if (op.composition) main.appendChild(el('div', { class: 'badge' }, ['composition: ' + op.composition]));
+    if (op.composition) topMain.appendChild(el('div', { class: 'badge' }, ['composition: ' + op.composition]));
     var opDescBlock = mdBlock(doc, op.description);
-    if (opDescBlock) main.appendChild(opDescBlock);
+    if (opDescBlock) topMain.appendChild(opDescBlock);
 
-    if (op.parameters && op.parameters.length) {
-      ['path', 'query', 'header', 'cookie'].forEach(function (loc) {
-        var params = op.parameters.filter(function (p) {
-          return p.location === loc;
-        });
-        if (!params.length) return;
-        var section = el('div', { class: 'section' }, [
-          el('h2', {}, [loc.charAt(0).toUpperCase() + loc.slice(1) + ' parameters']),
-        ]);
-        var table = el('table', { class: 'props' }, [
-          el('tr', {}, [el('th', {}, ['Name']), el('th', {}, ['Type']), el('th', {}, ['Required']), el('th', {}, ['Description'])]),
-        ]);
-        params.forEach(function (p) {
-          table.appendChild(
-            el('tr', {}, [
-              el('td', {}, [el('code', {}, [String(p.name)])]),
-              el('td', {}, [typeLabel(doc, p.type)]),
-              el('td', {}, [p.required ? 'yes' : 'no']),
-              el('td', {}, [mdBlock(doc, p.description) || '']),
-            ]),
-          );
-        });
-        section.appendChild(table);
-        main.appendChild(section);
-      });
-    }
+    renderParametersSections(topMain, doc, op.parameters);
 
-    if (op.requestBody) {
-      var rbSection = el('div', { class: 'section' }, [el('h2', {}, ['Request body'])]);
-      var rbDescBlock = mdBlock(doc, op.requestBody.description);
-      if (rbDescBlock) rbSection.appendChild(rbDescBlock);
-      (op.requestBody.content || []).forEach(function (media) {
-        rbSection.appendChild(el('div', { class: 'badge' }, [media.contentType || 'application/json']));
-        if (media.type) rbSection.appendChild(renderTypeTreeWithInherits(doc, media.type));
-      });
-      main.appendChild(rbSection);
-    }
+    if (op.requestBody) renderRequestBodySection(bodyMain, doc, op, found.ctrlPath, railExample);
 
     if (op.responses && op.responses.length) {
-      var resSection = el('div', { class: 'section' }, [el('h2', {}, ['Responses'])]);
-      op.responses.forEach(function (r) {
-        var block = el('div', { class: 'response-block' }, [
-          el('div', { class: 'status-line ' + statusClass(typeof r.statusCode === 'number' ? r.statusCode : 0) }, [
-            formatStatusCode(r.statusCode) + (r.description ? ' — ' + r.description : ''),
-          ]),
-        ]);
-        var body = el('div', { class: 'body' });
-        if (r.type) body.appendChild(renderTypeTreeWithInherits(doc, r.type));
-        else body.appendChild(el('div', { class: 'empty-note' }, ['No body']));
-        block.appendChild(body);
-        resSection.appendChild(block);
-      });
-      main.appendChild(resSection);
+      renderResponsesSection(responsesMain, doc, op.responses, railResponseExample);
     } else {
-      main.appendChild(el('div', { class: 'section empty-note' }, ['No documented responses.']));
+      responsesMain.appendChild(el('div', { class: 'section empty-note' }, ['No documented responses.']));
     }
   }
 
@@ -1764,8 +3180,11 @@
             var opRoute = route + '/' + encodeURIComponent(opKey);
             anyCtrl = true;
             childNodes.push(
+              // No leading icon here — the colored method badge on the
+              // right already identifies the row, and a generic "play"
+              // triangle in front of every operation read as its own
+              // clickable "run" affordance rather than a type marker.
               el('a', { class: 'nav-link nav-op depth-' + (depth + 1), href: hrefFor(docKey, opRoute) }, [
-                iconFor('operation', 'c-op'),
                 el('span', { class: 'name mono' }, [opKey]),
                 methodBadge(op.method),
               ]),
@@ -1809,11 +3228,15 @@
               [iconFor('chevronDown')],
             )
           : null;
+        // No folder icon here either — it read as a literal file folder
+        // rather than "an API resource group"; the bold weight (see
+        // `.sidebar a.nav-ctrl`) is enough to mark it as a category, same
+        // as a kind-group title under Models.
         nodes.push(
           el(
             'a',
             { class: 'nav-link nav-ctrl depth-' + depth, href: hrefFor(docKey, route) },
-            [iconFor('folder', 'c-folder'), el('span', { class: 'name mono' }, [name]), toggle],
+            [el('span', { class: 'name mono' }, [name]), toggle],
           ),
         );
         if (wrap) nodes.push(wrap);
@@ -2012,30 +3435,43 @@
   }
 
   function render() {
-    hideTypeTooltip();
+    hideTypeTooltipNow();
     var parsed = parseHash();
     var main = document.getElementById('opra-main');
     var nav = document.getElementById('opra-nav');
     var picker = document.getElementById('opra-picker');
 
-    // Every page's content lives inside this inner wrapper rather than
-    // directly in `.main` (the scroll container) — it's what caps the
-    // reading width (see `.content-col`) and what `buildToc` scans for
-    // `h2` section headings, so a page's own render*Page(main, ...) calls
-    // below still just append into "main" by name, unaware it's this
-    // wrapper rather than the scroll container itself. `toc` rides next
-    // to it in `.page-row` (a flex row, not a grid track of its own — see
-    // that rule's comment) so the TOC rail stays visually attached to
-    // the content it describes instead of pinned to the viewport edge.
+    // `.page-rows` holds one to three independent flex rows (see
+    // styles.css's own comment on `.page-row`): row 1 is always
+    // `contentTop` + its own rail (`toc`); row 2, `contentBody` + its own
+    // rail (`railExample`), is only added for an operation page with a
+    // request body; row 3, `contentResponses` + its own rail
+    // (`railResponseExample`), only for one with documented responses —
+    // independently of each other (see below), since a rail's sticky
+    // range should only ever cover the one row it corresponds to (see
+    // `renderOperationPage`'s own comment for why `railExample` and
+    // `railResponseExample` need to be two separate rails, not one
+    // spanning both rows). Every other page renders solely into
+    // `contentTop`, a single row. Each rail element is nested inside a
+    // `.rail-col` that `align-items: stretch` sizes to match its row's
+    // own content height, which is what actually bounds `position:
+    // sticky` there (a shared grid track alone doesn't — see that CSS
+    // comment for why this needs literal separate rows rather than one
+    // multi-row grid). `pageWrap` is what `buildToc` scans for section
+    // headings, across every row `pageRows` ends up with.
     clear(main);
-    var content = el('div', { class: 'content-col' });
+    var contentTop = el('div', { class: 'content-col content-top' });
     var toc = el('div', { class: 'toc' });
-    main.appendChild(el('div', { class: 'page-row' }, [content, toc]));
+    var pageRows = el('div', { class: 'page-rows' }, [
+      el('div', { class: 'page-row' }, [contentTop, el('div', { class: 'rail-col' }, [toc])]),
+    ]);
+    var pageWrap = el('div', {}, [pageRows]);
+    main.appendChild(pageWrap);
 
     var doc = docs[parsed.docKey];
     if (!doc) {
-      content.appendChild(el('div', { class: 'empty-note' }, ['Unknown document: ' + parsed.docKey]));
-      buildToc(content, toc);
+      contentTop.appendChild(el('div', { class: 'empty-note' }, ['Unknown document: ' + parsed.docKey]));
+      buildToc(pageWrap, toc);
       return;
     }
     state.docKey = parsed.docKey;
@@ -2046,51 +3482,67 @@
     var rest = parsed.rest;
     var handled = false;
     if (!rest.length) {
-      renderOverviewPage(content, doc);
+      renderOverviewPage(contentTop, doc);
       handled = true;
     } else if (rest[0] === 'model' && rest[1]) {
-      renderModelPage(content, doc, decodeURIComponent(rest[1]));
+      renderModelPage(contentTop, doc, decodeURIComponent(rest[1]));
       handled = true;
     } else if (rest[0] === 'ctl') {
       var op = findOperationByRoute(doc, rest.join('/'));
       if (op) {
-        renderOperationPage(content, state.docKey, doc, op);
+        var contentBody = contentTop;
+        var contentResponses = contentTop;
+        var railExample = null;
+        var railResponseExample = null;
+        if (op.op.requestBody) {
+          contentBody = el('div', { class: 'content-col content-body' });
+          railExample = el('div', { class: 'rail-example' });
+          pageRows.appendChild(el('div', { class: 'page-row' }, [contentBody, el('div', { class: 'rail-col' }, [railExample])]));
+        }
+        if (op.op.responses && op.op.responses.length) {
+          contentResponses = el('div', { class: 'content-col content-responses' });
+          railResponseExample = el('div', { class: 'rail-example' });
+          pageRows.appendChild(el('div', { class: 'page-row' }, [contentResponses, el('div', { class: 'rail-col' }, [railResponseExample])]));
+        }
+        renderOperationPage(contentTop, contentBody, contentResponses, state.docKey, doc, op, railExample, railResponseExample);
         handled = true;
       } else {
         var ctl = findControllerByRoute(doc, rest.join('/'));
         if (ctl) {
-          renderControllerPage(content, state.docKey, doc, ctl, rest.join('/'));
+          renderControllerPage(contentTop, state.docKey, doc, ctl, rest.join('/'));
           handled = true;
         }
       }
     }
     if (!handled) {
-      content.appendChild(el('div', { class: 'empty-note' }, ['Page not found.']));
+      contentTop.appendChild(el('div', { class: 'empty-note' }, ['Page not found.']));
     }
-    buildToc(content, toc);
+    buildToc(pageWrap, toc);
   }
 
   var tocScrollHandler = null;
 
   /** Populates the "on this page" rail (a fresh `.toc` element built
-   *  alongside `content` for this render — see `render()`) from the page
-   *  that was just rendered into `content`: one entry per `h2` section
-   *  heading (Description/Fields/Examples/...), in document order.
-   *  Clicking an entry scrolls straight to its heading via
-   *  `scrollIntoView` rather than an `href="#..."` anchor, since
-   *  `location.hash` is this app's own routing signal (see `parseHash`)
-   *  and setting it to a heading name would be read as a navigation, not
-   *  a same-page scroll. The entry nearest the top of the reading pane is
-   *  kept highlighted by a scroll listener on `.main`, torn down before
-   *  every rebuild so listeners don't pile up across page changes on the
-   *  same DOM node. */
-  function buildToc(content, toc) {
+   *  alongside `container` for this render — see `render()`) from the page
+   *  that was just rendered into `container` (`.page-rows`, spanning every
+   *  content cell — an operation page with a request body splits its own
+   *  content across two of them, see `renderOperationPage`, so this can't
+   *  just scan one): one entry per `h2` section heading
+   *  (Description/Fields/Examples/...), in document order. Clicking an
+   *  entry scrolls straight to its heading via `scrollIntoView` rather
+   *  than an `href="#..."` anchor, since `location.hash` is this app's own
+   *  routing signal (see `parseHash`) and setting it to a heading name
+   *  would be read as a navigation, not a same-page scroll. The entry
+   *  nearest the top of the reading pane is kept highlighted by a scroll
+   *  listener on `.main`, torn down before every rebuild so listeners
+   *  don't pile up across page changes on the same DOM node. */
+  function buildToc(container, toc) {
     var main = document.getElementById('opra-main');
     if (tocScrollHandler) {
       main.removeEventListener('scroll', tocScrollHandler);
       tocScrollHandler = null;
     }
-    var headings = Array.prototype.slice.call(content.querySelectorAll('h2'));
+    var headings = Array.prototype.slice.call(container.querySelectorAll('h2'));
     if (!headings.length) {
       toc.appendChild(el('div', { class: 'toc-empty' }, ['No sections']));
       return;
@@ -2263,7 +3715,7 @@
       }
     });
     window.addEventListener('hashchange', render);
-    main.addEventListener('scroll', hideTypeTooltip);
+    main.addEventListener('scroll', hideTypeTooltipNow);
     render();
   }
 

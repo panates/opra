@@ -10,6 +10,7 @@ import {
   type HttpApi,
   type HttpController,
   type HttpMediaType,
+  type HttpMultipartField,
   type HttpOperation,
   type HttpOperationResponse,
   type HttpParameter,
@@ -71,6 +72,7 @@ export namespace ApiUiSchemaBuilder {
       out.api = omitUndefined({
         transport: 'http',
         url: api.url,
+        servers: api.servers?.length ? api.servers : undefined,
         controllers,
       });
     }
@@ -287,6 +289,29 @@ function mapSimpleTypePropertyDescriptions(
   return Object.keys(out).length ? out : undefined;
 }
 
+/** A field/parameter that customizes a builtin with its own constraint
+ * values (e.g. `new FieldPathType({ dataType: 'cm:Customer', allowSigns:
+ * 'each' })`, passed as a parameter's `type`, or a field's own inline
+ * `{ pattern: ... }`) gets its own anonymous SimpleType instance for that
+ * specific usage — `dataType.name` is empty even though it's really "a
+ * `string`/`fieldpath`, configured this way". Walking `.base` finds the
+ * nearest ancestor that *does* have a name, so the client shows that
+ * (e.g. "fieldpath") instead of falling all the way back to the bare,
+ * uninformative "SimpleType" kind label. The same anonymous instance's
+ * own `.description` and `.examples` are empty too (only the shared named
+ * type it customizes actually carries the ones from `@SimpleType({
+ * description: ... }).Example(...)`) — the caller falls back to this same
+ * ancestor for those for the same reason. This is what keeps a field's
+ * *own* examples (`ApiField.examples`, shown separately under the field
+ * itself) from being the only thing anyone ever sees where a type's own
+ * examples belong — without this fallback, a customized type's chip
+ * tooltip has no examples of its own at all. */
+function nearestNamedSimpleType(dataType: SimpleType): SimpleType | undefined {
+  let t: SimpleType | undefined = dataType;
+  while (t && !t.name) t = t.base;
+  return t;
+}
+
 function mapDataType(dataType: DataType, ctx: BuildContext) {
   let out: Record<string, unknown>;
   if (dataType instanceof SimpleType) {
@@ -294,9 +319,14 @@ function mapDataType(dataType: DataType, ctx: BuildContext) {
     // name (e.g. "string", "datetime") purely for display, since it's never
     // used as a lookup key here.
     const properties = mapSimpleTypeProperties(dataType);
+    const namedBase = dataType.name
+      ? undefined
+      : nearestNamedSimpleType(dataType);
     out = {
       kind: dataType.kind,
-      name: dataType.name,
+      name: dataType.name || namedBase?.name,
+      description: dataType.description || namedBase?.description,
+      examples: dataType.examples || namedBase?.examples,
       properties,
       propertyDescriptions: mapSimpleTypePropertyDescriptions(
         dataType,
@@ -323,8 +353,19 @@ function mapDataType(dataType: DataType, ctx: BuildContext) {
   } else {
     out = { kind: dataType.kind };
   }
-  out.description = dataType.description;
-  out.examples = dataType.examples;
+  // Already resolved (with its own base-fallback) for SimpleType above;
+  // every other kind just takes its own description/examples as-is.
+  if (out.description === undefined) out.description = dataType.description;
+  if (out.examples === undefined) out.examples = dataType.examples;
+  // `dataType.name` here is the instance's *own* name — checked before any
+  // SimpleType base-fallback above overwrote `out.name` with a borrowed
+  // one. Anonymous either way: an embedded ComplexType/Mixin/Mapped type
+  // declared with no name of its own, or a SimpleType customized inline
+  // for one specific field/parameter (e.g. a `string` with its own
+  // `pattern`) — the client uses this to mark the chip/tooltip as "not a
+  // standalone type with its own page", regardless of which borrowed name
+  // it ends up displaying.
+  if (!dataType.name) out.anonymous = true;
   return omitUndefined(out);
 }
 
@@ -378,6 +419,27 @@ function mapHttpMediaType(m: HttpMediaType, ctx: BuildContext) {
     type: m.type ? mapTypeRef(m.type, ctx) : undefined,
     description: m.description,
     example: m.example,
+    examples: m.examples,
+    multipartFields: m.multipartFields?.length
+      ? m.multipartFields.map(f => mapHttpMultipartField(f, ctx))
+      : undefined,
+    maxParts: m.maxParts,
+    maxPartSize: m.maxPartSize,
+    maxFieldSize: m.maxFieldSize,
+    maxTotalSize: m.maxTotalSize,
+  });
+}
+
+/** One entry of a `multipart/form-data` body — itself a full `HttpMediaType`
+ * (own `contentType`/`type`/`example`/...), plus the field name (or
+ * pattern) it binds to within the multipart stream and whether that part
+ * is a plain form `field` or an uploaded `file`. */
+function mapHttpMultipartField(f: HttpMultipartField, ctx: BuildContext) {
+  return omitUndefined({
+    ...mapHttpMediaType(f, ctx),
+    fieldName: f.fieldName instanceof RegExp ? f.fieldName.source : f.fieldName,
+    fieldType: f.fieldType,
+    required: f.required || undefined,
   });
 }
 
@@ -401,7 +463,22 @@ function mapHttpResponse(r: HttpOperationResponse, ctx: BuildContext) {
   });
 }
 
-function mapHttpOperation(op: HttpOperation, ctx: BuildContext) {
+/** `inheritedParams` are the path/header/... parameters declared on this
+ * operation's own controller *and* every ancestor controller above it
+ * (e.g. a `.KeyParam('customerId', ...)` declared once on `CustomerController`
+ * applies to every operation nested under it, including two levels down
+ * under `Notes`) — merged ahead of the operation's own parameters so a
+ * single "Parameters" table on the operation's page is the complete,
+ * effective set a caller must supply, without needing to check every
+ * parent controller's own page too. */
+function mapHttpOperation(
+  op: HttpOperation,
+  ctx: BuildContext,
+  inheritedParams: readonly HttpParameter[],
+) {
+  const allParams = inheritedParams.length
+    ? [...inheritedParams, ...op.parameters]
+    : op.parameters;
   return omitUndefined({
     kind: 'HttpOperation',
     method: op.method,
@@ -409,8 +486,8 @@ function mapHttpOperation(op: HttpOperation, ctx: BuildContext) {
     path: op.path,
     mergePath: op.mergePath || undefined,
     composition: op.composition,
-    parameters: op.parameters.length
-      ? op.parameters.map(p => mapHttpParameter(p, ctx))
+    parameters: allParams.length
+      ? allParams.map(p => mapHttpParameter(p, ctx))
       : undefined,
     requestBody: op.requestBody
       ? mapHttpRequestBody(op.requestBody, ctx)
@@ -421,23 +498,37 @@ function mapHttpOperation(op: HttpOperation, ctx: BuildContext) {
   });
 }
 
-function mapHttpController(ctrl: HttpController, ctx: BuildContext) {
+function mapHttpController(
+  ctrl: HttpController,
+  ctx: BuildContext,
+  inheritedParams: readonly HttpParameter[] = [],
+) {
+  // Own parameters only (not `inheritedParams`) — a controller's page
+  // documents what *it* adds to the path; the merged, effective set is
+  // shown on each operation's own page instead (see `mapHttpOperation`).
   const out: Record<string, unknown> = {
     kind: 'HttpController',
     description: ctrl.description,
     path: ctrl.path,
+    parameters: ctrl.parameters.length
+      ? ctrl.parameters.map(p => mapHttpParameter(p, ctx))
+      : undefined,
   };
+  const allParams =
+    inheritedParams.length || ctrl.parameters.length
+      ? [...inheritedParams, ...ctrl.parameters]
+      : inheritedParams;
   if (ctrl.operations.size) {
     const operations: Record<string, unknown> = {};
     for (const op of ctrl.operations.values()) {
-      operations[op.name] = mapHttpOperation(op, ctx);
+      operations[op.name] = mapHttpOperation(op, ctx, allParams);
     }
     out.operations = operations;
   }
   if (ctrl.controllers.size) {
     const controllers: Record<string, unknown> = {};
     for (const sub of ctrl.controllers.values()) {
-      controllers[sub.name] = mapHttpController(sub, ctx);
+      controllers[sub.name] = mapHttpController(sub, ctx, allParams);
     }
     out.controllers = controllers;
   }

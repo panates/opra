@@ -1688,21 +1688,222 @@
     return panel;
   }
 
-  /** A typed alternative's synthesized whole-object JSON example — same
-   *  idea as a model's own "Example" section, just rendered into the
+  /** An alternative's `contentType` isn't always one MIME type — it can
+   *  list several serializations of the *same* schema (e.g. `application/
+   *  json, text/yaml, application/yaml, text/toml, application/toml`, all
+   *  describing one JSON-shaped body), arriving here as an array or a
+   *  single comma-joined string (see the PHP/Node snippet formatters for
+   *  the same parsing). This reduces that list down to the distinct
+   *  *formats* the "Body" view actually knows how to render — `yaml`/
+   *  `toml` collapse their two MIME spellings (`text/x` and
+   *  `application/x`) into one entry apiece — in the order they were
+   *  declared, so the dropdown's default matches whichever the operation
+   *  listed first. A media with no `type` at all (multipart, raw upload)
+   *  has no body value to serialize in any format, so it reports none. */
+  function mediaBodyFormats(media) {
+    if (!media || !media.type) return [];
+    var raw = media.contentType;
+    var list = Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split(',') : ['application/json'];
+    var formats = [];
+    list.forEach(function (t) {
+      t = String(t).trim().toLowerCase();
+      var fmt = /json/.test(t) ? 'json' : /yaml/.test(t) ? 'yaml' : /toml/.test(t) ? 'toml' : null;
+      if (fmt && formats.indexOf(fmt) === -1) formats.push(fmt);
+    });
+    if (!formats.length) formats.push('json');
+    return formats;
+  }
+
+  var BODY_FORMAT_LABELS = { json: 'JSON', yaml: 'YAML', toml: 'TOML' };
+
+  /** The request rail's "Body" dropdown entry for the given (possibly
+   *  `null`) currently-selected alternative — a flat `{key:'body', ...}`
+   *  item, matching every other single-choice entry in
+   *  `REQUEST_SNIPPET_KINDS`, when there's only one format to show (the
+   *  common case: a plain `application/json` body, or no schema at all),
+   *  or a `{group:'Body', items:[...]}` of `body-json`/`body-yaml`/
+   *  `body-toml` when the alternative itself offers more than one
+   *  serialization — see `mediaBodyFormats`. Recomputed on every call
+   *  rather than cached, since which case applies can change from one
+   *  content-type tab to the next (see `renderRequestSection`'s
+   *  `refreshSelect`). */
+  function bodyKindEntry(media) {
+    var formats = mediaBodyFormats(media);
+    if (formats.length <= 1) return { key: 'body', label: 'Body' };
+    return {
+      group: 'Body',
+      items: formats.map(function (f) {
+        return { key: 'body-' + f, label: BODY_FORMAT_LABELS[f] };
+      }),
+    };
+  }
+
+  /** Maps every `<select>` value the "Body" entry can ever produce (the
+   *  flat `body` from the single-format case, or `body-json`/`body-yaml`/
+   *  `body-toml` from the grouped one) to which serialization to render —
+   *  the one place `renderRequestSection` needs to know that `body` itself
+   *  just means "json". */
+  var BODY_KIND_FORMAT = { body: 'json', 'body-json': 'json', 'body-yaml': 'yaml', 'body-toml': 'toml' };
+
+  /** A typed alternative's synthesized whole-object example, serialized as
+   *  JSON, YAML, or TOML (`format`, one of `BODY_KIND_FORMAT`'s values) —
+   *  same idea as a model's own "Example" section, just rendered into the
    *  page's side rail — see `render()` — instead of the reading column, so
    *  it's the thing that stays in view while the field descriptions scroll
-   *  underneath it. `null` for multipart/raw content: there's no one JSON
-   *  value that represents a multipart stream. */
-  function requestBodyJsonExample(doc, media) {
+   *  underneath it. `null` for multipart/raw content: there's no one value
+   *  that represents a multipart stream in any of these formats. */
+  function requestBodyExample(doc, media, format) {
     if (!media.type) return null;
-    var json = JSON.stringify(buildExampleValue(doc, media.type), null, 2);
-    var copyBtn = copyButton(json, 15);
+    var value = buildExampleValue(doc, media.type);
+    var text, highlighted;
+    if (format === 'yaml') {
+      text = toYaml(value, 0);
+      highlighted = highlightYaml(text);
+    } else if (format === 'toml') {
+      text = toToml(value);
+      highlighted = highlightToml(text);
+    } else {
+      text = JSON.stringify(value, null, 2);
+      highlighted = highlightJson(text);
+    }
+    var copyBtn = copyButton(text, 15);
     copyBtn.classList.add('copy-btn-lg');
     return {
-      content: el('pre', { class: 'example-json' }, [el('code', { html: highlightJson(json) })]),
+      content: el('pre', { class: 'example-json' }, [el('code', { html: highlighted })]),
       copyBtn: copyBtn,
     };
+  }
+
+  /** A YAML scalar is always single-quoted here rather than left bare —
+   *  simpler and safe than deciding case-by-case whether a given string
+   *  (a date-time with colons, an empty string, one that looks like a
+   *  number or `null`/`true`) would need it; a quoted plain string is
+   *  always valid YAML even when it wouldn't have strictly needed
+   *  quoting. */
+  function yamlScalar(v) {
+    if (v === null || v === undefined) return 'null';
+    if (typeof v === 'boolean' || typeof v === 'number') return String(v);
+    return "'" + String(v).replace(/'/g, "''") + "'";
+  }
+
+  /** Renders `value` as a YAML block at `indent` levels deep (2 spaces
+   *  each) — recursing into nested objects/arrays as further-indented
+   *  mappings/sequences, exactly the shape `buildExampleValue` produces
+   *  for a record/array-typed field. A sequence item that's itself an
+   *  object gets its first key folded onto the same line as the `- `
+   *  marker (`- id: 1`), matching how YAML is conventionally written by
+   *  hand, rather than a `- ` line followed by an indented mapping. */
+  function toYaml(value, indent) {
+    indent = indent || 0;
+    var pad = '  '.repeat(indent);
+    if (Array.isArray(value)) {
+      if (!value.length) return pad + '[]';
+      return value
+        .map(function (v) {
+          if (v !== null && typeof v === 'object') {
+            var nested = toYaml(v, indent + 1).split('\n');
+            var first = nested[0].replace(/^\s+/, '');
+            return pad + '- ' + first + (nested.length > 1 ? '\n' + nested.slice(1).join('\n') : '');
+          }
+          return pad + '- ' + yamlScalar(v);
+        })
+        .join('\n');
+    }
+    if (value !== null && typeof value === 'object') {
+      var keys = Object.keys(value);
+      if (!keys.length) return pad + '{}';
+      return keys
+        .map(function (k) {
+          var v = value[k];
+          if ((Array.isArray(v) && v.length) || (v !== null && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length)) {
+            return pad + k + ':\n' + toYaml(v, indent + 1);
+          }
+          if (Array.isArray(v)) return pad + k + ': []';
+          if (v !== null && typeof v === 'object') return pad + k + ': {}';
+          return pad + k + ': ' + yamlScalar(v);
+        })
+        .join('\n');
+    }
+    return pad + yamlScalar(value);
+  }
+
+  /** TOML has no native `null`, so a null-valued key is simply omitted
+   *  rather than emitted as something that would parse back as a string
+   *  or crash a strict reader. Nested objects/arrays use TOML's *inline*
+   *  table/array syntax (`{ k = v }` / `[ v, v ]`) instead of `[section]`
+   *  headers — valid TOML, and far simpler to generate correctly for an
+   *  arbitrarily-nested example than tracking table paths would be. */
+  function tomlKey(k) {
+    return /^[A-Za-z0-9_-]+$/.test(k) ? k : '"' + k.replace(/"/g, '\\"') + '"';
+  }
+  function tomlValue(v) {
+    if (v === null || v === undefined) return null;
+    if (typeof v === 'boolean' || typeof v === 'number') return String(v);
+    if (typeof v === 'string') return '"' + v.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+    if (Array.isArray(v)) {
+      var items = v.map(tomlValue).filter(function (x) {
+        return x !== null;
+      });
+      return '[' + items.join(', ') + ']';
+    }
+    var parts = Object.keys(v)
+      .map(function (k) {
+        var val = tomlValue(v[k]);
+        return val === null ? null : tomlKey(k) + ' = ' + val;
+      })
+      .filter(function (x) {
+        return x !== null;
+      });
+    return '{ ' + parts.join(', ') + ' }';
+  }
+  function toToml(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return tomlKey('value') + ' = ' + tomlValue(value);
+    }
+    return Object.keys(value)
+      .map(function (k) {
+        var val = tomlValue(value[k]);
+        return val === null ? null : tomlKey(k) + ' = ' + val;
+      })
+      .filter(function (x) {
+        return x !== null;
+      })
+      .join('\n');
+  }
+
+  /** `key:`/`key =` before a value, quoted strings, and comments — the
+   *  only tokens `toYaml`/`toToml` themselves ever emit, same "hand-rolled,
+   *  scoped to what we generate" spirit as `highlightJson` and the
+   *  `format*Snippet` highlighters. Reuses `highlightJson`'s color classes
+   *  (`.json-key`/`.json-string`/`.json-number`/`.json-boolean`) so a
+   *  YAML/TOML body reads consistently with the JSON one instead of
+   *  introducing a third palette. */
+  function highlightYaml(code) {
+    var escaped = escapeHtml(code);
+    return escaped.replace(
+      /^(\s*(?:-\s+)?[\w"'.-]+)(:)|('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")|\b(true|false)\b|\bnull\b|(-?\d+(?:\.\d+)?)/gm,
+      function (match, key, colon, str, bool, num) {
+        if (key !== undefined) return '<span class="json-key">' + key + '</span>' + colon;
+        if (str !== undefined) return '<span class="json-string">' + str + '</span>';
+        if (bool !== undefined) return '<span class="json-boolean">' + match + '</span>';
+        if (match === 'null') return '<span class="json-null">null</span>';
+        if (num !== undefined) return '<span class="json-number">' + num + '</span>';
+        return match;
+      },
+    );
+  }
+  function highlightToml(code) {
+    var escaped = escapeHtml(code);
+    return escaped.replace(
+      /^([\w".-]+)(\s*=)|("(?:[^"\\]|\\.)*")|\b(true|false)\b|(-?\d+(?:\.\d+)?)/gm,
+      function (match, key, eq, str, bool, num) {
+        if (key !== undefined) return '<span class="json-key">' + key + '</span>' + eq;
+        if (str !== undefined) return '<span class="json-string">' + str + '</span>';
+        if (bool !== undefined) return '<span class="json-boolean">' + match + '</span>';
+        if (num !== undefined) return '<span class="json-number">' + num + '</span>';
+        return match;
+      },
+    );
   }
 
   /** Base URL for generated request snippets (cURL/Fetch/Axios/Python) — the
@@ -2354,12 +2555,16 @@
     return lines.join('\n');
   }
 
-  /** `{key, label}` items ungrouped render as top-level `<option>`s (just
-   *  "Body"); `{group, items}` ones render as an `<optgroup>` — one group
-   *  per language, several client/library variants inside, matching how
-   *  Scalar's own request-snippet picker is organized. */
+  /** The code-sample half of the request rail's dropdown — everything
+   *  except "Body" itself, which `renderRequestSection`'s `refreshSelect`
+   *  computes separately per alternative (see `bodyKindEntry`) and
+   *  prepends, since its options depend on the currently-selected content
+   *  type rather than being fixed like these are. `{key, label}` items
+   *  ungrouped render as top-level `<option>`s; `{group, items}` ones
+   *  render as an `<optgroup>` — one group per language, several
+   *  client/library variants inside, matching how Scalar's own
+   *  request-snippet picker is organized. */
   var REQUEST_SNIPPET_KINDS = [
-    { key: 'body', label: 'Body' },
     {
       group: 'Shell',
       items: [
@@ -2453,55 +2658,61 @@
     },
   };
 
-  /** `requestBody.content` is an array precisely because an operation can
+  /** The "Request" rail (see `render()`) covers the *whole* request this
+   *  operation needs — method, path, path/query/header parameters, and a
+   *  body if there is one — not just the request body, so it's built for
+   *  every operation, not only ones with a `requestBody`. The "Request
+   *  body" *content* section (h2, tabs, per-alternative panels) is the one
+   *  part that's still conditional on `op.requestBody` existing; a
+   *  bodyless operation (GET, DELETE, ...) just skips straight to whatever
+   *  comes after it, with the rail still showing generated snippets built
+   *  from `buildRequestModel(doc, ctrlPath, op, null)` (no body, but still
+   *  a real method/path/parameters to call).
+   *
+   *  `requestBody.content` is an array precisely because an operation can
    *  accept more than one alternative representation of the same body
    *  (e.g. `application/json` *or* `multipart/form-data` for the same
    *  upload endpoint) — a tab per alternative, only shown at all once
    *  there's more than one; a single alternative (the common case) just
    *  renders its panel directly with no tab chrome around it.
    *
-   *  The `HttpRequestBody`-level bits (whether a body is required at all,
-   *  and its own description) are kept in their own group at the top —
-   *  a distinct concern from any one alternative's own properties below,
-   *  so the two shouldn't visually blend into one paragraph.
-   *
-   *  `railExample` (the page's own rail — see `render()`) is a "Request"
-   *  panel: a header (method + full path) and a dropdown that switches
-   *  between the *currently selected* alternative's own JSON body and
-   *  generated cURL/Fetch/Axios/Python snippets built from the operation's
-   *  real method/path/parameters/body (`buildRequestModel`) — switching the
+   *  The rail itself is a header (method + full path) and a dropdown that
+   *  switches between the *currently selected* alternative's own body
+   *  example (skipped entirely when there's no body to show; a "Body"
+   *  entry that itself expands into a JSON/YAML/TOML sub-group whenever
+   *  that alternative's `contentType` lists more than one serialization —
+   *  see `bodyKindEntry` — instead of only ever showing JSON) and generated
+   *  cURL/Fetch/Axios/Python/etc. snippets built from the operation's real
+   *  method/path/parameters/body (`buildRequestModel`) — switching the
    *  content-type tab regenerates whichever snippet kind is currently
-   *  selected, not just the JSON view. Structured like
+   *  selected, AND rebuilds the "Body" entry for whichever alternative is
+   *  now current (`refreshSelect`), since a different alternative can offer
+   *  a different set of serializations. Structured like
    *  `renderResponsesSection`'s own rail (header / scrollable content /
    *  absolutely-positioned copy button that doesn't scroll away with long
    *  content — see `.response-rail-content-wrap` in styles.css, mirrored
    *  here as `.request-rail-content-wrap`), just without a footer. */
-  function renderRequestBodySection(main, doc, op, ctrlPath, railExample) {
+  function renderRequestSection(main, doc, op, ctrlPath, railExample) {
     var requestBody = op.requestBody;
-    var section = el('div', { class: 'section' }, [el('h2', {}, ['Request body'])]);
-
-    var metaChildren = [];
-    if (requestBody.required) metaChildren.push(flagBadge('required'));
-    var descBlock = mdBlock(doc, requestBody.description);
-    if (descBlock) metaChildren.push(descBlock);
-    if (metaChildren.length) section.appendChild(el('div', { class: 'request-body-meta' }, metaChildren));
-
-    var selectedKind = 'body';
+    var hasBody = !!requestBody;
+    var selectedKind = hasBody ? 'body' : 'curl';
     var currentMedia = null;
     var railContent = null;
     var railCopyHolder = null;
+    var select = null;
 
     function renderRail() {
-      if (!railContent || !currentMedia) return;
+      if (!railContent) return;
       clear(railContent);
       clear(railCopyHolder);
-      if (selectedKind === 'body') {
-        var jsonView = requestBodyJsonExample(doc, currentMedia);
-        if (jsonView) {
-          railContent.appendChild(jsonView.content);
-          railCopyHolder.appendChild(jsonView.copyBtn);
+      var bodyFormat = BODY_KIND_FORMAT[selectedKind];
+      if (bodyFormat) {
+        var bodyView = currentMedia ? requestBodyExample(doc, currentMedia, bodyFormat) : null;
+        if (bodyView) {
+          railContent.appendChild(bodyView.content);
+          railCopyHolder.appendChild(bodyView.copyBtn);
         } else {
-          railContent.appendChild(el('div', { class: 'empty-note' }, ['No JSON body for this alternative.']));
+          railContent.appendChild(el('div', { class: 'empty-note' }, ['No body for this alternative.']));
         }
         return;
       }
@@ -2514,19 +2725,20 @@
       railCopyHolder.appendChild(copyBtn);
     }
 
-    function showExample(media) {
-      currentMedia = media;
-      renderRail();
-    }
-
-    if (railExample) {
-      railExample.classList.add('request-rail');
-      var fullPath = operationPath(ctrlPath, op);
-      var header = el('div', { class: 'request-rail-header' }, [
-        el('span', { class: 'request-rail-path mono' }, [methodBadge(op.method), ' ', fullPath]),
-      ]);
-      var select = el('select', { class: 'request-rail-select' });
-      REQUEST_SNIPPET_KINDS.forEach(function (k) {
+    // Rebuilds the dropdown's options for `media`'s own set of body
+    // formats (the "Body" entry only — the rest of `REQUEST_SNIPPET_KINDS`
+    // never changes) and re-applies `selectedKind` to the new `<select>`;
+    // when that value no longer exists among the new options (switching
+    // from a JSON+YAML+TOML alternative to a plain-JSON or multipart one,
+    // say), the browser falls back to the new first option on its own, so
+    // reading `select.value` back afterward is what keeps `selectedKind` in
+    // sync with what's actually showing instead of pointing at a choice
+    // that no longer exists.
+    function refreshSelect(media) {
+      if (!select) return;
+      clear(select);
+      var kinds = (hasBody ? [bodyKindEntry(media)] : []).concat(REQUEST_SNIPPET_KINDS);
+      kinds.forEach(function (k) {
         if (k.group) {
           var group = el('optgroup', { label: k.group });
           k.items.forEach(function (item) {
@@ -2537,6 +2749,28 @@
           select.appendChild(el('option', { value: k.key }, [k.label]));
         }
       });
+      // Assigning `.value` a string that matches no `<option>` doesn't fall
+      // back to the first one — it leaves nothing selected at all
+      // (`selectedIndex -1`, `.value` reading back as `''`) — so that has
+      // to be checked and corrected for explicitly.
+      select.value = selectedKind;
+      if (select.selectedIndex === -1) select.selectedIndex = 0;
+      selectedKind = select.value;
+    }
+
+    function showExample(media) {
+      currentMedia = media;
+      refreshSelect(media);
+      renderRail();
+    }
+
+    if (railExample) {
+      railExample.classList.add('request-rail');
+      var fullPath = operationPath(ctrlPath, op);
+      var header = el('div', { class: 'request-rail-header' }, [
+        el('span', { class: 'request-rail-path mono' }, [methodBadge(op.method), ' ', fullPath]),
+      ]);
+      select = el('select', { class: 'request-rail-select' });
       select.addEventListener('change', function () {
         selectedKind = select.value;
         renderRail();
@@ -2547,6 +2781,18 @@
       railCopyHolder = el('div', { class: 'request-rail-copy' });
       railExample.appendChild(el('div', { class: 'request-rail-content-wrap' }, [railContent, railCopyHolder]));
     }
+
+    if (!hasBody) {
+      showExample(null);
+      return;
+    }
+
+    var section = el('div', { class: 'section' }, [el('h2', {}, ['Request body'])]);
+    var metaChildren = [];
+    if (requestBody.required) metaChildren.push(flagBadge('required'));
+    var descBlock = mdBlock(doc, requestBody.description);
+    if (descBlock) metaChildren.push(descBlock);
+    if (metaChildren.length) section.appendChild(el('div', { class: 'request-body-meta' }, metaChildren));
 
     var contents = requestBody.content || [];
     if (contents.length > 1) {
@@ -2641,8 +2887,8 @@
     // internal scroll (see `.response-rail-content` in styles.css), and a
     // button positioned relative to something that scrolls would scroll
     // right along with it, off screen with the rest of the content instead
-    // of staying put like the tabs/footer around it (the request body's
-    // own rail — `renderRequestBodySection` — uses the exact same
+    // of staying put like the tabs/footer around it (the Request panel's
+    // own rail — `renderRequestSection` — uses the exact same
     // `railCopyHolder`-as-sibling pattern for the same reason).
     function renderRailContent(r) {
       if (!railContent) return;
@@ -2777,22 +3023,21 @@
     }
   }
 
-  /** `topMain`, `bodyMain` and `responsesMain` are up to three separate
-   *  containers (see `render()`), not one flowing column: everything
-   *  through the parameter sections goes in `topMain`, next to the TOC's
-   *  own rail; "Request body" (if any) goes in `bodyMain`, next to
-   *  `railExample`'s own rail; "Responses" (if any) goes in
-   *  `responsesMain`, next to `railResponseExample`'s own rail. Each rail
-   *  element's sticky range is bounded to the one row it corresponds to,
-   *  which is exactly why these are three separate rows rather than one
-   *  flowing column with two rails bolted on the side — `railExample` and
-   *  `railResponseExample` show two *different* things (the request
-   *  body's own example vs. a response's own example), so neither should
-   *  stay pinned while the reader has scrolled into the other's section.
-   *  A row that has nothing to show (no request body, or no responses at
-   *  all) doesn't get created, so `render()` passes `topMain` for that
-   *  container instead (with the matching rail as `null`). */
-  function renderOperationPage(topMain, bodyMain, responsesMain, docKey, doc, found, railExample, railResponseExample) {
+  /** `topMain` and `responsesMain` are up to two separate containers (see
+   *  `render()`), not one flowing column: everything through the parameter
+   *  sections *and* the Request section (rail + any request body content)
+   *  goes in `topMain`, sharing row 1's `.rail-col` with `toc` (see that
+   *  CSS comment for why `railExample` is safe to stack there while
+   *  `railResponseExample` still needs a row of its own); "Responses" (if
+   *  any) goes in `responsesMain`, next to `railResponseExample`'s own
+   *  rail, starting right below wherever row 1 ends. `railExample` is
+   *  always built — every operation has a method/path/parameters worth
+   *  showing request snippets for, even without a request body — so
+   *  `topMain` never needs a second, separate container the way
+   *  `responsesMain` does; a responses row that has nothing to show
+   *  doesn't get created, so `render()` passes `topMain` for that
+   *  container instead (with `railResponseExample` as `null`). */
+  function renderOperationPage(topMain, responsesMain, docKey, doc, found, railExample, railResponseExample) {
     var op = found.op;
     var fullPath = operationPath(found.ctrlPath, op);
 
@@ -2819,7 +3064,7 @@
 
     renderParametersSections(topMain, doc, op.parameters);
 
-    if (op.requestBody) renderRequestBodySection(bodyMain, doc, op, found.ctrlPath, railExample);
+    renderRequestSection(topMain, doc, op, found.ctrlPath, railExample);
 
     if (op.responses && op.responses.length) {
       renderResponsesSection(responsesMain, doc, op.responses, railResponseExample);
@@ -3441,30 +3686,31 @@
     var nav = document.getElementById('opra-nav');
     var picker = document.getElementById('opra-picker');
 
-    // `.page-rows` holds one to three independent flex rows (see
-    // styles.css's own comment on `.page-row`): row 1 is always
-    // `contentTop` + its own rail (`toc`); row 2, `contentBody` + its own
-    // rail (`railExample`), is only added for an operation page with a
-    // request body; row 3, `contentResponses` + its own rail
-    // (`railResponseExample`), only for one with documented responses —
-    // independently of each other (see below), since a rail's sticky
-    // range should only ever cover the one row it corresponds to (see
-    // `renderOperationPage`'s own comment for why `railExample` and
-    // `railResponseExample` need to be two separate rails, not one
-    // spanning both rows). Every other page renders solely into
-    // `contentTop`, a single row. Each rail element is nested inside a
-    // `.rail-col` that `align-items: stretch` sizes to match its row's
-    // own content height, which is what actually bounds `position:
-    // sticky` there (a shared grid track alone doesn't — see that CSS
-    // comment for why this needs literal separate rows rather than one
-    // multi-row grid). `pageWrap` is what `buildToc` scans for section
-    // headings, across every row `pageRows` ends up with.
+    // `.page-rows` holds one or two independent flex rows (see styles.css's
+    // own comment on `.page-row`): row 1 is always `contentTop` (title,
+    // parameters, and the Request section — body or not) + its own
+    // rail-col (`railCol`), which stacks `toc` and `railExample` together
+    // — the Request rail covers every operation now, not just ones with a
+    // request body, and stacking it with `toc` (rather than giving it a
+    // separate row keyed to the "Request body" section, which doesn't
+    // exist for a bodyless operation) is what lets the alignment step
+    // below line it up with whichever heading is actually first, instead
+    // of leaving a dead gap when there's nothing to size a second row from.
+    // Row 2, `contentResponses` + its own rail (`railResponseExample`),
+    // only for one with documented responses, follows immediately after
+    // row 1 and is kept in its OWN row (not folded into `railCol` too) so
+    // its sticky range stays bounded to just that row — see `.rail-col`'s
+    // own CSS comment for why sharing one column across sections that can
+    // each be arbitrarily long made rails stick at the same offset and
+    // pile on top of each other instead of handing off. Every other page
+    // renders solely into `contentTop`, a single row with no `railExample`.
+    // `pageWrap` is what `buildToc` scans for section headings, across
+    // every row `pageRows` ends up with.
     clear(main);
     var contentTop = el('div', { class: 'content-col content-top' });
     var toc = el('div', { class: 'toc' });
-    var pageRows = el('div', { class: 'page-rows' }, [
-      el('div', { class: 'page-row' }, [contentTop, el('div', { class: 'rail-col' }, [toc])]),
-    ]);
+    var railCol = el('div', { class: 'rail-col' }, [toc]);
+    var pageRows = el('div', { class: 'page-rows' }, [el('div', { class: 'page-row' }, [contentTop, railCol])]);
     var pageWrap = el('div', {}, [pageRows]);
     main.appendChild(pageWrap);
 
@@ -3481,6 +3727,7 @@
 
     var rest = parsed.rest;
     var handled = false;
+    var needsRailAlign = false;
     if (!rest.length) {
       renderOverviewPage(contentTop, doc);
       handled = true;
@@ -3490,22 +3737,26 @@
     } else if (rest[0] === 'ctl') {
       var op = findOperationByRoute(doc, rest.join('/'));
       if (op) {
-        var contentBody = contentTop;
+        // `toc` moves into its own wrapper here (rather than staying a
+        // direct `railCol` child, as it is for every other page) so its
+        // *own* sticky range can be bounded to just its own segment of row
+        // 1 — see the alignment step below for why, and `.rail-col`'s own
+        // CSS comment for the mechanics.
+        var tocWrap = el('div', { class: 'toc-wrap' }, []);
+        railCol.insertBefore(tocWrap, toc);
+        tocWrap.appendChild(toc);
+        var railExample = el('div', { class: 'rail-example' });
+        railCol.appendChild(railExample);
         var contentResponses = contentTop;
-        var railExample = null;
         var railResponseExample = null;
-        if (op.op.requestBody) {
-          contentBody = el('div', { class: 'content-col content-body' });
-          railExample = el('div', { class: 'rail-example' });
-          pageRows.appendChild(el('div', { class: 'page-row' }, [contentBody, el('div', { class: 'rail-col' }, [railExample])]));
-        }
         if (op.op.responses && op.op.responses.length) {
           contentResponses = el('div', { class: 'content-col content-responses' });
           railResponseExample = el('div', { class: 'rail-example' });
           pageRows.appendChild(el('div', { class: 'page-row' }, [contentResponses, el('div', { class: 'rail-col' }, [railResponseExample])]));
         }
-        renderOperationPage(contentTop, contentBody, contentResponses, state.docKey, doc, op, railExample, railResponseExample);
+        renderOperationPage(contentTop, contentResponses, state.docKey, doc, op, railExample, railResponseExample);
         handled = true;
+        needsRailAlign = true;
       } else {
         var ctl = findControllerByRoute(doc, rest.join('/'));
         if (ctl) {
@@ -3518,6 +3769,33 @@
       contentTop.appendChild(el('div', { class: 'empty-note' }, ['Page not found.']));
     }
     buildToc(pageWrap, toc);
+    // Bound `tocWrap`'s height to the distance between row 1's top and
+    // `contentTop`'s first `h2` (whichever section actually comes first —
+    // Path/Query/Header parameters, or "Request body" itself when there
+    // are none), rather than leaving it to shrink-wrap `toc`'s own
+    // (usually much shorter) natural height: `toc`'s sticky range is
+    // bounded by its own containing block, which is now `tocWrap` instead
+    // of the full-height `railCol` every other rail element uses — so
+    // sizing that wrapper to end exactly where `railExample` begins is
+    // what makes `toc` un-stick and scroll away right as `railExample`
+    // arrives to take its place, instead of `toc` staying frozen in place
+    // (bound by all of `railCol`, which spans the entire row) while
+    // `railExample` slides up and simply paints over whatever of `toc` it
+    // reaches. This has to run after `buildToc` (not right after
+    // `renderOperationPage`) since `buildToc` is what actually fills `toc`
+    // with its heading links — measuring its height any earlier would
+    // catch it still empty and undershoot. Reading the heading's real
+    // rendered offset is the only way to get this right — the two columns
+    // have no shared content to align them via CSS alone.
+    if (needsRailAlign) {
+      var firstHeading = contentTop.querySelector('h2');
+      if (firstHeading) {
+        var headingOffset = firstHeading.getBoundingClientRect().top - contentTop.getBoundingClientRect().top;
+        var tocGap = parseFloat(getComputedStyle(railCol).rowGap) || 0;
+        var tocHeight = toc.getBoundingClientRect().height;
+        tocWrap.style.height = Math.max(tocHeight, headingOffset - tocGap) + 'px';
+      }
+    }
   }
 
   var tocScrollHandler = null;
@@ -3525,9 +3803,9 @@
   /** Populates the "on this page" rail (a fresh `.toc` element built
    *  alongside `container` for this render — see `render()`) from the page
    *  that was just rendered into `container` (`.page-rows`, spanning every
-   *  content cell — an operation page with a request body splits its own
-   *  content across two of them, see `renderOperationPage`, so this can't
-   *  just scan one): one entry per `h2` section heading
+   *  content cell — an operation page splits its own content across up to
+   *  three of them, see `renderOperationPage`, so this can't just scan
+   *  one): one entry per `h2` section heading
    *  (Description/Fields/Examples/...), in document order. Clicking an
    *  entry scrolls straight to its heading via `scrollIntoView` rather
    *  than an `href="#..."` anchor, since `location.hash` is this app's own

@@ -760,48 +760,48 @@ a {
   padding: 32px 40px 160px;
 }
 
-/* A page is one to three independent flex rows stacked in `.page-rows`
-   (see `render()`): row 1 is always `.content-top` + its own rail
-   (`.toc`); row 2, `.content-body` (just the "Request body" section) +
-   its own rail (`.rail-example`), only for an operation with a request
-   body; row 3, `.content-responses` + its own rail
-   (`.rail-response-example`), only for one with documented responses —
-   independently of row 2, since `.rail-example` and
-   `.rail-response-example` show two *different* things (the request
-   body's own example vs. a response's own example): keeping either
-   pinned while the reader has scrolled into the OTHER section would show
-   the wrong thing next to what's on screen, which a row spanning both
-   sections would still do even bounded correctly as a whole. This used to
-   be a single multi-row CSS Grid instead (`grid-template-areas`, one row
-   per section, matching how Scalar's own reference UI —
+/* A page is one or two independent flex rows stacked in `.page-rows` (see
+   `render()`): row 1 is always `.content-top` (title, parameters, and the
+   Request section — body or not) + its own rail (`railCol`, stacking
+   `.toc` above `.rail-example.request-rail` — see `.rail-col`'s own
+   comment below for why that stacking is safe here specifically). Row 2,
+   `.content-responses` + its own rail (`.rail-response-example`), only for
+   one with documented responses, follows immediately after row 1, kept in
+   its OWN row rather than folded into `railCol` too: `.rail-example.request-
+   rail` and `.rail-response-example` show two *different* things (the
+   request's own example vs. a response's own example), so keeping the
+   request rail pinned while the reader has scrolled into the Responses
+   section would show the wrong thing next to what's on screen, which a row
+   spanning both sections would still do even bounded correctly as a whole.
+   This used to be a single multi-row CSS Grid instead (`grid-template-
+   areas`, one row per section, matching how Scalar's own reference UI —
    `ModernLayout.vue` — bounds its sticky examples column). That looked
-   right in theory but a grid item's own named area does NOT actually
-   clip a `position: sticky` descendant to itself: Chromium keeps it stuck
-   at the same offset even after its row has scrolled past, so two rail
-   elements still ended up overlapping once one row was shorter than the
-   sticky offset needed. Two literal, separate flex rows fix this for a
-   boring reason: `.rail-col` (below) is stretched by plain `align-items:
-   stretch` to exactly its own row's content height, and a sticky
-   element's containing block for clipping purposes IS its actual DOM
-   parent — so nesting a rail element inside a `.rail-col` that's
-   genuinely as tall as its own row's content cell (not just visually
-   aligned via a shared grid track) bounds it for real. */
+   right in theory but a grid item's own named area does NOT actually clip
+   a `position: sticky` descendant to itself: Chromium keeps it stuck at the
+   same offset even after its row has scrolled past, so two rail elements
+   still ended up overlapping once one row was shorter than the sticky
+   offset needed. Two literal, separate flex rows fix this for a boring
+   reason: `.rail-col` (below) is stretched by plain `align-items: stretch`
+   to exactly its own row's content height, and a sticky element's
+   containing block for clipping purposes IS its actual DOM parent — so
+   nesting a rail element inside a `.rail-col` that's genuinely as tall as
+   its own row's content cell (not just visually aligned via a shared grid
+   track) bounds it for real. */
 .page-rows {
   display: flex;
   flex-direction: column;
 }
 
-/* Only between two rows, not before the first — `.content-body`'s and
-   `.content-responses`' own leading `.section` already carries its usual
-   `margin-top` (canceled right below) for exactly this purpose on the
-   content side; without this, the rail side had nothing playing that
-   role, so a rail element butted straight up against the previous row's
-   own rail content the moment a further row was added. */
+/* Only between two rows, not before the first — `.content-responses`'
+   own leading `.section` already carries its usual `margin-top`
+   (canceled right below) for exactly this purpose on the content side;
+   without this, the rail side had nothing playing that role, so a rail
+   element butted straight up against the previous row's own rail content
+   the moment a further row was added. */
 .page-row + .page-row {
   margin-top: 28px;
 }
 
-.content-body > .section:first-child,
 .content-responses > .section:first-child {
   margin-top: 0;
 }
@@ -831,10 +831,47 @@ a {
 /* Stretched (default `align-items: stretch`) to match its row's
    `.content-col` height — see this section's own comment above for why
    that specific mechanism (rather than a shared grid track) is what makes
-   the nested sticky element's bound real. */
+   the nested sticky element's bound real. Row 1's `.rail-col` stacks two
+   rails — `.toc-wrap` (see below) then `.rail-example.request-rail` — via
+   `flex-direction: column` (overriding `.rail-col`'s own default row
+   axis), `gap` acting as the fallback spacing for whenever there's nothing
+   to align to (`render()`'s own alignment step sizes `.toc-wrap` itself
+   once it knows where `.content-top`'s first heading actually sits — a
+   parameter section, or "Request body" itself when there are none). Every
+   other `.rail-col` (there's at most one more, row 2's) holds exactly one
+   *unwrapped* rail. Stacking more than one rail per `.rail-col` was tried
+   once for EVERY row (this one AND row 2's) and reverted for row 2: once a
+   row got tall, each child's own `top: 20px` trigger point ended up
+   landing at the *same* scroll offset for most of the row's height instead
+   of one handing off to the next in sequence, so every rail sat pinned on
+   top of the others instead of visibly replacing them — see the
+   `.page-rows` comment above for why row 2's rail still needs its own row
+   instead. Row 1's toc+request-rail pair gets that same *scroll offset*
+   problem too (there are only ever two of them sharing it, but that alone
+   isn't what fixes it) — what actually fixes it is `.toc-wrap` below,
+   which gives `.toc` its OWN shorter containing block instead of sharing
+   `.rail-col`'s full, row-length one. */
 .rail-col {
   flex: 1 1 0;
   min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Exists purely to give `.toc` (an operation page's, specifically — see
+   `render()`) its own containing block, shorter than the full `.rail-col`
+   its sibling `.rail-example` still uses: no fixed height here in CSS
+   itself, since the right height depends on where the page's own first
+   heading lands — `render()` sets it inline once that's known. Without
+   this, `.toc` would use `.rail-col` (spanning row 1's ENTIRE height) as
+   its own sticky bound, and — being much shorter than that — would never
+   run out of room to stay stuck, so it'd sit frozen in place indefinitely
+   while `.rail-example` slides up from below and paints over whatever of
+   it that reaches, rather than `.toc` itself un-sticking and scrolling
+   away to make room. */
+.toc-wrap {
+  flex: 0 0 auto;
 }
 
 /* Capped height + its own scroll (rather than letting it grow past the

@@ -4093,16 +4093,43 @@
     );
     headerChildren.push(el('div', { class: 'header-right' }, headerRight));
     var header = el('div', { class: 'header' }, headerChildren);
-    var nav = el('nav', { class: 'sidebar', id: 'opra-nav' });
+    // `#opra-nav` is now the *inner* scrollable list only — `buildSidebar`
+    // clears and rebuilds it on every keystroke (search, sidebar filter, or
+    // navigation), which would destroy a filter input living inside it
+    // (losing focus/cursor position mid-type). The outer `.sidebar` wrapper
+    // holds the filter box above it instead, untouched by those rebuilds,
+    // with the list scrolling independently beneath it (see `.sidebar-nav`
+    // in CSS).
+    var navList = el('nav', { class: 'sidebar-nav', id: 'opra-nav' });
+    var sidebarFilterInput = el('input', { id: 'opra-sidebar-filter', type: 'search', placeholder: 'Quick Filter' });
+    var sidebar = el('div', { class: 'sidebar' }, [
+      el('div', { class: 'sidebar-filter' }, [el('div', { class: 'search sidebar-filter-search' }, [sidebarFilterInput])]),
+      navList,
+    ]);
     var main = el('main', { class: 'main', id: 'opra-main' });
     app.appendChild(header);
-    app.appendChild(nav);
+    app.appendChild(sidebar);
     app.appendChild(main);
 
+    // The header's own search box and this sidebar-local filter both drive
+    // the exact same tree-filtering logic in `buildSidebar` (which just
+    // reads `#opra-search`'s value — see its own `filterValue` line), so
+    // typing in either one keeps the other's value in sync rather than
+    // leaving it looking stale once the sidebar has already been filtered
+    // by its counterpart.
     var searchInput = document.getElementById('opra-search');
+    function onSidebarFilterInput(source) {
+      var value = source.value;
+      if (source !== searchInput) searchInput.value = value;
+      if (source !== sidebarFilterInput) sidebarFilterInput.value = value;
+      buildSidebar(navList, state.docKey, docs[state.docKey]);
+      highlightActive(navList);
+    }
     searchInput.addEventListener('input', function () {
-      buildSidebar(nav, state.docKey, docs[state.docKey]);
-      highlightActive(nav);
+      onSidebarFilterInput(searchInput);
+    });
+    sidebarFilterInput.addEventListener('input', function () {
+      onSidebarFilterInput(sidebarFilterInput);
     });
     // The visible "⌘K"/"Ctrl K" hint (see `kbdShortcutLabel`) promises
     // this actually works, not just decorates the search box.

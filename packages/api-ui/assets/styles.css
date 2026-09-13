@@ -156,10 +156,9 @@ body {
 #app {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
-  grid-template-rows: 56px 52px 1fr;
+  grid-template-rows: 56px 1fr;
   grid-template-areas:
     'header header'
-    'search-bar main'
     'sidebar main';
   height: 100vh;
 }
@@ -228,8 +227,20 @@ a {
 
 /* ---------- header, logo & search ---------- */
 
+/* `z-index` matters here even though the header never overlaps anything
+   of its own accord: the document picker's dropdown (`.picker-menu`,
+   see below) is `position: absolute` and taller than the header itself,
+   so it spills down over `.sidebar`/`.main` beneath it — but those are
+   *separate* grid items in `#app`, and CSS Grid stacks its own items by
+   z-index (default 0) then DOM order among ties, not by which one visually
+   overflows into another's space. `.sidebar` comes *after* `.header` in
+   the markup, so without an explicit z-index here, its opaque background
+   would paint over the open dropdown despite `.picker-menu`'s own
+   `z-index: 20` — that z-index only wins comparisons against siblings
+   *inside* this same grid item, not against `.sidebar` itself. */
 .header {
   grid-area: header;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -260,10 +271,21 @@ a {
   letter-spacing: 0.02em;
 }
 
+/* Separates the logo from the document picker beside it — a plain
+   vertical rule, not a full-height border, so it reads as "these are two
+   distinct controls" without implying either one owns a boxed region. */
+.header-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
 /* Pushed to the header's right edge — Docusaurus's own navbar layout
-   (brand left, everything else right) — regardless of whether a logo
-   precedes it. Holds the version badge, theme toggle, and search box, in
-   that order. */
+   (brand/picker left, everything else right) — regardless of what
+   precedes it. Holds the theme toggle and search box, in that order (the
+   version badge that used to sit here first now lives inside the picker
+   button itself — see `buildPicker`). */
 .header-right {
   display: flex;
   align-items: center;
@@ -370,48 +392,29 @@ a {
 
 /* ---------- document picker ---------- */
 
-/* Sits where the search box used to (above the sidebar it controls),
-   now that search has moved up into the header. */
-/* `z-index` matters here even though this row never overlaps anything
-   by itself: grid items paint in DOM order among ties (Grid's own
-   stacking rules apply `z-index` to items as if `position: relative`
-   were set, even though it isn't) — `.sidebar` comes *after* this row in
-   the markup, so without this, its opaque background would always
-   paint over `.picker-menu`'s dropdown despite that menu's own
-   `z-index: 20`, since that z-index only wins comparisons against
-   siblings *inside* this same grid item, not against `.sidebar` itself. */
-.search-bar {
-  grid-area: search-bar;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  padding: 8px 12px;
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-elevated);
-}
-
+/* Lives directly in `.header` now, right after the logo (see `init()`)
+   — sized to its own content rather than stretched to a row's full
+   width, the way it was back when it sat in its own full-width row above
+   the sidebar. */
 .picker-wrap {
   position: relative;
-  width: 100%;
 }
 
-/* `--code-bg` (the "elevated surface" token also used for code blocks)
-   instead of `--bg-hover` — that used to sit at almost the same
-   brightness as this row's own `--bg-elevated` background, so the
-   button read as a plain label, not a distinct clickable control. */
+/* No border, no background at rest — a plain, borderless control sitting
+   inline in the header (like the theme toggle beside it), not a boxed
+   input the way it read back when it filled its own dedicated row.
+   Background only shows up on `:hover` below, as the click affordance —
+   larger, bolder text is what marks this as the prominent "which
+   document am I looking at" control on its own, at rest. */
 .picker {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
   height: 32px;
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
   border-radius: 10px;
   padding: 0 10px;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -894,7 +897,7 @@ a {
 .rail-example {
   position: sticky;
   top: 20px;
-  max-height: calc((100vh - 56px - 52px - 40px) / 2);
+  max-height: calc((100vh - 56px - 40px) / 2);
   overflow-y: auto;
 }
 
@@ -1665,7 +1668,7 @@ a.doc-meta-value:hover {
    stays a normal block; only `.response-rail-copy` (next) needs the
    absolute-overlay trick. */
 .response-rail-content {
-  max-height: calc((100vh - 56px - 52px - 40px) / 2);
+  max-height: calc((100vh - 56px - 40px) / 2);
   overflow-y: auto;
   padding: 14px 16px;
 }
@@ -1789,7 +1792,7 @@ a.doc-meta-value:hover {
 }
 
 .request-rail-content {
-  max-height: calc((100vh - 56px - 52px - 40px) / 2);
+  max-height: calc((100vh - 56px - 40px) / 2);
   overflow-y: auto;
   padding: 14px 16px;
 }

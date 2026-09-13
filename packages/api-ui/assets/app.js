@@ -3720,9 +3720,18 @@
 
   function buildPicker(container) {
     clear(container);
+    // The *active* document's own version — this chip sits right next to
+    // its title now (it used to live on its own over in `.header-right`,
+    // always showing root's version regardless of which document was
+    // open — see `init()`'s history — which stopped making sense once the
+    // two were merged into one control: a reference doc's own title next
+    // to root's version would just be two unrelated facts glued together). */
+    var activeDoc = docs[state.docKey];
+    var activeVersion = activeDoc && activeDoc.info && activeDoc.info.version;
     var current = el('div', { class: 'picker', id: 'opra-picker-btn' }, [
       iconFor('book'),
       el('span', { class: 'picker-label' }, [docTitle(state.docKey)]),
+      activeVersion ? el('span', { class: 'header-version' }, ['v' + activeVersion]) : null,
       iconFor('chevronDown'),
     ]);
     container.appendChild(current);
@@ -4046,14 +4055,17 @@
     var app = document.getElementById('app');
     var ui = window.__OPRA_UI__ || {};
 
-    // The logo (if any) anchors the header's left edge; `.search`'s own
-    // `margin-left: auto` (see CSS) is what actually pushes the search
-    // box to the right regardless of whether a logo is present —
+    // The logo (if any) anchors the header's left edge, followed by a
+    // divider and the document picker (built into `#opra-picker` below —
+    // see `buildPicker`, which now also carries the root version chip
+    // that used to sit over in `.header-right`); `.search`'s own
+    // `margin-left: auto` (see CSS) is what actually pushes the rest of
+    // `.header-right` to the far edge regardless of what precedes it —
     // Docusaurus's own navbar layout (logo/brand left, search right).
     var headerChildren = [];
     if (ui.logo) {
       // Always the *main* (root) document's own "Document Info" page —
-      // a fixed "home" destination, unlike the document picker below it
+      // a fixed "home" destination, unlike the document picker beside it
       // (which stays wherever's currently active) — regardless of which
       // document happens to be open when it's clicked. `hrefFor('root',
       // '')` would just be the bare hash `'#/'`, which `parseHash`
@@ -4068,15 +4080,10 @@
       );
       if (ui.logo.label) logoLink.appendChild(el('span', { class: 'header-logo-label' }, [ui.logo.label]));
       headerChildren.push(logoLink);
+      headerChildren.push(el('span', { class: 'header-divider' }));
     }
-    // Root document's own version — "the main document", as opposed to
-    // whichever one happens to be active (a reference doc's version
-    // would be a different, and less useful, thing to show up here).
-    var rootVersion = docs.root && docs.root.info && docs.root.info.version;
+    headerChildren.push(el('div', { class: 'picker-wrap', id: 'opra-picker' }));
     var headerRight = [];
-    if (rootVersion) {
-      headerRight.push(el('span', { class: 'header-version' }, ['v' + rootVersion]));
-    }
     headerRight.push(themeToggleButton());
     headerRight.push(
       el('div', { class: 'search' }, [
@@ -4086,14 +4093,9 @@
     );
     headerChildren.push(el('div', { class: 'header-right' }, headerRight));
     var header = el('div', { class: 'header' }, headerChildren);
-    // The document picker moves here — where the search box used to sit,
-    // right above the sidebar it controls — now that search has moved up
-    // into the header.
-    var docBar = el('div', { class: 'search-bar' }, [el('div', { class: 'picker-wrap', id: 'opra-picker' })]);
     var nav = el('nav', { class: 'sidebar', id: 'opra-nav' });
     var main = el('main', { class: 'main', id: 'opra-main' });
     app.appendChild(header);
-    app.appendChild(docBar);
     app.appendChild(nav);
     app.appendChild(main);
 

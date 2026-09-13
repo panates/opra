@@ -1629,6 +1629,16 @@ a.doc-meta-value:hover {
   white-space: nowrap;
 }
 
+/* `renderResponsesSection` toggles this via the `hidden` DOM property
+   (for a response with no `type` at all — nothing for "Show Schema" to
+   switch between) — needed as an explicit override since `[hidden]`'s
+   default `display: none` alone loses to `.show-schema-toggle`'s own
+   `display: flex` above (same specificity, and the author rule beats the
+   user-agent default regardless of source order). */
+.show-schema-toggle[hidden] {
+  display: none;
+}
+
 /* `.response-rail-content` is the part that actually scrolls; this wrap
    is what stays put around it, so `.response-rail-copy` — absolutely
    positioned relative to THIS, not to anything inside the scrolling

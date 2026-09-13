@@ -1786,26 +1786,96 @@
    *  just means "json". */
   var BODY_KIND_FORMAT = { body: 'json', 'body-json': 'json', 'body-yaml': 'yaml', 'body-toml': 'toml' };
 
+  /** A fixed, made-up boundary token — real `multipart/form-data` requests
+   *  each pick a fresh random one so it can't collide with the body's own
+   *  content, but for a documentation example a stable value is actually
+   *  better: the snippet reads the same on every visit instead of churning
+   *  on every render for no reason. */
+  var MULTIPART_EXAMPLE_BOUNDARY = 'OpraFormBoundary7MA4YWxkTrZu0gW';
+
+  /** The literal `multipart/form-data` body as it goes over the wire —
+   *  boundary-delimited parts, each with its own `Content-Disposition`
+   *  (and, for a `file` field, `Content-Type`) header, a blank line, then
+   *  the part's own content — closed by a final `--boundary--` delimiter.
+   *  Deliberately NOT rendered as a JSON/YAML/TOML object the way a typed
+   *  body is (see `requestBodyExample`): that would claim a shape this
+   *  request never actually has on the wire. A file part's own bytes obviously
+   *  can't be synthesized, so it gets a bracketed placeholder describing
+   *  what would be there instead of pretending to have real file content. */
+  function multipartBodyPreview(doc, media) {
+    var boundary = MULTIPART_EXAMPLE_BOUNDARY;
+    var parts = media.multipartFields.map(function (f) {
+      var name = typeof f.fieldName === 'string' ? f.fieldName : String(f.fieldName);
+      var value = multipartFieldExampleValue(doc, f);
+      var lines = ['--' + boundary];
+      if (f.fieldType === 'file') {
+        var contentType = (Array.isArray(f.contentType) ? f.contentType.join(',') : f.contentType || 'application/octet-stream')
+          .split(',')[0]
+          .trim();
+        lines.push('Content-Disposition: form-data; name="' + name + '"; filename="' + value + '"');
+        lines.push('Content-Type: ' + contentType);
+        lines.push('');
+        lines.push('(binary contents of ' + value + ')');
+      } else {
+        lines.push('Content-Disposition: form-data; name="' + name + '"');
+        lines.push('');
+        lines.push(String(value));
+      }
+      return lines.join('\n');
+    });
+    parts.push('--' + boundary + '--');
+    return parts.join('\n');
+  }
+
+  /** `Content-Disposition`/`Content-Type` header names, the boundary
+   *  delimiter lines, and the bracketed binary-content placeholder — the
+   *  only tokens `multipartBodyPreview` itself ever emits, reusing
+   *  `.json-key`/`.code-comment`, same "hand-rolled, scoped to what we
+   *  generate" spirit as `highlightJson` and the format*Snippet
+   *  highlighters. */
+  function highlightMultipartBodyPreview(code) {
+    var escaped = escapeHtml(code);
+    return escaped.replace(
+      /^(--[^\n]+)$|^(Content-Disposition|Content-Type)(:)|(\(binary contents of [^)\n]*\))/gm,
+      function (match, delim, header, colon, placeholder) {
+        if (delim !== undefined) return '<span class="code-comment">' + delim + '</span>';
+        if (header !== undefined) return '<span class="json-key">' + header + '</span>' + colon;
+        if (placeholder !== undefined) return '<span class="code-comment">' + placeholder + '</span>';
+        return match;
+      },
+    );
+  }
+
   /** A typed alternative's synthesized whole-object example, serialized as
    *  JSON, YAML, or TOML (`format`, one of `BODY_KIND_FORMAT`'s values) —
    *  same idea as a model's own "Example" section, just rendered into the
    *  page's side rail — see `render()` — instead of the reading column, so
    *  it's the thing that stays in view while the field descriptions scroll
-   *  underneath it. `null` for multipart/raw content: there's no one value
-   *  that represents a multipart stream in any of these formats. */
+   *  underneath it. A `multipartFields` alternative (no `type` of its own)
+   *  gets `multipartBodyPreview` instead — `format` doesn't apply to it,
+   *  there being exactly one honest way to show it. `null` only for a bare
+   *  `contentType` with neither a `type` nor multipart fields declared — a
+   *  raw upload with no schema at all, where there truly is nothing to
+   *  show. */
   function requestBodyExample(doc, media, format) {
-    if (!media.type) return null;
-    var value = buildExampleValue(doc, media.type);
     var text, highlighted;
-    if (format === 'yaml') {
-      text = toYaml(value, 0);
-      highlighted = highlightYaml(text);
-    } else if (format === 'toml') {
-      text = toToml(value);
-      highlighted = highlightToml(text);
+    if (media.multipartFields && media.multipartFields.length) {
+      text = multipartBodyPreview(doc, media);
+      highlighted = highlightMultipartBodyPreview(text);
+    } else if (media.type) {
+      var value = buildExampleValue(doc, media.type);
+      if (format === 'yaml') {
+        text = toYaml(value, 0);
+        highlighted = highlightYaml(text);
+      } else if (format === 'toml') {
+        text = toToml(value);
+        highlighted = highlightToml(text);
+      } else {
+        text = JSON.stringify(value, null, 2);
+        highlighted = highlightJson(text);
+      }
     } else {
-      text = JSON.stringify(value, null, 2);
-      highlighted = highlightJson(text);
+      return null;
     }
     var copyBtn = copyButton(text, 15);
     copyBtn.classList.add('copy-btn-lg');
@@ -2914,6 +2984,7 @@
     var railCopyHolder = null;
     var railFooterCode = null;
     var railFooterDesc = null;
+    var schemaToggleLabel = null;
 
     // "Show Schema" is the raw OPRA type definition (what `resolveType`
     // resolves a `type` reference down to — the same schema envelope
@@ -2935,6 +3006,12 @@
       if (!railContent) return;
       clear(railContent);
       clear(railCopyHolder);
+      // "Show Schema" only ever toggles between two views of `r.type` — an
+      // example value or its raw definition — so a response with no `type`
+      // at all (a 204, or any other response documented as bodyless) has
+      // nothing for it to switch to; leaving it visible just invites
+      // clicking a checkbox that changes nothing.
+      if (schemaToggleLabel) schemaToggleLabel.hidden = !r.type;
       var json = null;
       if (showSchema) {
         var def = r.type ? resolveType(doc, r.type).def : null;
@@ -2978,7 +3055,8 @@
         showSchema = schemaCheckbox.checked;
         renderRailContent(responses[activeIndex]);
       });
-      tabsBar.appendChild(el('label', { class: 'show-schema-toggle' }, [schemaCheckbox, 'Show Schema']));
+      schemaToggleLabel = el('label', { class: 'show-schema-toggle' }, [schemaCheckbox, 'Show Schema']);
+      tabsBar.appendChild(schemaToggleLabel);
       railResponseExample.appendChild(tabsBar);
       railContent = el('div', { class: 'response-rail-content' });
       railCopyHolder = el('div', { class: 'response-rail-copy' });

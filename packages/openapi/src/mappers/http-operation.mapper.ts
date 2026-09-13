@@ -46,7 +46,9 @@ export function mapHttpOperation(
     operationId: operation.name,
     responses: mapHttpResponses(operation.responses, ctx),
   };
+  if (operation.title) out.summary = operation.title;
   if (operation.description) out.description = operation.description;
+  if (operation.groups?.length) out.tags = operation.groups;
   if (parameters.length) out.parameters = parameters;
   if (operation.requestBody)
     out.requestBody = mapHttpRequestBody(operation.requestBody, ctx);

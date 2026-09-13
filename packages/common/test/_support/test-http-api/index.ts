@@ -27,6 +27,9 @@ export namespace TestHttpApiDocument {
         servers: [
           { url: 'https://api.example.com', description: 'Test server' },
         ],
+        groups: [
+          { name: 'Customers', description: 'Customer management', icon: '👤' },
+        ],
         controllers: [
           AuthController,
           CountriesController,

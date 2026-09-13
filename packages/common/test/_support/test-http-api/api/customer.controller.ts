@@ -6,7 +6,11 @@ import { Customer } from 'example-customer-mongo/models';
   path: 'Customers@:customerId',
 }).PathParam('customerId', 'uuid'))
 export class CustomerController {
-  @HttpOperation.Entity.Get({ type: Customer })
+  @HttpOperation.Entity.Get({
+    type: Customer,
+    title: 'Get a customer',
+    groups: ['Customers'],
+  })
   get() {
     //
   }

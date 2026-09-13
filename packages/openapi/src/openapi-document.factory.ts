@@ -83,6 +83,11 @@ export namespace OpenApiDocumentFactory {
         omitUndefined({ url: s.url, description: s.description }),
       );
     } else if (api.url) out.servers = [{ url: api.url }];
+    if (api.groups?.length) {
+      out.tags = api.groups.map(g =>
+        omitUndefined({ name: g.name, description: g.description }),
+      );
+    }
     if (Object.keys(ctx.schemas).length)
       out.components = { schemas: ctx.schemas };
 

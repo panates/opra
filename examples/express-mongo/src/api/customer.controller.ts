@@ -14,7 +14,8 @@ import { type PartialDTO } from 'ts-gems';
 import { CustomerNotesController } from './customer-notes.controller.js';
 
 @ComplexType({
-  description: 'Sets a customer avatar by pointing at an already-hosted image, instead of uploading a file directly',
+  description:
+    'Sets a customer avatar by pointing at an already-hosted image, instead of uploading a file directly',
 })
 class AvatarUrlInput {
   @ApiField({
@@ -46,6 +47,8 @@ export class CustomerController {
   }
 
   @(HttpOperation.Entity.Get(Customer, {
+    title: 'Get a customer',
+    groups: ['Customers'],
     description: 'Returns a single customer by id.',
   }).QueryParam('xId', { description: 'Example of an ad-hoc query parameter' }))
   async get(context: HttpContext): Promise<PartialDTO<Customer> | undefined> {
@@ -54,6 +57,8 @@ export class CustomerController {
   }
 
   @HttpOperation.Entity.Delete(Customer, {
+    title: 'Delete a customer',
+    groups: ['Customers'],
     description: `Deletes a single customer by id.
 
 For deactivating a customer without removing their record entirely, see \`setStatus\`.`,
@@ -64,6 +69,8 @@ For deactivating a customer without removing their record entirely, see \`setSta
   }
 
   @HttpOperation.Entity.Update(Customer, {
+    title: 'Update a customer',
+    groups: ['Customers'],
     description: `Updates a single customer by id.
 
 Accepts a partial \`Customer\` payload — only the supplied fields are changed.`,
@@ -93,6 +100,8 @@ This operation returns no response body — check the status code to confirm the
   }
 
   @(HttpOperation.PATCH({
+    title: 'Update avatar',
+    groups: ['Customers'],
     description: `Updates the customer's avatar — either by pointing at an already-hosted image (\`application/json\`) or by uploading the image file directly (\`multipart/form-data\`).
 
 :::tip
@@ -100,7 +109,8 @@ This operation exists mainly to demonstrate a request body with more than one al
 :::`,
     path: 'avatar',
     requestBody: {
-      description: 'The new avatar — provide it as a URL reference or an uploaded file; pick whichever alternative representation fits your client.',
+      description:
+        'The new avatar — provide it as a URL reference or an uploaded file; pick whichever alternative representation fits your client.',
       required: true,
     },
   })

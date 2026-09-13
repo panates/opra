@@ -25,7 +25,9 @@ import type { HttpRequestBody } from './http-request-body.js';
 export namespace HttpOperation {
   export interface Metadata extends Pick<
     OpraSchema.HttpOperation,
+    | 'title'
     | 'description'
+    | 'groups'
     | 'method'
     | 'path'
     | 'mergePath'
@@ -46,7 +48,9 @@ export namespace HttpOperation {
       Metadata,
       | 'path'
       | 'mergePath'
+      | 'title'
       | 'description'
+      | 'groups'
       | 'method'
       | 'immediateFetch'
       | 'allowPatchOperators'
@@ -63,7 +67,9 @@ export namespace HttpOperation {
     },
     Pick<
       Metadata,
+      | 'title'
       | 'description'
+      | 'groups'
       | 'method'
       | 'path'
       | 'mergePath'
@@ -171,7 +177,9 @@ export const HttpOperation = function (this: HttpOperation, ...args: any[]) {
   _this.path = initArgs.path;
   _this.mergePath = initArgs.mergePath;
   _this.method = initArgs.method || 'GET';
+  _this.title = initArgs.title;
   _this.description = initArgs.description;
+  _this.groups = initArgs.groups ? [...initArgs.groups] : undefined;
   _this.composition = initArgs.composition;
   _this.compositionOptions = initArgs.compositionOptions
     ? cloneObject(initArgs.compositionOptions)
@@ -185,7 +193,9 @@ class HttpOperationClass extends DocumentElement {
   declare readonly owner: HttpController;
   declare readonly name: string;
   declare method: OpraSchema.HttpMethod;
+  declare title?: string;
   declare description?: string;
+  declare groups?: string[];
   declare path?: string;
   declare mergePath?: boolean;
   declare types: DataTypeMap;
@@ -226,7 +236,9 @@ class HttpOperationClass extends DocumentElement {
   toJSON(options?: ApiDocument.ExportOptions): OpraSchema.HttpOperation {
     const out = omitUndefined<OpraSchema.HttpOperation>({
       kind: OpraSchema.HttpOperation.Kind,
+      title: this.title,
       description: this.description,
+      groups: this.groups,
       method: this.method,
       path: this.path,
       mergePath: this.mergePath,

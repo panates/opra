@@ -35,6 +35,8 @@ export class CustomersController {
   }
 
   @HttpOperation.Entity.Create(Customer, {
+    title: 'Create a customer',
+    groups: ['Customers'],
     description: `Creates a new customer.
 
 Accepts a \`CustomerCreateInput\` payload — the same shape as \`Customer\`, minus its server-assigned \`_id\`.`,
@@ -48,6 +50,8 @@ Accepts a \`CustomerCreateInput\` payload — the same shape as \`Customer\`, mi
   }
 
   @(HttpOperation.Entity.FindMany(Customer, {
+    title: 'List customers',
+    groups: ['Customers'],
     description: `Returns customers matching the given filter.
 
 Filterable by \`_id\`, \`givenName\`, \`familyName\`, \`gender\`, \`uid\`, \`address.countryCode\`, \`deleted\`, \`active\`, \`birthDate\` and \`rate\`; sortable by \`_id\`, \`givenName\`, \`familyName\`, \`gender\` or \`address.countryCode\` (defaults to \`givenName\`).

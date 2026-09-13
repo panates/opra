@@ -103,6 +103,42 @@ describe('openapi:HTTP mapping', () => {
     ]);
   });
 
+  it('Should map HttpApi#groups to Document#tags and HttpOperation#title/#groups to summary/tags', async () => {
+    @(HttpController({ path: 'Customers@:customerId' }).PathParam(
+      'customerId',
+      'uuid',
+    ))
+    class CustomerControllerWithGroups {
+      @HttpOperation.Entity.Get({
+        type: Customer,
+        title: 'Get a customer',
+        groups: ['Customers'],
+      })
+      get() {
+        //
+      }
+    }
+    const docWithGroups = await ApiDocumentFactory.createDocument({
+      spec: OpraSchema.SpecVersion,
+      info: { title: 'TestApi', version: 'v1' },
+      types: [Customer],
+      api: {
+        transport: 'http',
+        name: 'TestApi',
+        url: '/test',
+        groups: [{ name: 'Customers', description: 'Customer management' }],
+        controllers: [CustomerControllerWithGroups],
+      },
+    });
+    const result = OpenApiDocumentFactory.generate(docWithGroups);
+    expect(result.tags).toStrictEqual([
+      { name: 'Customers', description: 'Customer management' },
+    ]);
+    const pathItem = result.paths['/Customers@{customerId}'];
+    expect(pathItem.get!.summary).toStrictEqual('Get a customer');
+    expect(pathItem.get!.tags).toStrictEqual(['Customers']);
+  });
+
   it('Should convert ":param" path templates to "{param}"', () => {
     const result = OpenApiDocumentFactory.generate(doc);
     expect(Object.keys(result.paths)).toContain('/Customers@{customerId}');

@@ -5,6 +5,8 @@ import {
   ApiField,
   ArrayType,
   ComplexType,
+  HttpController,
+  HttpOperation,
   OpraSchema,
   UnionType,
 } from '@opra/common';
@@ -86,5 +88,44 @@ describe('api-ui:ApiUiSchemaBuilder', () => {
     const schema: any = ApiUiSchemaBuilder.build(doc);
     expect(schema.types.Puppy.fields.name.from).toStrictEqual('Dog');
     expect(schema.types.Puppy.fields.birthDate.from).toBeUndefined();
+  });
+});
+
+describe('api-ui:ApiUiSchemaBuilder (groups/title)', () => {
+  @HttpController({ path: 'Dogs' })
+  class DogsController {
+    @HttpOperation.GET({ title: 'List dogs', groups: ['Pets'] })
+    findMany() {
+      //
+    }
+  }
+
+  let doc: ApiDocument;
+
+  before(async () => {
+    doc = await ApiDocumentFactory.createDocument({
+      spec: OpraSchema.SpecVersion,
+      info: { title: 'TestApi', version: 'v1' },
+      api: {
+        transport: 'http',
+        name: 'TestApi',
+        groups: [{ name: 'Pets', description: 'Pet management', icon: '🐶' }],
+        controllers: [DogsController],
+      },
+    });
+  });
+
+  it('Should expose HttpApi#groups under "api.groups"', () => {
+    const schema: any = ApiUiSchemaBuilder.build(doc);
+    expect(schema.api.groups).toStrictEqual([
+      { name: 'Pets', description: 'Pet management', icon: '🐶' },
+    ]);
+  });
+
+  it('Should expose an operation\'s #title and #groups', () => {
+    const schema: any = ApiUiSchemaBuilder.build(doc);
+    const op = schema.api.controllers.Dogs.operations.findMany;
+    expect(op.title).toStrictEqual('List dogs');
+    expect(op.groups).toStrictEqual(['Pets']);
   });
 });

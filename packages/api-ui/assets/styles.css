@@ -501,6 +501,36 @@ a {
   color: var(--text-muted);
 }
 
+/* A single row (icon, label, check mark) instead of `.picker-item`'s own
+   default column stack (title above a subtitle) — the document picker's
+   own items use that stacked shape, but there's no subtitle here, just
+   one line. */
+.groupby-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.picker-item:hover .icon,
+.picker-item.sel .icon {
+  color: var(--accent);
+}
+
+/* Always in the DOM (see `init()`), so selecting an option never shifts
+   the row's own width — `margin-left: auto` pushes it to the row's right
+   edge, `visibility` (not `display`) keeps that same space reserved
+   whether or not it's the active option, so the label text next to it
+   doesn't shift left/right as the checked option changes. */
+.groupby-check {
+  margin-left: auto;
+  visibility: hidden;
+}
+
+.picker-item.sel .groupby-check {
+  visibility: visible;
+}
+
 /* ---------- sidebar ---------- */
 
 /* Holds the quick filter box (fixed, never rebuilt) above `.sidebar-nav`
@@ -517,27 +547,123 @@ a {
   background: var(--bg-elevated);
 }
 
+/* A single row now — the "Group By" button beside the filter box, rather
+   than two stacked rows — so `.sidebar-groupby-wrap` (fixed, square) and
+   `.sidebar-filter-search` (flexible) sit side by side sharing the same
+   height. */
 .sidebar-filter {
   flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
 }
 
+.sidebar-groupby-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+/* Hidden by default (see `render()`) — only shown once the active
+   document actually declares `api.groups`. Square (matches the filter
+   box's own 30px height), a plain hamburger/"lines" icon rather than a
+   text label — "Group By" only shows up once, as this menu's own
+   heading, not repeated on the trigger itself. `.active` (toggled
+   alongside the menu's own `.sel` item — see `init()`'s `syncGroupByUi`)
+   marks the button once "Groups" (the non-default mode) is selected, so
+   that's visible without opening the menu. */
+.sidebar-groupby-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  color: var(--text-muted);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.sidebar-groupby-btn:hover {
+  color: var(--text);
+}
+
+.sidebar-groupby-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Reuses `.picker-menu`/`.picker-item`'s own look (see "document picker"
+   above) for the same floating-panel treatment as the document switcher's
+   dropdown — `left: 0` anchors it to the button's own left edge instead
+   of stretching edge-to-edge the way it does under the document picker's
+   full-width button; `.picker-menu`'s own `min-width` still keeps it wide
+   enough to read comfortably despite the trigger being much narrower. */
+.sidebar-groupby-menu {
+  left: 0;
+  right: auto;
+}
+
+/* A group's own `icon` (plain text/emoji — see `HttpGroup.icon`), not a
+   resolved icon-kind the way `iconFor` renders one — group names/icons
+   are arbitrary and user-declared, unlike OPRA's own fixed set of
+   type-kind icons, so there's nothing to look up here. */
+.group-icon {
+  margin-right: 2px;
+}
+
 /* Reuses `.search`'s own structure (icon + input — see "header, logo &
    search" above) for visual consistency with the header's search box,
-   just stretched to the sidebar's own width instead of `.search`'s fixed
-   240px, borderless, and a bit more compact to match the sidebar's own
-   denser rows — no `.search-kbd` hint here, since ⌘K/Ctrl K only ever
-   focuses the header box, not this one. */
+   just stretched to fill the row's remaining space (next to
+   `.sidebar-groupby-wrap`) instead of `.search`'s fixed 240px, borderless,
+   and a bit more compact to match the sidebar's own denser rows — no
+   `.search-kbd` hint here, since ⌘K/Ctrl K only ever focuses the header
+   box, not this one. */
 .sidebar-filter-search {
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .sidebar-filter-search input {
   height: 30px;
-  padding-right: 10px;
+  padding-right: 26px;
   font-size: 13px;
   border: none;
+}
+
+/* The browser's own built-in `type="search"` clear button would sit in
+   the exact same spot as `.sidebar-filter-clear` below and double up
+   with it — suppressed in favor of the custom one, which stays hidden
+   until there's actually text to clear (see `onSidebarFilterInput`)
+   instead of always showing once focused. */
+#opra-sidebar-filter::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  display: none;
+}
+
+.sidebar-filter-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.sidebar-filter-clear:hover {
+  background: var(--bg-hover);
+  color: var(--text);
 }
 
 /* A filter (funnel) icon instead of `.search::before`'s magnifying glass —
@@ -1059,6 +1185,16 @@ a.from-flag:hover {
 .main .description.path {
   font-family: var(--font-mono);
   font-size: 14px;
+}
+
+/* The technical `opKey()` identifier, demoted below an operation's own
+   `title` heading (see `renderOperationPage`) — same secondary-line
+   treatment `.op-sub`'s own path text gets, just without the method
+   badge next to it. */
+.op-id {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 4px 0 8px;
 }
 
 .op-sub {

@@ -16,6 +16,8 @@ export class AuthController {
   constructor(readonly db: Db) {}
 
   @(HttpOperation({
+    title: 'Log in',
+    groups: ['Account'],
     description: `Signs the user in with a username and password.
 
 - \`user\` — the account's username
@@ -42,6 +44,8 @@ This sample endpoint returns a plain acknowledgement message rather than a real 
   }
 
   @(HttpOperation({
+    title: 'Log out',
+    groups: ['Account'],
     description: `Signs the current user out.
 
 Returns a plain acknowledgement message, matching \`login\`.`,

@@ -10,7 +10,15 @@ import type { HttpRequestBody } from './http-request-body.interface.js';
 export interface HttpOperation extends DataTypeContainer {
   kind: HttpOperation.Kind;
   method: HttpMethod;
+  title?: string;
   description?: string;
+  /**
+   * Named groups (see `HttpApi.groups`) this operation belongs to —
+   * mirrors OpenAPI's per-operation `tags`. An operation can list more
+   * than one; one with none at all falls into the UI's "Ungrouped"
+   * bucket rather than being left out of the grouped view entirely.
+   */
+  groups?: string[];
   path?: string;
   /**
    * Determines if the `path` will be joined or merged to parent path.

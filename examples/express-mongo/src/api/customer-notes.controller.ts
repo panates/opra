@@ -25,6 +25,8 @@ export class CustomerNotesController {
   }
 
   @(HttpOperation.Entity.Get(Note, {
+    title: 'Get a note',
+    groups: ['Notes', 'Customers'],
     description: 'Returns a single note of the customer by id.',
   }).KeyParam('_id', { type: Number, description: 'Id of the note' }))
   async get(context: HttpContext): Promise<PartialDTO<Note> | undefined> {
@@ -57,6 +59,8 @@ Only the fields present in the request body are changed.`,
   }
 
   @HttpOperation.Entity.Create(Note, {
+    title: 'Create a note',
+    groups: ['Notes'],
     description: `Creates a new note for the customer.
 
 Accepts a \`Note\` payload without its \`_id\`, which is assigned by the server.`,
@@ -72,6 +76,8 @@ Accepts a \`Note\` payload without its \`_id\`, which is assigned by the server.
   }
 
   @(HttpOperation.Entity.FindMany(Note, {
+    title: 'List notes',
+    groups: ['Notes'],
     description: `Returns the customer's notes.
 
 Filterable by \`_id\`, \`title\`, \`text\` and \`rank\`; sortable by \`_id\` or \`title\` (defaults to \`_id\`).

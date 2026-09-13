@@ -98,6 +98,7 @@ export namespace OpenApi {
     summary?: string;
     description?: string;
     operationId?: string;
+    tags?: string[];
     deprecated?: boolean;
     parameters?: ParameterObject[];
     requestBody?: RequestBodyObject;
@@ -113,10 +114,16 @@ export namespace OpenApi {
     schemas?: Record<string, SchemaObject>;
   }
 
+  export interface TagObject {
+    name: string;
+    description?: string;
+  }
+
   export interface Document {
     openapi: string;
     info: InfoObject;
     servers?: ServerObject[];
+    tags?: TagObject[];
     paths: Record<string, PathItemObject>;
     components?: ComponentsObject;
   }

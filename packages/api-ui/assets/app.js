@@ -315,6 +315,14 @@
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M6 21h12"/><path d="M12 5.5 5 8l3.2 6.4a3.6 3.6 0 0 0 6.4 0L12 5.5Z"/><path d="M12 5.5 19 8l-3.2 6.4a3.6 3.6 0 0 1-6.4 0"/></svg>',
     users:
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 8.5a3 3 0 1 1 3.5 4.4"/><path d="M20.5 20a5 5 0 0 0-3.8-6.4"/></svg>',
+    menu:
+      '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/></svg>',
+    close:
+      '<svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
+    check:
+      '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>',
+    tag:
+      '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.59 2H4a2 2 0 0 0-2 2v8.59a2 2 0 0 0 .59 1.41l9.59 9.59a2 2 0 0 0 2.82 0l6.18-6.18a2 2 0 0 0 0-2.82L11.99 2h.6Z"/><circle cx="7.5" cy="7.5" r="1.1" fill="currentColor" stroke="none"/></svg>',
   };
 
   var TEXT_ICONS = {
@@ -484,6 +492,20 @@
 
   function methodBadge(method) {
     return el('span', { class: 'method-badge method-' + method }, [method]);
+  }
+
+  /** An operation's own `title` (see `HttpOperation.title`) is its
+   *  preferred display name wherever `opKey` alone was shown before — a
+   *  human sentence like "Create a meeting" reads as a label, not a code
+   *  identifier, so it drops the `mono` styling `opKey` on its own always
+   *  had. Falls back to plain `opKey` (still `mono`) exactly as before
+   *  when no `title` is set, so a document that doesn't use `title` is
+   *  visually unaffected. */
+  function opNameNode(op, opKey, cls) {
+    var base = cls ? cls + ' ' : '';
+    return op.title
+      ? el('span', { class: base + 'name' }, [op.title])
+      : el('span', { class: base + 'name mono' }, [opKey]);
   }
 
   /** Unwraps any number of ArrayType layers, returning the innermost
@@ -3112,7 +3134,9 @@
             { class: 'row-link', href: hrefFor(docKey, ctrlRoute + '/' + encodeURIComponent(opKey)) },
             [
               methodBadge(op.method),
-              el('span', { class: 'mono' }, [opKey + '()']),
+              op.title
+                ? el('span', {}, [op.title])
+                : el('span', { class: 'mono' }, [opKey + '()']),
               el('span', { class: 'row-path' }, [operationPath(found.ctrlPath || '/', op)]),
               op.description ? el('span', { class: 'row-desc' }, [op.description]) : null,
             ],
@@ -3160,7 +3184,17 @@
     var op = found.op;
     var fullPath = operationPath(found.ctrlPath, op);
 
-    topMain.appendChild(el('h1', { class: 'mono' }, [found.opKey + '()']));
+    // A `title` becomes the page's real heading (a sentence, not a code
+    // identifier) with the technical `opKey()` demoted to a small mono
+    // line right underneath — same relationship OpenAPI tools draw
+    // between an operation's `summary` and its `operationId`. Without a
+    // `title`, this renders exactly as it always has.
+    if (op.title) {
+      topMain.appendChild(el('h1', {}, [op.title]));
+      topMain.appendChild(el('div', { class: 'op-id mono' }, [found.opKey + '()']));
+    } else {
+      topMain.appendChild(el('h1', { class: 'mono' }, [found.opKey + '()']));
+    }
     var sub = el('p', { class: 'op-sub' }, [methodBadge(op.method), el('span', { class: 'path' }, [fullPath])]);
     topMain.appendChild(sub);
     if (found.ctrlName) {
@@ -3549,7 +3583,7 @@
               // triangle in front of every operation read as its own
               // clickable "run" affordance rather than a type marker.
               el('a', { class: 'nav-link nav-op depth-' + (depth + 1), href: hrefFor(docKey, opRoute) }, [
-                el('span', { class: 'name mono' }, [opKey]),
+                opNameNode(op, opKey),
                 methodBadge(op.method),
               ]),
             );
@@ -3608,24 +3642,131 @@
       return nodes;
     }
 
-    var controllers = (doc.api && doc.api.controllers) || {};
-    var anyCtrl = false;
-    var ctlChildNodes = buildControllerNodes(controllers, '', 'ctl', 0);
-    if (!anyCtrl) {
-      // No controllers in this document at all (e.g. a models-only
-      // reference doc) — omit the section entirely rather than showing an
-      // empty "Controllers" heading. A search that filtered every result
-      // out still gets a "No matches." note, since there's something to
-      // say there.
-      if (Object.keys(controllers).length) {
-        var ctlEmptyTitle = buildCollapsibleSection('group-title', 'Controllers', 'controllers', activeInCtl, [
+    // Every operation anywhere in the tree (not just one level), for the
+    // "Groups" sidebar view below — a flat list is what lets one operation
+    // be bucketed under several of its own `groups` at once, unlike
+    // `buildControllerNodes`'s walk, which builds one nested DOM tree
+    // mirroring the *controller* structure exactly once.
+    function collectAllOperations(ctrls, parentPath, parentRoute) {
+      var out = [];
+      Object.keys(ctrls).forEach(function (name) {
+        var ctrl = ctrls[name];
+        var path = controllerPath(ctrl, parentPath);
+        var route = parentRoute + '/' + encodeURIComponent(name);
+        if (ctrl.operations) {
+          Object.keys(ctrl.operations).forEach(function (opKey) {
+            out.push({ opKey: opKey, op: ctrl.operations[opKey], path: path, route: route + '/' + encodeURIComponent(opKey) });
+          });
+        }
+        if (ctrl.controllers) {
+          out = out.concat(collectAllOperations(ctrl.controllers, path, route));
+        }
+      });
+      return out;
+    }
+
+    // "Groups" mode: one top-level section per `doc.api.groups` entry (in
+    // declaration order — same reasoning as `servers[0]` being "the"
+    // default server), plus any group name an operation references but
+    // that isn't declared (rendered too, just without a description/icon),
+    // then a final "Ungrouped" section for anything with no `groups` at
+    // all — never omitted outright, so an operation is always reachable
+    // from this view even if nobody bothered to categorize it yet. An
+    // operation listed in more than one group is simply repeated under
+    // each, matching how OpenAPI's own multi-tag operations are shown by
+    // every tool that renders them.
+    function buildGroupsNav(ctrls) {
+      var allOps = collectAllOperations(ctrls, '', 'ctl');
+      var byGroup = {};
+      var ungrouped = [];
+      allOps.forEach(function (entry) {
+        var opHay = (
+          entry.opKey + ' ' + (entry.op.title || '') + ' ' + entry.op.method + ' ' + operationPath(entry.path, entry.op)
+        ).toLowerCase();
+        entry.matches = !filterValue || opHay.indexOf(filterValue) !== -1;
+        if (entry.op.groups && entry.op.groups.length) {
+          entry.op.groups.forEach(function (g) {
+            (byGroup[g] = byGroup[g] || []).push(entry);
+          });
+        } else {
+          ungrouped.push(entry);
+        }
+      });
+
+      function opRow(entry) {
+        return el('a', { class: 'nav-link nav-op depth-1', href: hrefFor(docKey, entry.route) }, [
+          opNameNode(entry.op, entry.opKey),
+          methodBadge(entry.op.method),
+        ]);
+      }
+
+      var declared = (doc.api && doc.api.groups) || [];
+      var declaredNames = declared.map(function (g) {
+        return g.name;
+      });
+      var extra = Object.keys(byGroup)
+        .filter(function (n) {
+          return declaredNames.indexOf(n) === -1;
+        })
+        .map(function (n) {
+          return { name: n };
+        });
+      var anyShown = false;
+      declared.concat(extra).forEach(function (g) {
+        var entries = (byGroup[g.name] || []).filter(function (e) {
+          return e.matches;
+        });
+        if (!entries.length) return;
+        anyShown = true;
+        var label = g.icon ? el('span', {}, [el('span', { class: 'group-icon' }, [g.icon]), ' ' + g.name]) : g.name;
+        var key = 'group:' + g.name;
+        var section = buildCollapsibleSection('group-title', label, key, false, entries.map(opRow));
+        nav.appendChild(el('div', { class: 'group' }, [section.title, section.wrap]));
+      });
+      var ungroupedEntries = ungrouped.filter(function (e) {
+        return e.matches;
+      });
+      if (ungroupedEntries.length) {
+        anyShown = true;
+        var ungroupedSection = buildCollapsibleSection(
+          'group-title',
+          'Ungrouped',
+          'group:__ungrouped__',
+          false,
+          ungroupedEntries.map(opRow),
+        );
+        nav.appendChild(el('div', { class: 'group' }, [ungroupedSection.title, ungroupedSection.wrap]));
+      }
+      if (!anyShown && allOps.length) {
+        var emptyTitle = buildCollapsibleSection('group-title', 'Groups', 'groups', false, [
           el('div', { class: 'empty-note' }, ['No matches.']),
         ]);
-        nav.appendChild(el('div', { class: 'group' }, [ctlEmptyTitle.title, ctlEmptyTitle.wrap]));
+        nav.appendChild(el('div', { class: 'group' }, [emptyTitle.title, emptyTitle.wrap]));
       }
+    }
+
+    var controllers = (doc.api && doc.api.controllers) || {};
+    if (state.groupBy === 'groups' && doc.api && doc.api.groups && doc.api.groups.length) {
+      buildGroupsNav(controllers);
     } else {
-      var ctlSection = buildCollapsibleSection('group-title', 'Controllers', 'controllers', activeInCtl, ctlChildNodes);
-      nav.appendChild(el('div', { class: 'group' }, [ctlSection.title, ctlSection.wrap]));
+      var anyCtrl = false;
+      var ctlChildNodes = buildControllerNodes(controllers, '', 'ctl', 0);
+      if (!anyCtrl) {
+        // No controllers in this document at all (e.g. a models-only
+        // reference doc) — omit the section entirely rather than showing an
+        // empty "Controllers" heading. A search that filtered every result
+        // out still gets a "No matches." note, since there's something to
+        // say there.
+        if (Object.keys(controllers).length) {
+          var ctlEmptyTitle = buildCollapsibleSection('group-title', 'Controllers', 'controllers', activeInCtl, [
+            el('div', { class: 'empty-note' }, ['No matches.']),
+          ]);
+          nav.appendChild(el('div', { class: 'group' }, [ctlEmptyTitle.title, ctlEmptyTitle.wrap]));
+        }
+      } else {
+        var ctlSection = buildCollapsibleSection('group-title', 'Controllers', 'controllers', activeInCtl, ctlChildNodes);
+        nav.appendChild(el('div', { class: 'group' }, [ctlSection.title, ctlSection.wrap]));
+      }
     }
 
     // The "Models" nav lists only the document's own declared types (what
@@ -3849,6 +3990,26 @@
       return;
     }
     state.docKey = parsed.docKey;
+    // A document with no declared `api.groups` has nothing for "Group By"
+    // to switch to — hide the button entirely rather than offering a
+    // "Groups" option that would just render an empty section, and fall
+    // back to "API Structure" so switching *to* such a document never
+    // leaves `state.groupBy` pointed at a mode this document can't show.
+    var groupByBtn = document.getElementById('opra-groupby-btn');
+    var hasGroups = !!(doc.api && doc.api.groups && doc.api.groups.length);
+    groupByBtn.hidden = !hasGroups;
+    if (!hasGroups) state.groupBy = 'structure';
+    // `state.groupBy` starts out `undefined` (never explicitly initialized
+    // — see `state`'s own declaration) rather than the string `'structure'`
+    // itself, so comparisons against it need this same fallback wherever
+    // "structure" is checked, or the very first render would leave neither
+    // item's `.sel`/checkmark showing at all.
+    var effectiveGroupBy = state.groupBy || 'structure';
+    groupByBtn.classList.toggle('active', effectiveGroupBy === 'groups');
+    ['structure', 'groups'].forEach(function (key) {
+      var item = document.getElementById('opra-groupby-item-' + key);
+      if (item) item.classList.toggle('sel', effectiveGroupBy === key);
+    });
     buildSidebar(nav, state.docKey, doc);
     buildPicker(picker);
     highlightActive(nav);
@@ -4102,8 +4263,95 @@
     // in CSS).
     var navList = el('nav', { class: 'sidebar-nav', id: 'opra-nav' });
     var sidebarFilterInput = el('input', { id: 'opra-sidebar-filter', type: 'search', placeholder: 'Quick Filter' });
+    // Clears the filter without needing to select-and-delete the text by
+    // hand — hidden whenever the box is already empty (toggled alongside
+    // the sync logic below), so it only ever appears once there's
+    // something to clear.
+    var sidebarFilterClear = el('button', { class: 'sidebar-filter-clear', type: 'button', title: 'Clear filter', hidden: true }, [
+      iconFor('close'),
+    ]);
+    sidebarFilterClear.addEventListener('click', function (e) {
+      e.preventDefault();
+      sidebarFilterInput.value = '';
+      onSidebarFilterInput(sidebarFilterInput);
+      sidebarFilterInput.focus();
+    });
+
+    // A small square icon button (hidden until `render()` finds an active
+    // document that actually declares `api.groups` — a document with
+    // nothing to group has nothing for this to switch to) opening a
+    // `.picker-menu` identical in spirit to the document picker's own
+    // dropdown above — a "Group By" label followed by the two modes,
+    // whichever's active marked `.sel`. Reuses the same `openPickerMenu`
+    // single-open-menu bookkeeping `buildPicker`'s own menu already
+    // participates in, so opening this one closes that one and vice versa,
+    // and the shared document-level click handler closes whichever is open
+    // without each menu needing its own listener for that.
+    var groupByBtn = el('button', { class: 'sidebar-groupby-btn', id: 'opra-groupby-btn', type: 'button', title: 'Group By', hidden: true }, [
+      iconFor('menu'),
+    ]);
+    var groupByMenu = el('div', { class: 'picker-menu sidebar-groupby-menu' });
+    groupByMenu.hidden = true;
+    groupByMenu.appendChild(el('div', { class: 'group-label' }, ['Group By']));
+    var groupByOptions = [
+      { key: 'structure', label: 'API Structure', icon: 'folder' },
+      { key: 'groups', label: 'Groups', icon: 'tag' },
+    ];
+    var groupByItemEls = {};
+    groupByOptions.forEach(function (opt) {
+      // The check mark (right-aligned via `.groupby-check`'s own
+      // `margin-left: auto`) is always present in the DOM, not appended
+      // only when selected — its visibility toggles purely through CSS
+      // (`.picker-item.sel .groupby-check`, alongside the `.sel` class
+      // `syncGroupByUi` already sets), so selecting an option never
+      // shifts the row's own width/padding the way conditionally
+      // inserting the icon would.
+      var item = el('div', { class: 'picker-item groupby-item', id: 'opra-groupby-item-' + opt.key }, [
+        iconFor(opt.icon),
+        el('span', { class: 't' }, [opt.label]),
+        iconFor('check', 'groupby-check'),
+      ]);
+      item.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        groupByMenu.hidden = true;
+        openPickerMenu = null;
+        if (state.groupBy === opt.key) return;
+        state.groupBy = opt.key;
+        syncGroupByUi();
+        buildSidebar(navList, state.docKey, docs[state.docKey]);
+        highlightActive(navList);
+      });
+      groupByItemEls[opt.key] = item;
+      groupByMenu.appendChild(item);
+    });
+    groupByBtn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      groupByMenu.hidden = !groupByMenu.hidden;
+      openPickerMenu = groupByMenu.hidden ? null : groupByMenu;
+    });
+    // Reflects `state.groupBy` on the button (an `.active` outline once
+    // it's not the default "API Structure") and the menu's own `.sel`
+    // item — called both right after a click here and from `render()`
+    // whenever the active document changes (which can silently reset
+    // `state.groupBy` back to `'structure'` for one with no `api.groups`).
+    function syncGroupByUi() {
+      // `state.groupBy` starts out `undefined` (see `state`'s own
+      // declaration), not the string `'structure'` — this fallback is what
+      // makes the very first call (right below) actually mark "API
+      // Structure" selected instead of leaving neither item checked.
+      var effectiveGroupBy = state.groupBy || 'structure';
+      groupByBtn.classList.toggle('active', effectiveGroupBy === 'groups');
+      groupByOptions.forEach(function (opt) {
+        groupByItemEls[opt.key].classList.toggle('sel', effectiveGroupBy === opt.key);
+      });
+    }
+    syncGroupByUi();
+
     var sidebar = el('div', { class: 'sidebar' }, [
-      el('div', { class: 'sidebar-filter' }, [el('div', { class: 'search sidebar-filter-search' }, [sidebarFilterInput])]),
+      el('div', { class: 'sidebar-filter' }, [
+        el('div', { class: 'sidebar-groupby-wrap' }, [groupByBtn, groupByMenu]),
+        el('div', { class: 'search sidebar-filter-search' }, [sidebarFilterInput, sidebarFilterClear]),
+      ]),
       navList,
     ]);
     var main = el('main', { class: 'main', id: 'opra-main' });
@@ -4122,6 +4370,7 @@
       var value = source.value;
       if (source !== searchInput) searchInput.value = value;
       if (source !== sidebarFilterInput) sidebarFilterInput.value = value;
+      sidebarFilterClear.hidden = !sidebarFilterInput.value;
       buildSidebar(navList, state.docKey, docs[state.docKey]);
       highlightActive(navList);
     }

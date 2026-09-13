@@ -31,8 +31,16 @@ Switch to the **Customer Models Document** reference (top-left picker, or the *R
         termsOfService:
           'By using this sample API you agree that it is provided strictly for demonstration purposes, "as is", without any warranty of availability, accuracy or fitness for a particular purpose, and that no real customer data should ever be submitted to it.',
         contact: [
-          { name: 'Eren Aydın', email: 'eren.aydin@panates.com', url: 'https://panates.com' },
-          { name: 'Naz Demir', email: 'naz.demir@panates.com', url: 'https://panates.com/team/naz-demir' },
+          {
+            name: 'Eren Aydın',
+            email: 'eren.aydin@panates.com',
+            url: 'https://panates.com',
+          },
+          {
+            name: 'Naz Demir',
+            email: 'naz.demir@panates.com',
+            url: 'https://panates.com/team/naz-demir',
+          },
         ],
         license: {
           name: 'MIT',
@@ -69,6 +77,19 @@ SOFTWARE.`,
         transport: 'http',
         servers: [
           { url: 'http://localhost:3001', description: 'Local dev server' },
+        ],
+        groups: [
+          {
+            name: 'Account',
+            description: 'Signing in and managing your own profile',
+            icon: '👤',
+          },
+          {
+            name: 'Customers',
+            description: 'Managing customer records',
+            icon: '🧾',
+          },
+          { name: 'Notes', description: "A customer's own notes", icon: '📝' },
         ],
         controllers: [
           new AuthController(db),

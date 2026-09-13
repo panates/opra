@@ -424,11 +424,16 @@ a {
   background: color-mix(in srgb, var(--surface) 85%, var(--accent) 15%);
 }
 
+/* No `max-width` — the button now sizes to its own content (see
+   `.picker-wrap`'s own comment), so a long document title just widens the
+   whole control instead of being truncated the way it was back when the
+   picker filled a fixed-width row of its own. `overflow`/`text-overflow`
+   stay on as a harmless fallback for a viewport too narrow to fit it at
+   all, rather than actually kicking in during normal use. */
 .picker-label {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 220px;
 }
 
 .picker .icon:last-child {

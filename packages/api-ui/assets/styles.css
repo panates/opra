@@ -1099,6 +1099,36 @@ a.from-flag:hover {
   border-bottom: none;
 }
 
+/* `appendShowMoreFields`'s own button — the last field still gets its
+   usual `.field-row` border-bottom above this (it isn't really this
+   list's *last* child once hidden rows and this button follow it, so the
+   `:last-child` rule above doesn't strip it), which reads fine here as a
+   divider between the visible fields and the button rather than a leftover
+   line. A centered pill, same shape/border/background as `.content-tab`
+   above (just a bit larger — this is the one thing to notice at the
+   bottom of a long field list, not a small filter chip), rather than a
+   left-aligned inline link: it's sitting alone on its own line with
+   nothing beside it to align to, so a centered, self-contained button
+   reads more like "more content below" than a plain link would. */
+.show-more-fields {
+  display: block;
+  margin: 12px auto 0;
+  padding: 7px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.show-more-fields:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .field-head {
   display: flex;
   align-items: center;

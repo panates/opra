@@ -1179,11 +1179,44 @@
     return list;
   }
 
+  /** Hides every row past `collapseAfter` and appends a "Show N more
+   *  fields" button in their place — used only where a field list sits
+   *  inline in the middle of a page competing with everything around it
+   *  for space (the request body panel — see `renderTypeTree`'s own
+   *  `collapseAfter` param), not on a type's dedicated model page, where
+   *  the full list *is* the page's own content and collapsing it would
+   *  just make the reader click to see the thing they came for. A plain
+   *  field-count threshold rather than measuring rendered height: this
+   *  codebase already ran into real bugs asking the DOM "how tall is this
+   *  right now" (the request rail's own alignment step, earlier), and a
+   *  row count is available before anything is even attached to the page,
+   *  no render-order dependency to get wrong. */
+  function appendShowMoreFields(container, rows, collapseAfter) {
+    var hidden = rows.slice(collapseAfter);
+    hidden.forEach(function (r) {
+      r.hidden = true;
+    });
+    var btn = el('button', { class: 'show-more-fields', type: 'button' }, [
+      'Show ' + hidden.length + ' more field' + (hidden.length === 1 ? '' : 's'),
+    ]);
+    btn.addEventListener('click', function () {
+      hidden.forEach(function (r) {
+        r.hidden = false;
+      });
+      btn.remove();
+    });
+    container.appendChild(btn);
+  }
+
   /** The page's own "Fields" section: the type's fields/values/members
    *  rendered directly, without a redundant row repeating the type's own
    *  name (the page's `<h1>` and "Fields" heading already say what this
-   *  is). Nested field types stop at one level — see `renderFieldNode`. */
-  function renderTypeTree(doc, ref) {
+   *  is). Nested field types stop at one level — see `renderFieldNode`.
+   *  `collapseAfter`, when given, caps the *top-level* field list at that
+   *  many rows (see `appendShowMoreFields`) — omitted everywhere except
+   *  the request body panel, where an inline field list otherwise had no
+   *  bound at all and could run to a full screen or more on its own. */
+  function renderTypeTree(doc, ref, collapseAfter) {
     var container = el('div', { class: 'field-list' });
     var u = unwrapArray(doc, ref);
     var d = u.def;
@@ -1194,6 +1227,7 @@
         container.appendChild(r);
       });
       if (!rows.length) return el('div', { class: 'empty-note' }, ['No fields.']);
+      if (collapseAfter && rows.length > collapseAfter) appendShowMoreFields(container, rows, collapseAfter);
     } else if (d.kind === 'EnumType') {
       return renderEnumValues(doc, d);
     } else if (d.kind === 'UnionType') {
@@ -1219,8 +1253,9 @@
    *  composition line before a type's field tree, wherever that tree is
    *  shown outside the type's own dedicated model page (a model page
    *  already shows it next to its kind badge, via `renderInherits`) — e.g.
-   *  a request/response body whose type is a MappedType or MixinType. */
-  function renderTypeTreeWithInherits(doc, ref) {
+   *  a request/response body whose type is a MappedType or MixinType.
+   *  `collapseAfter` just forwards to `renderTypeTree`. */
+  function renderTypeTreeWithInherits(doc, ref, collapseAfter) {
     var u = unwrapArray(doc, ref);
     var d = u.def;
     var container = el('div', {});
@@ -1228,7 +1263,7 @@
       var inheritsBlock = renderInherits(doc, d.inherits);
       if (inheritsBlock) container.appendChild(inheritsBlock);
     }
-    container.appendChild(renderTypeTree(doc, ref));
+    container.appendChild(renderTypeTree(doc, ref, collapseAfter));
     return container;
   }
 
@@ -1649,6 +1684,12 @@
     );
   }
 
+  /** How many top-level fields the request body panel shows before
+   *  collapsing the rest behind a "Show N more fields" button — see
+   *  `renderTypeTree`'s `collapseAfter` param. Arbitrary but generous
+   *  enough that most request bodies never hit it at all. */
+  var REQUEST_BODY_FIELD_COLLAPSE_AFTER = 8;
+
   /** One alternative representation of a request body — a single
    *  `HttpMediaType` entry. Its own properties (content type, encoding,
    *  size limits) come first as a labeled list, then its description,
@@ -1665,7 +1706,7 @@
 
     var hasContent = false;
     if (media.type) {
-      panel.appendChild(renderTypeTreeWithInherits(doc, media.type));
+      panel.appendChild(renderTypeTreeWithInherits(doc, media.type, REQUEST_BODY_FIELD_COLLAPSE_AFTER));
       hasContent = true;
     }
     var exNode = renderMediaTypeExamples(media);

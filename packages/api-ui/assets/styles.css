@@ -1350,11 +1350,31 @@ a {
    design choice, so nothing in a page gets its own separate, narrower cap
    (`.markdown`/`.field-description` used to; removed in favor of this).
    `min-width: 0` keeps a flex item's default content-based minimum from
-   overriding the cap on a very wide `.main`. */
+   overriding the cap on a very wide `.main`.
+   `flex: 0 1 600px` — a fixed 600px *basis* (not `auto`, and not `0`
+   either) is what keeps this column's width consistent between a page's
+   two independent `.page-row`s (request vs. responses) while still
+   giving content priority over `.rail-col` for the width it actually
+   wants: `flex-grow: 0` means it never grows past that 600px on its own,
+   so `.rail-col` (its `flex: 1 1 0` — see below) is the one that absorbs
+   any extra space once content has its fill; `flex-shrink: 1` lets it
+   give space back below 600px once the row gets too narrow for both
+   (down to `.rail-col`'s own 280px floor, which wins the remaining
+   squeeze once content has nothing left to give). With `auto` (the
+   previous basis here), the basis was each row's own *content*
+   (however wide "Query parameters" happens to be vs. "Responses"), so at
+   viewport widths too narrow to hit the 600px cap outright, the two rows
+   settled on genuinely different widths and their `.rail-col` siblings
+   ended up starting at two different x-positions — the "right-side
+   panels don't line up" bug. A flat `0` basis (briefly tried) fixed that
+   consistency but made content-col lose its priority entirely, splitting
+   evenly with the rail instead of favoring content up to 600px — this
+   fixed-600px basis keeps both: deterministic across rows, and content
+   still gets first claim on the row's width. */
 .content-col {
   max-width: 600px;
   min-width: 0;
-  flex: 1 1 auto;
+  flex: 0 1 600px;
 }
 
 /* ---------- rail: "on this page" TOC, or a request body's example ---------- */

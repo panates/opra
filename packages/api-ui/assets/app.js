@@ -41,6 +41,42 @@
     // ignore
   }
 
+  // Which sidebar folders/sections the user has collapsed — same
+  // persistence pattern again, saved by `saveCollapsedState` (see
+  // `buildSidebar`/`init`) after every toggle, or the whole tree would
+  // silently snap back open on every reload despite `collapsedNav`/
+  // `collapsedGroups` otherwise persisting for the rest of the page's
+  // life. Not scoped per-document — `collapsedNav`/`collapsedGroups`
+  // themselves already aren't (a route string is only ever unique within
+  // whichever document built it), so this just carries that same
+  // existing sharing behavior into storage rather than introducing a new
+  // one.
+  try {
+    var storedCollapsed = JSON.parse(localStorage.getItem('opra-ui-collapsed') || 'null');
+    if (storedCollapsed && typeof storedCollapsed === 'object') {
+      state.collapsedNav = storedCollapsed.nav || {};
+      state.collapsedGroups = storedCollapsed.groups || {};
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  /** Persists `state.collapsedNav`/`state.collapsedGroups` as one blob —
+   *  called after every mutation of either (see `buildSidebar`'s own
+   *  toggle handlers, and `setAllNavCollapsed`), same "try/catch, storage
+   *  can throw or be unavailable" shrug as the theme/Group By persistence
+   *  above. */
+  function saveCollapsedState() {
+    try {
+      localStorage.setItem(
+        'opra-ui-collapsed',
+        JSON.stringify({ nav: state.collapsedNav || {}, groups: state.collapsedGroups || {} }),
+      );
+    } catch (e) {
+      // ignore
+    }
+  }
+
   // ---------- small DOM helpers ----------
 
   function el(tag, attrs, children) {
@@ -3589,6 +3625,7 @@
           onClick: function (e) {
             e.preventDefault();
             collapsedGroups[key] = !collapsedGroups[key];
+            saveCollapsedState();
             var nowCollapsed = groupCollapsed(key);
             wrap.classList.toggle('collapsed', nowCollapsed);
             chevron.classList.toggle('collapsed', nowCollapsed);
@@ -3687,6 +3724,7 @@
                   e.preventDefault();
                   e.stopPropagation();
                   collapsedNav[route] = !collapsedNav[route];
+                  saveCollapsedState();
                   var nowCollapsed = !filterValue && !!collapsedNav[route];
                   wrap.classList.toggle('collapsed', nowCollapsed);
                   toggle.classList.toggle('collapsed', nowCollapsed);
@@ -3719,6 +3757,7 @@
                   ? function (e) {
                       e.preventDefault();
                       collapsedNav[route] = !collapsedNav[route];
+                      saveCollapsedState();
                       var nowCollapsed = !filterValue && !!collapsedNav[route];
                       wrap.classList.toggle('collapsed', nowCollapsed);
                       toggle.classList.toggle('collapsed', nowCollapsed);
@@ -4112,19 +4151,27 @@
     // A document with no declared `api.sections` has nothing for "View
     // Options" to switch to — hide the button entirely rather than
     // offering a "Sections" option that would just render an empty
-    // section, and fall back to "API Structure" so switching *to* such a
-    // document never leaves `state.groupBy` pointed at a mode this
-    // document can't show.
+    // section. This document falls back to showing "API Structure"
+    // regardless (see `buildSidebar`'s own `state.groupBy === 'sections'`
+    // check, which already re-verifies `doc.api.sections` itself) — but
+    // `state.groupBy` itself, the user's actual *preference*, is left
+    // untouched here rather than overwritten to `'structure'`: it used to
+    // be, which meant switching to this document and back to one that
+    // *does* have sections silently lost "Sections" and left the user
+    // re-picking it by hand every time they crossed a document with
+    // nothing to section.
     var groupByBtn = document.getElementById('opra-groupby-btn');
     var hasSections = !!(doc.api && doc.api.sections && doc.api.sections.length);
     groupByBtn.hidden = !hasSections;
-    if (!hasSections) state.groupBy = 'structure';
     // `state.groupBy` starts out `undefined` (never explicitly initialized
     // — see `state`'s own declaration) rather than the string `'structure'`
     // itself, so comparisons against it need this same fallback wherever
     // "structure" is checked, or the very first render would leave neither
-    // item's `.sel`/checkmark showing at all.
-    var effectiveGroupBy = state.groupBy || 'structure';
+    // item's `.sel`/checkmark showing at all. Falls back to "structure"
+    // outright (regardless of the stored preference) whenever the active
+    // document has nothing to section — reflecting what's actually on
+    // screen for *this* document, without touching the preference itself.
+    var effectiveGroupBy = hasSections ? state.groupBy || 'structure' : 'structure';
     ['structure', 'sections'].forEach(function (key) {
       var item = document.getElementById('opra-groupby-item-' + key);
       if (item) item.classList.toggle('sel', effectiveGroupBy === key);
@@ -4681,7 +4728,7 @@
     // with the list scrolling independently beneath it (see `.sidebar-nav`
     // in CSS).
     var navList = el('nav', { class: 'sidebar-nav', id: 'opra-nav' });
-    var sidebarFilterInput = el('input', { id: 'opra-sidebar-filter', type: 'search', placeholder: 'Quick Filter' });
+    var sidebarFilterInput = el('input', { id: 'opra-sidebar-filter', type: 'search', placeholder: 'Type to filter' });
     // Clears the filter without needing to select-and-delete the text by
     // hand — hidden whenever the box is already empty (toggled alongside
     // the sync logic below), so it only ever appears once there's
@@ -4748,15 +4795,91 @@
       groupByItemEls[opt.key] = item;
       groupByMenu.appendChild(item);
     });
+
+    // Every controller folder's own route, anywhere in the tree — the
+    // same keys `collapsedNav` (in `buildSidebar`) looks up per folder,
+    // just collected up front here instead of discovered lazily while
+    // rendering, so "Collapse All" can mark them all at once.
+    function collectControllerRoutes(controllers, parentRoute) {
+      var routes = [];
+      Object.keys(controllers).forEach(function (name) {
+        var route = parentRoute + '/' + encodeURIComponent(name);
+        routes.push(route);
+        if (controllers[name].controllers) {
+          routes = routes.concat(collectControllerRoutes(controllers[name].controllers, route));
+        }
+      });
+      return routes;
+    }
+
+    // "Expand All" clears both collapse dicts outright — absence of a key
+    // is what `buildSidebar` already treats as "not collapsed" everywhere,
+    // so there's nothing to enumerate. "Collapse All" is the opposite
+    // problem: collapsing means *setting* a key, so it walks the active
+    // document once to mark every controller folder, every Models kind
+    // sub-heading, and (in Sections mode) every section — the exact same
+    // set `buildSidebar` would otherwise discover one collapsible section
+    // at a time as the user opened this or that folder by hand.
+    function setAllNavCollapsed(collapsed) {
+      var doc = docs[state.docKey];
+      if (!doc) return;
+      if (!collapsed) {
+        state.collapsedNav = {};
+        state.collapsedGroups = {};
+      } else {
+        state.collapsedNav = state.collapsedNav || {};
+        state.collapsedGroups = state.collapsedGroups || {};
+        var controllers = (doc.api && doc.api.controllers) || {};
+        collectControllerRoutes(controllers, 'ctl').forEach(function (route) {
+          state.collapsedNav[route] = true;
+        });
+        state.collapsedGroups.controllers = true;
+        state.collapsedGroups.models = true;
+        var kinds = {};
+        var types = doc.types || {};
+        Object.keys(types).forEach(function (name) {
+          kinds[types[name].kind] = true;
+        });
+        Object.keys(kinds).forEach(function (kind) {
+          state.collapsedGroups['kind:' + kind] = true;
+        });
+        if (doc.api && doc.api.sections) {
+          doc.api.sections.forEach(function (g) {
+            state.collapsedGroups['group:' + g.name] = true;
+          });
+        }
+        state.collapsedGroups['group:__ungrouped__'] = true;
+      }
+      saveCollapsedState();
+      groupByMenu.hidden = true;
+      openPickerMenu = null;
+      buildSidebar(navList, state.docKey, docs[state.docKey]);
+      highlightActive(navList);
+    }
+    groupByMenu.appendChild(el('div', { class: 'group-label' }, ['Sidebar']));
+    var expandAllBtn = el('button', { class: 'picker-item sidebar-menu-action', type: 'button' }, ['Expand All']);
+    expandAllBtn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      setAllNavCollapsed(false);
+    });
+    var collapseAllBtn = el('button', { class: 'picker-item sidebar-menu-action', type: 'button' }, ['Collapse All']);
+    collapseAllBtn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      setAllNavCollapsed(true);
+    });
+    groupByMenu.appendChild(expandAllBtn);
+    groupByMenu.appendChild(collapseAllBtn);
+
     groupByBtn.addEventListener('click', function (ev) {
       ev.stopPropagation();
       groupByMenu.hidden = !groupByMenu.hidden;
       openPickerMenu = groupByMenu.hidden ? null : groupByMenu;
     });
-    // Reflects `state.groupBy` on the menu's own `.sel` item — called both
-    // right after a click here and from `render()` whenever the active
-    // document changes (which can silently reset `state.groupBy` back to
-    // `'structure'` for one with no `api.sections`). The button itself
+    // Reflects `state.groupBy` on the menu's own `.sel` item — called
+    // right after a click here, and once more at startup before the very
+    // first `render()` (which has its own equivalent of this same sync,
+    // aware of whether the *active* document even has sections to
+    // switch to — see its own `effectiveGroupBy`). The button itself
     // stays visually the same regardless of which mode is active — only
     // the checkmark in the menu tells them apart.
     function syncGroupByUi() {

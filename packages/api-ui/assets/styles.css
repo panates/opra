@@ -933,6 +933,20 @@ a {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
+/* "Expand All"/"Collapse All" in the View Options menu — plain `<button>`s
+   under the same "Sidebar" group-label, so only the browser's own button
+   chrome needs resetting here; `.picker-item`'s row layout, padding, and
+   `:hover` tint (shared with "API Structure"/"Sections" right above them)
+   already apply as-is. */
+.sidebar-menu-action {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 13.5px;
+  text-align: left;
+}
+
 /* A section's own `icon` (plain text/emoji — see `HttpSection.icon`), not
    a resolved icon-kind the way `iconFor` renders one — section names/icons
    are arbitrary and user-declared, unlike OPRA's own fixed set of
@@ -985,6 +999,15 @@ a {
   color: var(--text-muted);
   border-radius: 4px;
   cursor: pointer;
+}
+
+/* A class selector's own `display` (right above) beats the `[hidden]`
+   attribute's very low-specificity UA rule, so `.hidden = true`
+   (`onSidebarFilterInput`'s own toggle, for whenever the box is empty)
+   silently did nothing without restating it explicitly here — same fix
+   as `.modal-icon-btn[hidden]`/`.filter-badge[hidden]` needed earlier. */
+.sidebar-filter-clear[hidden] {
+  display: none;
 }
 
 .sidebar-filter-clear:hover {

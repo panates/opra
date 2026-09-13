@@ -3699,10 +3699,32 @@
         // rather than "an API resource group"; the bold weight (see
         // `.sidebar a.nav-ctrl`) is enough to mark it as a category, same
         // as a kind-group title under Models.
+        //
+        // A first click on a controller not already showing navigates to
+        // its own page, same as any other link — but clicking it again
+        // once it's already the active page would otherwise do nothing
+        // (the hash doesn't change), so that click is repurposed to
+        // toggle collapse/expand instead, exactly like the chevron
+        // already does (whose own `stopPropagation` keeps this handler
+        // from double-firing when *it's* the one clicked).
+        var isActiveCtrl = activeRoute.join('/') === route;
         nodes.push(
           el(
             'a',
-            { class: 'nav-link nav-ctrl depth-' + depth, href: hrefFor(docKey, route) },
+            {
+              class: 'nav-link nav-ctrl depth-' + depth,
+              href: hrefFor(docKey, route),
+              onClick:
+                hasChildren && isActiveCtrl
+                  ? function (e) {
+                      e.preventDefault();
+                      collapsedNav[route] = !collapsedNav[route];
+                      var nowCollapsed = !filterValue && !!collapsedNav[route];
+                      wrap.classList.toggle('collapsed', nowCollapsed);
+                      toggle.classList.toggle('collapsed', nowCollapsed);
+                    }
+                  : undefined,
+            },
             [el('span', { class: 'name mono' }, highlightParts(name, filterValue)), toggle],
           ),
         );

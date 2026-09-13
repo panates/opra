@@ -492,6 +492,24 @@ a {
   color: var(--accent);
 }
 
+/* The filter menu's own items skip the persistent tinted background a
+   `.sel` item gets everywhere else — with a colored method chip or a
+   type-kind icon already in the row, the checkmark alone reads as
+   "selected" just fine, and the extra background competed with the
+   chip's own color instead of helping. `:hover` is untouched, so hovering
+   still gives its usual momentary highlight. */
+.filter-menu .picker-item.sel {
+  background: transparent;
+}
+
+/* All nine HTTP methods plus the model-kind group easily outgrows a
+   typical viewport's remaining height below the button — scrolls
+   internally instead of running off the bottom of the page. */
+.filter-menu {
+  max-height: min(70vh, 460px);
+  overflow-y: auto;
+}
+
 .picker-item .t {
   font-size: 13.5px;
 }
@@ -531,6 +549,264 @@ a {
   visibility: visible;
 }
 
+/* The header's "Export" button — an explicit text label (not just an
+   icon) since "what does this icon do" isn't obvious for a menu this
+   specific, plus its own small square icon, in the same borderless-at-
+   rest/highlight-on-hover spirit as `.picker` right next to it. */
+.header-export-wrap {
+  position: relative;
+}
+
+.header-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.header-export-btn:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* Anchored to the *right* edge of its wrap (not `.picker-menu`'s own
+   default `left:0`, which assumes a full-width parent like the document
+   picker) — this button sits near the header's right edge, so opening
+   leftward keeps the menu on-screen instead of overflowing past it. */
+.header-export-menu {
+  left: auto;
+  right: 0;
+  min-width: 240px;
+}
+
+.header-export-menu .t {
+  white-space: nowrap;
+}
+
+/* ---------- schema export modal ---------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 100;
+}
+
+.modal-dialog {
+  width: 100%;
+  max-width: 1200px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+/* Three zones, left and right both `flex: 1` so the center one (the
+   search box) sits truly centered regardless of how wide the title or
+   the action icons happen to be — same trick as centering a toolbar's
+   middle item. */
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-title {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* A small segmented control switching the body between JSON and YAML —
+   both rendered from the same already-fetched data (see `openSchemaModal`),
+   so this never re-requests anything, just re-highlights. */
+.modal-format-toggle {
+  display: flex;
+  gap: 2px;
+  background: var(--code-bg);
+  border-radius: 6px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.modal-format-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.modal-format-btn.sel {
+  background: var(--bg-elevated);
+  color: var(--accent);
+}
+
+/* Its own `flex: 1` balances `.modal-header-left`'s, so `.modal-search`
+   between them lands centered rather than pushed off by whichever side
+   is wider. */
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  flex: 1;
+}
+
+/* Matches `.modal-icon-btn`'s own footprint — `copyButton` (see
+   `openSchemaModal`) is shared with every other JSON block in the app,
+   which sizes it smaller for an inline chip; here it sits among the
+   header's own larger icon buttons instead (see `openSchemaModal`'s own
+   `copyButton(text, 17)` call for the matching icon size). */
+.modal-header-actions .copy-btn {
+  width: 30px;
+  height: 30px;
+}
+
+.modal-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* `iconFor`'s own SVGs (download/close) come in at whatever intrinsic
+   size their icon definition happens to use (11-15px, sized for the
+   smaller buttons they appear in elsewhere) — overridden here to a
+   consistent, larger size to match this header's own bigger buttons. */
+.modal-icon-btn .icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.modal-icon-btn:hover {
+  background: var(--code-bg);
+  color: var(--text);
+}
+
+.modal-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.modal-icon-btn:disabled:hover {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+/* A class selector's `display` (as `.modal-icon-btn`'s own above) beats
+   the `[hidden]` attribute's own very low-specificity UA rule, so it has
+   to be restated explicitly here or `.hidden = true` silently does
+   nothing — same fix as `.show-schema-toggle[hidden]` needed earlier. */
+.modal-icon-btn[hidden],
+.modal-search-status[hidden] {
+  display: none;
+}
+
+.modal-body {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Overrides `.example-json`'s own border/margin/radius (this is now
+   nested inside `.modal-dialog`, which already draws all of those) while
+   keeping its font/color rules (`.json-key`/`.json-string`/etc). */
+.modal-json {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+}
+
+/* A find-in-page style search, living centered in the header itself (not
+   a second row) — search term matching is layered on top of the
+   already-highlighted JSON/YAML (see `highlightSearchHits`), not a
+   second request. A compact, fixed-width box (a schema search term is
+   normally a short key/word — no need for a full-width bar), centered
+   via `.modal-header-left`/`.modal-header-actions` both being `flex: 1`
+   around it. */
+.modal-search {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 340px;
+  flex-shrink: 0;
+}
+
+.modal-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--code-bg);
+  color: var(--text);
+  font-size: 13.5px;
+}
+
+.modal-search-status {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 28px;
+  text-align: right;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.schema-search-hit {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: inherit;
+  border-radius: 2px;
+}
+
+.schema-search-hit.active {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
 /* ---------- sidebar ---------- */
 
 /* Holds the quick filter box (fixed, never rebuilt) above `.sidebar-nav`
@@ -567,14 +843,15 @@ a {
 }
 
 /* Hidden by default (see `render()`) — only shown once the active
-   document actually declares `api.groups`. Square (matches the filter
-   box's own 30px height), a plain hamburger/"lines" icon rather than a
-   text label — "Group By" only shows up once, as this menu's own
-   heading, not repeated on the trigger itself. `.active` (toggled
-   alongside the menu's own `.sel` item — see `init()`'s `syncGroupByUi`)
-   marks the button once "Groups" (the non-default mode) is selected, so
-   that's visible without opening the menu. */
+   document actually declares `api.sections`. Square (matches the filter
+   box's own 30px height), a plain eye icon rather than a text label —
+   "Group By" only shows up once, as this menu's own heading, not
+   repeated on the trigger itself. `.active` (toggled alongside the
+   menu's own `.sel` item — see `init()`'s `syncGroupByUi`) marks the
+   button once "Sections" (the non-default mode) is selected, so that's
+   visible without opening the menu. */
 .sidebar-groupby-btn {
+  position: relative;
   width: 30px;
   height: 30px;
   display: flex;
@@ -596,6 +873,26 @@ a {
   color: var(--accent);
 }
 
+/* The method/model filter button's own "N filters active" count — a
+   small solid dot pinned to its top-right corner, out of the icon's own
+   way, only ever shown once `syncFilterUi` finds at least one selected
+   option in either group. */
+.filter-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+}
+
 /* Reuses `.picker-menu`/`.picker-item`'s own look (see "document picker"
    above) for the same floating-panel treatment as the document switcher's
    dropdown — `left: 0` anchors it to the button's own left edge instead
@@ -607,8 +904,37 @@ a {
   right: auto;
 }
 
-/* A group's own `icon` (plain text/emoji — see `HttpGroup.icon`), not a
-   resolved icon-kind the way `iconFor` renders one — group names/icons
+/* "Clear All" sits above both filter groups, set off by its own bottom
+   border — a full-width plain button (not a `.picker-item`'s row shape),
+   accent-colored since it's the one item here that isn't a toggle. */
+.filter-clear-all {
+  display: block;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 6px 10px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--code-bg);
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  /* The list below it can now run to nine methods plus the model-kind
+     group and scroll internally (see `.filter-menu`) — staying pinned to
+     the top of that scroll area means it's never scrolled out of reach. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.filter-clear-all:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* A section's own `icon` (plain text/emoji — see `HttpSection.icon`), not
+   a resolved icon-kind the way `iconFor` renders one — section names/icons
    are arbitrary and user-declared, unlike OPRA's own fixed set of
    type-kind icons, so there's nothing to look up here. */
 .group-icon {
@@ -834,6 +1160,20 @@ a {
   white-space: nowrap;
 }
 
+/* Wraps whichever part of a row's own label matched the active Quick
+   Filter/search text (see `highlightParts`) — a plain `<mark>` would
+   bring its own browser-default yellow background, jarring against a
+   dark theme and unrelated to the rest of this palette, so it's
+   repainted with the same accent tint already used for a hovered/active
+   row elsewhere in this sidebar. `color: inherit` keeps it matching
+   whatever color the surrounding text/link already has (including an
+   active row's own accent color) rather than forcing its own. */
+.match-highlight {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: inherit;
+  border-radius: 2px;
+}
+
 /* A controller folder is a collapsible nested category, same role as
    e.g. Docusaurus's own nested sidebar categories — those render at the
    same bold weight as a top-level category, not a lighter in-between
@@ -868,6 +1208,11 @@ a {
 
 .sidebar a.nav-op .method-badge {
   margin-left: auto;
+  /* Even more toned down than `.method-badge`'s own base 0.8 — the
+     sidebar packs many of these into a dense list, so they need to read
+     as a quiet, secondary cue next to the operation name, not compete
+     with it the way one badge next to a page's own <h1> can afford to. */
+  opacity: 0.55;
 }
 
 .sidebar a.nav-model {
@@ -922,7 +1267,9 @@ a {
   color: #fff;
 }
 .method-HEAD,
-.method-OPTIONS {
+.method-OPTIONS,
+.method-QUERY,
+.method-SEARCH {
   background: var(--default-method);
 }
 

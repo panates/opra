@@ -73,7 +73,7 @@ describe('common:HttpController', () => {
     expect(sch.operations?.get).toEqual({
       kind: 'HttpOperation',
       title: 'Get a customer',
-      groups: ['Customers'],
+      sections: ['Customers'],
       composition: 'Entity.Get',
       method: 'GET',
       parameters: [

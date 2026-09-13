@@ -9,7 +9,7 @@ export class CustomerController {
   @HttpOperation.Entity.Get({
     type: Customer,
     title: 'Get a customer',
-    groups: ['Customers'],
+    sections: ['Customers'],
   })
   get() {
     //

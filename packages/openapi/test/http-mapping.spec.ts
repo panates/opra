@@ -103,22 +103,22 @@ describe('openapi:HTTP mapping', () => {
     ]);
   });
 
-  it('Should map HttpApi#groups to Document#tags and HttpOperation#title/#groups to summary/tags', async () => {
+  it('Should map HttpApi#sections to Document#tags and HttpOperation#title/#sections to summary/tags', async () => {
     @(HttpController({ path: 'Customers@:customerId' }).PathParam(
       'customerId',
       'uuid',
     ))
-    class CustomerControllerWithGroups {
+    class CustomerControllerWithSections {
       @HttpOperation.Entity.Get({
         type: Customer,
         title: 'Get a customer',
-        groups: ['Customers'],
+        sections: ['Customers'],
       })
       get() {
         //
       }
     }
-    const docWithGroups = await ApiDocumentFactory.createDocument({
+    const docWithSections = await ApiDocumentFactory.createDocument({
       spec: OpraSchema.SpecVersion,
       info: { title: 'TestApi', version: 'v1' },
       types: [Customer],
@@ -126,11 +126,11 @@ describe('openapi:HTTP mapping', () => {
         transport: 'http',
         name: 'TestApi',
         url: '/test',
-        groups: [{ name: 'Customers', description: 'Customer management' }],
-        controllers: [CustomerControllerWithGroups],
+        sections: [{ name: 'Customers', description: 'Customer management' }],
+        controllers: [CustomerControllerWithSections],
       },
     });
-    const result = OpenApiDocumentFactory.generate(docWithGroups);
+    const result = OpenApiDocumentFactory.generate(docWithSections);
     expect(result.tags).toStrictEqual([
       { name: 'Customers', description: 'Customer management' },
     ]);

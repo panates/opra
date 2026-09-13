@@ -83,8 +83,8 @@ export namespace OpenApiDocumentFactory {
         omitUndefined({ url: s.url, description: s.description }),
       );
     } else if (api.url) out.servers = [{ url: api.url }];
-    if (api.groups?.length) {
-      out.tags = api.groups.map(g =>
+    if (api.sections?.length) {
+      out.tags = api.sections.map(g =>
         omitUndefined({ name: g.name, description: g.description }),
       );
     }

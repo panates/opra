@@ -12,15 +12,15 @@ export interface HttpServer {
 }
 
 /**
- * Top-level metadata for a named group of operations, mirroring OpenAPI's
+ * Top-level metadata for a named section of operations, mirroring OpenAPI's
  * own top-level `tags` entries (`name` + an optional `description`) — an
- * operation joins a group by listing this `name` in its own
- * `HttpOperation.groups`. `icon` has no OpenAPI equivalent: a plain string
- * (e.g. an emoji) the UI renders as-is next to the group's title, not a
+ * operation joins a section by listing this `name` in its own
+ * `HttpOperation.sections`. `icon` has no OpenAPI equivalent: a plain string
+ * (e.g. an emoji) the UI renders as-is next to the section's title, not a
  * key into some fixed icon set.
- * @interface HttpGroup
+ * @interface HttpSection
  */
-export interface HttpGroup {
+export interface HttpSection {
   name: string;
   description?: string;
   icon?: string;
@@ -35,6 +35,6 @@ export interface HttpApi extends Api {
   description?: string;
   url?: string;
   servers?: HttpServer[];
-  groups?: HttpGroup[];
+  sections?: HttpSection[];
   controllers: Record<string, HttpController>;
 }

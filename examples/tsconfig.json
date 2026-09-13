@@ -10,6 +10,7 @@
       "@opra/common": ["../packages/common/src/index.js"],
       "@opra/core": ["../packages/core/src/index.js"],
       "@opra/http": ["../packages/http/src/index.js"],
+      "@opra/openapi": ["../packages/openapi/src/index.js"],
       "@opra/socketio": ["../packages/socketio/src/index.js"],
       "@opra/mongodb": ["../packages/mongodb/src/index.js"],
       "@opra/sqb": ["../packages/sqb/src/index.js"],

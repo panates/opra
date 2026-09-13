@@ -91,10 +91,10 @@ describe('api-ui:ApiUiSchemaBuilder', () => {
   });
 });
 
-describe('api-ui:ApiUiSchemaBuilder (groups/title)', () => {
+describe('api-ui:ApiUiSchemaBuilder (sections/title)', () => {
   @HttpController({ path: 'Dogs' })
   class DogsController {
-    @HttpOperation.GET({ title: 'List dogs', groups: ['Pets'] })
+    @HttpOperation.GET({ title: 'List dogs', sections: ['Pets'] })
     findMany() {
       //
     }
@@ -109,23 +109,23 @@ describe('api-ui:ApiUiSchemaBuilder (groups/title)', () => {
       api: {
         transport: 'http',
         name: 'TestApi',
-        groups: [{ name: 'Pets', description: 'Pet management', icon: '🐶' }],
+        sections: [{ name: 'Pets', description: 'Pet management', icon: '🐶' }],
         controllers: [DogsController],
       },
     });
   });
 
-  it('Should expose HttpApi#groups under "api.groups"', () => {
+  it('Should expose HttpApi#sections under "api.sections"', () => {
     const schema: any = ApiUiSchemaBuilder.build(doc);
-    expect(schema.api.groups).toStrictEqual([
+    expect(schema.api.sections).toStrictEqual([
       { name: 'Pets', description: 'Pet management', icon: '🐶' },
     ]);
   });
 
-  it('Should expose an operation\'s #title and #groups', () => {
+  it("Should expose an operation's #title and #sections", () => {
     const schema: any = ApiUiSchemaBuilder.build(doc);
     const op = schema.api.controllers.Dogs.operations.findMany;
     expect(op.title).toStrictEqual('List dogs');
-    expect(op.groups).toStrictEqual(['Pets']);
+    expect(op.sections).toStrictEqual(['Pets']);
   });
 });

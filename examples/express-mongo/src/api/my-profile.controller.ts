@@ -26,7 +26,7 @@ export class MyProfileController {
 
   @HttpOperation.Entity.Create(Profile, {
     title: 'Create my profile',
-    groups: ['Account'],
+    sections: ['Account'],
     description: `Creates the profile of the signed-in user.
 
 Accepts a \`Profile\` payload without its \`_id\`, which is assigned by the server.`,
@@ -41,7 +41,7 @@ Accepts a \`Profile\` payload without its \`_id\`, which is assigned by the serv
 
   @HttpOperation.Entity.Delete(Profile, {
     title: 'Delete my profile',
-    groups: ['Account'],
+    sections: ['Account'],
     description: 'Deletes the profile of the signed-in user.',
   })
   async delete(context: HttpContext) {
@@ -51,7 +51,7 @@ Accepts a \`Profile\` payload without its \`_id\`, which is assigned by the serv
 
   @HttpOperation.Entity.Get(Profile, {
     title: 'Get my profile',
-    groups: ['Account'],
+    sections: ['Account'],
     description: 'Returns the profile of the signed-in user.',
   })
   async get(context: HttpContext) {

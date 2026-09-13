@@ -27,13 +27,13 @@ export class HttpApi extends ApiBase {
   controllers: ResponsiveMap<HttpController> = new ResponsiveMap();
   url?: string;
   servers?: OpraSchema.HttpServer[];
-  groups?: OpraSchema.HttpGroup[];
+  sections?: OpraSchema.HttpSection[];
 
   constructor(init: HttpApi.InitArguments) {
     super(init);
     this.url = init.url;
     this.servers = init.servers?.map(s => ({ ...s }));
-    this.groups = init.groups?.map(g => ({ ...g }));
+    this.sections = init.sections?.map(g => ({ ...g }));
   }
 
   findController(controller: Type): HttpController | undefined;
@@ -65,7 +65,7 @@ export class HttpApi extends ApiBase {
       transport: this.transport,
       url: this.url,
       servers: this.servers,
-      groups: this.groups,
+      sections: this.sections,
       controllers: {},
     };
     for (const v of this.controllers.values()) {

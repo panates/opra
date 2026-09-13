@@ -29,6 +29,18 @@
     // ignore
   }
 
+  // A user's Group By choice, same persistence pattern as the theme above —
+  // it would otherwise silently reset to 'structure' on every reload, since
+  // `state` itself is in-memory only.
+  try {
+    var storedGroupBy = localStorage.getItem('opra-ui-groupby');
+    if (storedGroupBy === 'structure' || storedGroupBy === 'sections') {
+      state.groupBy = storedGroupBy;
+    }
+  } catch (e) {
+    // ignore
+  }
+
   // ---------- small DOM helpers ----------
 
   function el(tag, attrs, children) {
@@ -323,6 +335,12 @@
       '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>',
     tag:
       '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.59 2H4a2 2 0 0 0-2 2v8.59a2 2 0 0 0 .59 1.41l9.59 9.59a2 2 0 0 0 2.82 0l6.18-6.18a2 2 0 0 0 0-2.82L11.99 2h.6Z"/><circle cx="7.5" cy="7.5" r="1.1" fill="currentColor" stroke="none"/></svg>',
+    download:
+      '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>',
+    eye:
+      '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+    filter:
+      '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>',
   };
 
   var TEXT_ICONS = {
@@ -494,18 +512,45 @@
     return el('span', { class: 'method-badge method-' + method }, [method]);
   }
 
+  /** Splits `text` into an `el()`-ready children array with every
+   *  (case-insensitive) occurrence of `filterValue` wrapped in a `<mark>`
+   *  — used to show *why* a sidebar row survived a Quick Filter/search,
+   *  right on the label itself, instead of just leaving the reader to
+   *  guess which part actually matched. Plain `[text]` (no `<mark>` at
+   *  all) whenever there's no filter active, or the filter matched this
+   *  row via something OTHER than this particular piece of text (its
+   *  method or path, say, for an operation's own name) — that's a normal,
+   *  unremarkable case, not a bug: the row still belongs in the filtered
+   *  list, this text of its own just isn't where the match came from. */
+  function highlightParts(text, filterValue) {
+    if (!filterValue) return [text];
+    var lower = text.toLowerCase();
+    var parts = [];
+    var pos = 0;
+    var idx;
+    while ((idx = lower.indexOf(filterValue, pos)) !== -1) {
+      if (idx > pos) parts.push(text.slice(pos, idx));
+      parts.push(el('mark', { class: 'match-highlight' }, [text.slice(idx, idx + filterValue.length)]));
+      pos = idx + filterValue.length;
+    }
+    if (!parts.length) return [text];
+    if (pos < text.length) parts.push(text.slice(pos));
+    return parts;
+  }
+
   /** An operation's own `title` (see `HttpOperation.title`) is its
    *  preferred display name wherever `opKey` alone was shown before — a
    *  human sentence like "Create a meeting" reads as a label, not a code
    *  identifier, so it drops the `mono` styling `opKey` on its own always
    *  had. Falls back to plain `opKey` (still `mono`) exactly as before
    *  when no `title` is set, so a document that doesn't use `title` is
-   *  visually unaffected. */
-  function opNameNode(op, opKey, cls) {
+   *  visually unaffected. `filterValue`, when given, highlights (see
+   *  `highlightParts`) any part of whichever name ends up showing. */
+  function opNameNode(op, opKey, cls, filterValue) {
     var base = cls ? cls + ' ' : '';
     return op.title
-      ? el('span', { class: base + 'name' }, [op.title])
-      : el('span', { class: base + 'name mono' }, [opKey]);
+      ? el('span', { class: base + 'name' }, highlightParts(op.title, filterValue))
+      : el('span', { class: base + 'name mono' }, highlightParts(opKey, filterValue));
   }
 
   /** Unwraps any number of ArrayType layers, returning the innermost
@@ -3458,6 +3503,11 @@
   function buildSidebar(nav, docKey, doc) {
     clear(nav);
     var filterValue = ((document.getElementById('opra-search') || {}).value || '').toLowerCase();
+    // `null` (not just falsy) when nothing's selected, so every check
+    // below reads the same as `filterValue`'s own "empty means no
+    // filter" convention rather than a subtly different truthy/length
+    // check at each call site.
+    var methodFilter = state.methodFilter && state.methodFilter.length ? state.methodFilter : null;
     // Persisted across rebuilds (search, navigation) for the life of the
     // page — which controller folders the user has collapsed. A search in
     // progress always shows the full (matching) tree, ignoring collapse.
@@ -3567,14 +3617,33 @@
         var route = parentRoute + '/' + encodeURIComponent(name);
         var hay = (name + ' ' + path + ' ' + (ctrl.description || '')).toLowerCase();
         if (filterValue && hay.indexOf(filterValue) === -1 && !hasMatchingDescendant(ctrl, filterValue)) return;
+        // Unlike the text filter above, a method filter never matches the
+        // *folder* itself (a controller has no "method" of its own) — a
+        // folder only stays once at least one of its own descendant
+        // operations actually uses one of the selected methods, or it
+        // would render as an empty heading with nothing under it.
+        if (methodFilter && !hasMatchingDescendantMethod(ctrl, methodFilter)) return;
         anyCtrl = true;
 
         var childNodes = [];
         if (ctrl.operations) {
           Object.keys(ctrl.operations).forEach(function (opKey) {
             var op = ctrl.operations[opKey];
-            var opHay = (opKey + ' ' + op.method + ' ' + operationPath(path, op)).toLowerCase();
+            // Only the operation's *own* incremental path segment (if
+            // any) — not `operationPath`'s fully-resolved absolute path,
+            // which is mostly just the parent controller's own path
+            // repeated verbatim. Including that inherited path here made
+            // searching e.g. "customer" surface every single operation
+            // under a `Customers@{customerId}`-style controller
+            // (`setStatus`, `delete`, `update`, even ones nested further
+            // down under `Notes`) regardless of what the operation
+            // itself is actually called — the controller's own `hay`
+            // check a few lines up (plus `hasMatchingDescendant`) is
+            // already what decides whether that folder belongs in a
+            // filtered tree at all.
+            var opHay = (opKey + ' ' + (op.title || '') + ' ' + op.method + ' ' + (op.path || '')).toLowerCase();
             if (filterValue && opHay.indexOf(filterValue) === -1) return;
+            if (methodFilter && methodFilter.indexOf(op.method) === -1) return;
             var opRoute = route + '/' + encodeURIComponent(opKey);
             anyCtrl = true;
             childNodes.push(
@@ -3583,7 +3652,7 @@
               // triangle in front of every operation read as its own
               // clickable "run" affordance rather than a type marker.
               el('a', { class: 'nav-link nav-op depth-' + (depth + 1), href: hrefFor(docKey, opRoute) }, [
-                opNameNode(op, opKey),
+                opNameNode(op, opKey, null, filterValue),
                 methodBadge(op.method),
               ]),
             );
@@ -3634,7 +3703,7 @@
           el(
             'a',
             { class: 'nav-link nav-ctrl depth-' + depth, href: hrefFor(docKey, route) },
-            [el('span', { class: 'name mono' }, [name]), toggle],
+            [el('span', { class: 'name mono' }, highlightParts(name, filterValue)), toggle],
           ),
         );
         if (wrap) nodes.push(wrap);
@@ -3643,50 +3712,57 @@
     }
 
     // Every operation anywhere in the tree (not just one level), for the
-    // "Groups" sidebar view below — a flat list is what lets one operation
-    // be bucketed under several of its own `groups` at once, unlike
+    // "Sections" sidebar view below — a flat list is what lets one operation
+    // be bucketed under several of its own `sections` at once, unlike
     // `buildControllerNodes`'s walk, which builds one nested DOM tree
     // mirroring the *controller* structure exactly once.
-    function collectAllOperations(ctrls, parentPath, parentRoute) {
+    function collectAllOperations(ctrls, parentRoute) {
       var out = [];
       Object.keys(ctrls).forEach(function (name) {
         var ctrl = ctrls[name];
-        var path = controllerPath(ctrl, parentPath);
         var route = parentRoute + '/' + encodeURIComponent(name);
         if (ctrl.operations) {
           Object.keys(ctrl.operations).forEach(function (opKey) {
-            out.push({ opKey: opKey, op: ctrl.operations[opKey], path: path, route: route + '/' + encodeURIComponent(opKey) });
+            out.push({ opKey: opKey, op: ctrl.operations[opKey], route: route + '/' + encodeURIComponent(opKey) });
           });
         }
         if (ctrl.controllers) {
-          out = out.concat(collectAllOperations(ctrl.controllers, path, route));
+          out = out.concat(collectAllOperations(ctrl.controllers, route));
         }
       });
       return out;
     }
 
-    // "Groups" mode: one top-level section per `doc.api.groups` entry (in
-    // declaration order — same reasoning as `servers[0]` being "the"
-    // default server), plus any group name an operation references but
+    // "Sections" mode: one top-level section per `doc.api.sections` entry
+    // (in declaration order — same reasoning as `servers[0]` being "the"
+    // default server), plus any section name an operation references but
     // that isn't declared (rendered too, just without a description/icon),
-    // then a final "Ungrouped" section for anything with no `groups` at
+    // then a final "Ungrouped" section for anything with no `sections` at
     // all — never omitted outright, so an operation is always reachable
     // from this view even if nobody bothered to categorize it yet. An
-    // operation listed in more than one group is simply repeated under
+    // operation listed in more than one section is simply repeated under
     // each, matching how OpenAPI's own multi-tag operations are shown by
     // every tool that renders them.
-    function buildGroupsNav(ctrls) {
-      var allOps = collectAllOperations(ctrls, '', 'ctl');
-      var byGroup = {};
+    function buildSectionsNav(ctrls) {
+      var allOps = collectAllOperations(ctrls, 'ctl');
+      var bySection = {};
       var ungrouped = [];
       allOps.forEach(function (entry) {
+        // Only the operation's own incremental path segment, not the
+        // fully-resolved absolute path — see the matching comment in
+        // `buildControllerNodes` for why (the inherited parent path
+        // otherwise makes every operation under, say, a
+        // `Customers@{customerId}` controller match "customer" regardless
+        // of the operation's own name).
         var opHay = (
-          entry.opKey + ' ' + (entry.op.title || '') + ' ' + entry.op.method + ' ' + operationPath(entry.path, entry.op)
+          entry.opKey + ' ' + (entry.op.title || '') + ' ' + entry.op.method + ' ' + (entry.op.path || '')
         ).toLowerCase();
-        entry.matches = !filterValue || opHay.indexOf(filterValue) !== -1;
-        if (entry.op.groups && entry.op.groups.length) {
-          entry.op.groups.forEach(function (g) {
-            (byGroup[g] = byGroup[g] || []).push(entry);
+        entry.matches =
+          (!filterValue || opHay.indexOf(filterValue) !== -1) &&
+          (!methodFilter || methodFilter.indexOf(entry.op.method) !== -1);
+        if (entry.op.sections && entry.op.sections.length) {
+          entry.op.sections.forEach(function (g) {
+            (bySection[g] = bySection[g] || []).push(entry);
           });
         } else {
           ungrouped.push(entry);
@@ -3695,16 +3771,16 @@
 
       function opRow(entry) {
         return el('a', { class: 'nav-link nav-op depth-1', href: hrefFor(docKey, entry.route) }, [
-          opNameNode(entry.op, entry.opKey),
+          opNameNode(entry.op, entry.opKey, null, filterValue),
           methodBadge(entry.op.method),
         ]);
       }
 
-      var declared = (doc.api && doc.api.groups) || [];
+      var declared = (doc.api && doc.api.sections) || [];
       var declaredNames = declared.map(function (g) {
         return g.name;
       });
-      var extra = Object.keys(byGroup)
+      var extra = Object.keys(bySection)
         .filter(function (n) {
           return declaredNames.indexOf(n) === -1;
         })
@@ -3713,7 +3789,7 @@
         });
       var anyShown = false;
       declared.concat(extra).forEach(function (g) {
-        var entries = (byGroup[g.name] || []).filter(function (e) {
+        var entries = (bySection[g.name] || []).filter(function (e) {
           return e.matches;
         });
         if (!entries.length) return;
@@ -3738,7 +3814,7 @@
         nav.appendChild(el('div', { class: 'group' }, [ungroupedSection.title, ungroupedSection.wrap]));
       }
       if (!anyShown && allOps.length) {
-        var emptyTitle = buildCollapsibleSection('group-title', 'Groups', 'groups', false, [
+        var emptyTitle = buildCollapsibleSection('group-title', 'Sections', 'sections', false, [
           el('div', { class: 'empty-note' }, ['No matches.']),
         ]);
         nav.appendChild(el('div', { class: 'group' }, [emptyTitle.title, emptyTitle.wrap]));
@@ -3746,8 +3822,8 @@
     }
 
     var controllers = (doc.api && doc.api.controllers) || {};
-    if (state.groupBy === 'groups' && doc.api && doc.api.groups && doc.api.groups.length) {
-      buildGroupsNav(controllers);
+    if (state.groupBy === 'sections' && doc.api && doc.api.sections && doc.api.sections.length) {
+      buildSectionsNav(controllers);
     } else {
       var anyCtrl = false;
       var ctlChildNodes = buildControllerNodes(controllers, '', 'ctl', 0);
@@ -3776,11 +3852,14 @@
     // aren't advertised as one of this document's own models.
     var types = doc.types || {};
     var declaredNames = doc.declaredTypes || Object.keys(types);
+    var modelKindFilter =
+      state.modelKindFilter && state.modelKindFilter.length ? state.modelKindFilter : null;
     var byKind = {};
     declaredNames.forEach(function (name) {
       if (!types[name]) return;
       if (filterValue && name.toLowerCase().indexOf(filterValue) === -1) return;
       var kind = types[name].kind;
+      if (modelKindFilter && modelKindFilter.indexOf(kind) === -1) return;
       (byKind[kind] = byKind[kind] || []).push(name);
     });
     var kinds = Object.keys(byKind);
@@ -3793,7 +3872,7 @@
           var kindLinks = byKind[kind].sort().map(function (name) {
             return el('a', { class: 'nav-link nav-model', href: hrefFor(docKey, 'model/' + encodeURIComponent(name)) }, [
               iconFor(dataTypeIconKind(kind), 'c-' + dataTypeIconKind(kind)),
-              el('span', { class: 'name mono' }, [name]),
+              el('span', { class: 'name mono' }, highlightParts(name, filterValue)),
             ]);
           });
           var kindSection = buildCollapsibleSection(
@@ -3823,6 +3902,24 @@
         if (name.toLowerCase().indexOf(filterValue) !== -1 || hasMatchingDescendant(ctrl.controllers[name], filterValue)) {
           found = true;
         }
+      });
+    }
+    return found;
+  }
+
+  /** Same recursive shape as `hasMatchingDescendant`, for the method
+   *  filter instead of the text one — whether any operation anywhere
+   *  under `ctrl` uses one of `methods`. */
+  function hasMatchingDescendantMethod(ctrl, methods) {
+    var found = false;
+    if (ctrl.operations) {
+      Object.keys(ctrl.operations).forEach(function (opKey) {
+        if (methods.indexOf(ctrl.operations[opKey].method) !== -1) found = true;
+      });
+    }
+    if (!found && ctrl.controllers) {
+      Object.keys(ctrl.controllers).forEach(function (name) {
+        if (hasMatchingDescendantMethod(ctrl.controllers[name], methods)) found = true;
       });
     }
     return found;
@@ -3990,26 +4087,33 @@
       return;
     }
     state.docKey = parsed.docKey;
-    // A document with no declared `api.groups` has nothing for "Group By"
-    // to switch to — hide the button entirely rather than offering a
-    // "Groups" option that would just render an empty section, and fall
-    // back to "API Structure" so switching *to* such a document never
-    // leaves `state.groupBy` pointed at a mode this document can't show.
+    // A document with no declared `api.sections` has nothing for "View
+    // Options" to switch to — hide the button entirely rather than
+    // offering a "Sections" option that would just render an empty
+    // section, and fall back to "API Structure" so switching *to* such a
+    // document never leaves `state.groupBy` pointed at a mode this
+    // document can't show.
     var groupByBtn = document.getElementById('opra-groupby-btn');
-    var hasGroups = !!(doc.api && doc.api.groups && doc.api.groups.length);
-    groupByBtn.hidden = !hasGroups;
-    if (!hasGroups) state.groupBy = 'structure';
+    var hasSections = !!(doc.api && doc.api.sections && doc.api.sections.length);
+    groupByBtn.hidden = !hasSections;
+    if (!hasSections) state.groupBy = 'structure';
     // `state.groupBy` starts out `undefined` (never explicitly initialized
     // — see `state`'s own declaration) rather than the string `'structure'`
     // itself, so comparisons against it need this same fallback wherever
     // "structure" is checked, or the very first render would leave neither
     // item's `.sel`/checkmark showing at all.
     var effectiveGroupBy = state.groupBy || 'structure';
-    groupByBtn.classList.toggle('active', effectiveGroupBy === 'groups');
-    ['structure', 'groups'].forEach(function (key) {
+    ['structure', 'sections'].forEach(function (key) {
       var item = document.getElementById('opra-groupby-item-' + key);
       if (item) item.classList.toggle('sel', effectiveGroupBy === key);
     });
+    // The OpenAPI schema option only makes sense for a document that
+    // actually has an HTTP api (a types-only reference document, e.g.
+    // "Customer Models Document", has none) — the native Opra Schema
+    // option stays available regardless.
+    var hasHttpApi = !!(doc.api && doc.api.transport === 'http');
+    var viewOpenapiItem = document.getElementById('opra-view-openapi');
+    if (viewOpenapiItem) viewOpenapiItem.hidden = !hasHttpApi;
     buildSidebar(nav, state.docKey, doc);
     buildPicker(picker);
     highlightActive(nav);
@@ -4212,6 +4316,262 @@
     });
   }
 
+  // ---------- schema export ----------
+
+  /** Base URL for this document's server-side export endpoints (see
+   *  `expressApiUi` in `express-api-ui.ts`) — always the mount root
+   *  (`location.pathname`), since every real navigation in this app goes
+   *  through `location.hash` instead; `location.pathname` never changes
+   *  regardless of which document/page is currently open. */
+  function exportBaseUrl() {
+    return location.pathname.replace(/\/+$/, '');
+  }
+
+  function exportUrl(kind, docKey) {
+    return exportBaseUrl() + '/' + kind + '/' + encodeURIComponent(docKey) + '.json';
+  }
+
+  function exportFilename(docKey, suffix) {
+    var slug = docTitle(docKey)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return (slug || docKey) + '.' + suffix + '.json';
+  }
+
+  /** Forces a save-as download of `url` under `filename` — a same-origin
+   *  `<a download>` click reliably triggers this in every current browser
+   *  regardless of the response's own `Content-Type`/`Content-Disposition`,
+   *  so nothing extra is needed server-side beyond serving the JSON. */
+  function downloadUrl(url, filename) {
+    var a = el('a', { href: url, download: filename });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  var schemaModalOverlay = null;
+
+  function closeSchemaModal() {
+    if (!schemaModalOverlay) return;
+    schemaModalOverlay.remove();
+    schemaModalOverlay = null;
+    document.removeEventListener('keydown', onSchemaModalKeydown);
+  }
+
+  function onSchemaModalKeydown(ev) {
+    if (ev.key === 'Escape') closeSchemaModal();
+  }
+
+  /** A small modal showing `kind`'s (`schema`/`openapi`) raw JSON for
+   *  the currently active document, syntax-highlighted with the same
+   *  `highlightJson` used for every other JSON block in the app — used in
+   *  place of just opening the raw endpoint in a new tab (see the export
+   *  menu's own "View ..." items below), with the same download action
+   *  from the menu repeated in the modal's own header for convenience once
+   *  it's already open. */
+  /** Saves `text` itself as a local file (not a server round-trip) — used
+   *  so the modal's own download button can save whichever format
+   *  (`JSON`/`YAML`) is currently on screen, not just the JSON the server
+   *  endpoint returns. `downloadUrl` (a plain same-origin URL) still
+   *  covers the export menu's own JSON-only shortcuts. */
+  function downloadText(text, filename, mime) {
+    var blob = new Blob([text], { type: mime });
+    var blobUrl = URL.createObjectURL(blob);
+    downloadUrl(blobUrl, filename);
+    setTimeout(function () {
+      URL.revokeObjectURL(blobUrl);
+    }, 1000);
+  }
+
+  /** Wraps every case-insensitive occurrence of `term` in `html` with a
+   *  numbered `<mark>`, skipping over tag markup itself (so a search term
+   *  can never land inside a class name or a `data-*` attribute) — the
+   *  same "split on tags, only touch the text runs" trick as every other
+   *  layered highlighter in this file. Used to search *within* an
+   *  already syntax-highlighted schema (see `openSchemaModal`) without
+   *  re-tokenizing it. */
+  function highlightSearchHits(html, term) {
+    if (!term) return { html: html, count: 0 };
+    var re = new RegExp(escapeRegExp(term), 'gi');
+    var count = 0;
+    var result = html.replace(/(<[^>]+>)|([^<]+)/g, function (whole, tag, text) {
+      if (tag) return tag;
+      return text.replace(re, function (m) {
+        var hit = '<mark class="schema-search-hit" data-hit="' + count + '">' + m + '</mark>';
+        count++;
+        return hit;
+      });
+    });
+    return { html: result, count: count };
+  }
+
+  function openSchemaModal(kind, title) {
+    closeSchemaModal();
+    var url = exportUrl(kind, state.docKey);
+    var jsonFilename = exportFilename(state.docKey, kind);
+    var format = 'json';
+    var data = null;
+    var baseHtml = '';
+    var searchTerm = '';
+    var hitCount = 0;
+    var activeHit = -1;
+
+    var jsonBtn = el('button', { class: 'modal-format-btn sel', type: 'button' }, ['JSON']);
+    var yamlBtn = el('button', { class: 'modal-format-btn', type: 'button' }, ['YAML']);
+    var formatToggle = el('div', { class: 'modal-format-toggle' }, [jsonBtn, yamlBtn]);
+    var copySlot = el('span', { class: 'modal-copy-slot' });
+    var downloadBtn = el(
+      'button',
+      { class: 'modal-icon-btn', type: 'button', title: 'Download' },
+      [iconFor('download')],
+    );
+    var closeBtn = el(
+      'button',
+      { class: 'modal-icon-btn', type: 'button', title: 'Close' },
+      [iconFor('close')],
+    );
+    closeBtn.addEventListener('click', closeSchemaModal);
+
+    // A find-in-page style search, centered in the header itself (not a
+    // second row) — a compact fixed-width box, not a full-width bar,
+    // since a schema search term is normally a short key/word. Searches
+    // the currently displayed format's text; switching JSON ↔ YAML keeps
+    // whatever search term is active (see `renderFormat`).
+    var searchInput = el('input', {
+      class: 'modal-search-input',
+      type: 'search',
+      placeholder: 'Search in schema',
+    });
+    var searchStatus = el('span', { class: 'modal-search-status' }, ['']);
+    var searchPrevBtn = el(
+      'button',
+      { class: 'modal-icon-btn', type: 'button', title: 'Previous match' },
+      [iconFor('chevronDown', 'rotate-180')],
+    );
+    var searchNextBtn = el(
+      'button',
+      { class: 'modal-icon-btn', type: 'button', title: 'Next match' },
+      [iconFor('chevronDown')],
+    );
+    var header = el('div', { class: 'modal-header' }, [
+      el('div', { class: 'modal-header-left' }, [el('span', { class: 'modal-title' }, [title]), formatToggle]),
+      el('div', { class: 'modal-search' }, [searchInput, searchStatus, searchPrevBtn, searchNextBtn]),
+      el('div', { class: 'modal-header-actions' }, [copySlot, downloadBtn, closeBtn]),
+    ]);
+
+    var code = el('code', {}, ['Loading…']);
+    var body = el('div', { class: 'modal-body' }, [el('pre', { class: 'example-json modal-json' }, [code])]);
+    var dialog = el('div', { class: 'modal-dialog' }, [header, body]);
+    schemaModalOverlay = el('div', { class: 'modal-overlay' }, [dialog]);
+    schemaModalOverlay.addEventListener('click', function (ev) {
+      if (ev.target === schemaModalOverlay) closeSchemaModal();
+    });
+    document.body.appendChild(schemaModalOverlay);
+    document.addEventListener('keydown', onSchemaModalKeydown);
+
+    // Both formats are rendered from the same parsed `data` (fetched once
+    // as JSON, converted to YAML client-side via the same `toYaml` the
+    // request-body examples already use elsewhere) — switching formats is
+    // just re-rendering already-loaded data, no second request.
+    function currentText() {
+      return format === 'yaml' ? toYaml(data, 0) : JSON.stringify(data, null, 2);
+    }
+
+    function setActiveHit(index) {
+      var marks = code.querySelectorAll('.schema-search-hit');
+      marks.forEach(function (m) {
+        m.classList.remove('active');
+      });
+      activeHit = hitCount ? (index + hitCount) % hitCount : -1;
+      // The prev/next/status trio only makes sense once there's actually
+      // a search term — hidden entirely until then (not just empty),
+      // rather than sitting there pushing the search box away from them.
+      // With a term but zero matches, they stay visible but disabled —
+      // there's nowhere to navigate to, but that's a different state
+      // than "no search yet".
+      var hasTerm = !!searchTerm;
+      searchStatus.hidden = !hasTerm;
+      searchPrevBtn.hidden = !hasTerm;
+      searchNextBtn.hidden = !hasTerm;
+      var noMatches = hasTerm && !hitCount;
+      searchPrevBtn.disabled = noMatches;
+      searchNextBtn.disabled = noMatches;
+      searchStatus.textContent = !hasTerm ? '' : hitCount ? activeHit + 1 + '/' + hitCount : '0/0';
+      if (activeHit < 0) return;
+      var mark = code.querySelector('[data-hit="' + activeHit + '"]');
+      if (mark) {
+        mark.classList.add('active');
+        mark.scrollIntoView({ block: 'center' });
+      }
+    }
+
+    function applySearch() {
+      var result = highlightSearchHits(baseHtml, searchTerm);
+      code.innerHTML = result.html;
+      hitCount = result.count;
+      setActiveHit(0);
+    }
+
+    function renderFormat() {
+      if (data === null) return;
+      var text = currentText();
+      baseHtml = format === 'yaml' ? highlightYaml(text) : highlightJson(text);
+      jsonBtn.classList.toggle('sel', format === 'json');
+      yamlBtn.classList.toggle('sel', format === 'yaml');
+      // A copy button mirrors every other JSON/YAML block in the app (see
+      // `requestBodyExample`'s own `copyButton(text, 15)`) — rebuilt on
+      // every format switch since it captures its value up front rather
+      // than reading it later.
+      clear(copySlot);
+      copySlot.appendChild(copyButton(text, 17));
+      applySearch();
+    }
+    jsonBtn.addEventListener('click', function () {
+      format = 'json';
+      renderFormat();
+    });
+    yamlBtn.addEventListener('click', function () {
+      format = 'yaml';
+      renderFormat();
+    });
+    downloadBtn.addEventListener('click', function () {
+      if (data === null) return;
+      if (format === 'yaml') {
+        downloadText(currentText(), jsonFilename.replace(/\.json$/, '.yaml'), 'application/yaml');
+      } else {
+        downloadUrl(url, jsonFilename);
+      }
+    });
+    searchInput.addEventListener('input', function () {
+      searchTerm = searchInput.value;
+      applySearch();
+    });
+    searchInput.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      if (hitCount) setActiveHit(activeHit + (ev.shiftKey ? -1 : 1));
+    });
+    searchPrevBtn.addEventListener('click', function () {
+      if (hitCount) setActiveHit(activeHit - 1);
+    });
+    searchNextBtn.addEventListener('click', function () {
+      if (hitCount) setActiveHit(activeHit + 1);
+    });
+
+    fetch(url)
+      .then(function (res) {
+        return res.json();
+      })
+      .then(function (json) {
+        data = json;
+        renderFormat();
+      })
+      .catch(function () {
+        code.textContent = 'Failed to load.';
+      });
+  }
+
   function init() {
     var app = document.getElementById('app');
     var ui = window.__OPRA_UI__ || {};
@@ -4245,6 +4605,43 @@
     }
     headerChildren.push(el('div', { class: 'picker-wrap', id: 'opra-picker' }));
     var headerRight = [];
+
+    // A labeled "View Schema" button opening a menu of the two formats
+    // this document can be viewed as — its own native Opra schema
+    // (always available) and an OpenAPI mapping (only when this document
+    // actually has an HTTP api — see `render()`'s own `viewOpenapiItem`
+    // sync below, mirroring how `groupByBtn` hides "Sections" for a document
+    // with nothing to section). Each opens `openSchemaModal`, which already
+    // carries its own download action in its header — no separate
+    // "download" entries needed here.
+    var exportMenu = el('div', { class: 'picker-menu header-export-menu' });
+    exportMenu.hidden = true;
+    function viewMenuItem(id, kind, icon, label) {
+      var item = el('div', { class: 'picker-item groupby-item', id: id }, [
+        iconFor(icon),
+        el('span', { class: 't' }, [label]),
+      ]);
+      item.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        exportMenu.hidden = true;
+        openPickerMenu = null;
+        openSchemaModal(kind, label);
+      });
+      return item;
+    }
+    exportMenu.appendChild(viewMenuItem('opra-view-schema', 'schema', 'book', 'OPRA 1.0'));
+    exportMenu.appendChild(viewMenuItem('opra-view-openapi', 'openapi', 'globe', 'OpenAPI 3.0'));
+    var exportBtn = el(
+      'button',
+      { class: 'header-export-btn', id: 'opra-export-btn', type: 'button', title: 'View schema' },
+      [iconFor('eye'), el('span', {}, ['View Schema'])],
+    );
+    exportBtn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      exportMenu.hidden = !exportMenu.hidden;
+      openPickerMenu = exportMenu.hidden ? null : exportMenu;
+    });
+    headerRight.push(el('div', { class: 'header-export-wrap' }, [exportBtn, exportMenu]));
     headerRight.push(themeToggleButton());
     headerRight.push(
       el('div', { class: 'search' }, [
@@ -4278,8 +4675,8 @@
     });
 
     // A small square icon button (hidden until `render()` finds an active
-    // document that actually declares `api.groups` — a document with
-    // nothing to group has nothing for this to switch to) opening a
+    // document that actually declares `api.sections` — a document with
+    // nothing to section has nothing for this to switch to) opening a
     // `.picker-menu` identical in spirit to the document picker's own
     // dropdown above — a "Group By" label followed by the two modes,
     // whichever's active marked `.sel`. Reuses the same `openPickerMenu`
@@ -4287,15 +4684,15 @@
     // participates in, so opening this one closes that one and vice versa,
     // and the shared document-level click handler closes whichever is open
     // without each menu needing its own listener for that.
-    var groupByBtn = el('button', { class: 'sidebar-groupby-btn', id: 'opra-groupby-btn', type: 'button', title: 'Group By', hidden: true }, [
-      iconFor('menu'),
+    var groupByBtn = el('button', { class: 'sidebar-groupby-btn', id: 'opra-groupby-btn', type: 'button', title: 'View Options', hidden: true }, [
+      iconFor('eye'),
     ]);
     var groupByMenu = el('div', { class: 'picker-menu sidebar-groupby-menu' });
     groupByMenu.hidden = true;
     groupByMenu.appendChild(el('div', { class: 'group-label' }, ['Group By']));
     var groupByOptions = [
       { key: 'structure', label: 'API Structure', icon: 'folder' },
-      { key: 'groups', label: 'Groups', icon: 'tag' },
+      { key: 'sections', label: 'Sections', icon: 'tag' },
     ];
     var groupByItemEls = {};
     groupByOptions.forEach(function (opt) {
@@ -4317,6 +4714,11 @@
         openPickerMenu = null;
         if (state.groupBy === opt.key) return;
         state.groupBy = opt.key;
+        try {
+          localStorage.setItem('opra-ui-groupby', opt.key);
+        } catch (e) {
+          // ignore
+        }
         syncGroupByUi();
         buildSidebar(navList, state.docKey, docs[state.docKey]);
         highlightActive(navList);
@@ -4329,27 +4731,166 @@
       groupByMenu.hidden = !groupByMenu.hidden;
       openPickerMenu = groupByMenu.hidden ? null : groupByMenu;
     });
-    // Reflects `state.groupBy` on the button (an `.active` outline once
-    // it's not the default "API Structure") and the menu's own `.sel`
-    // item — called both right after a click here and from `render()`
-    // whenever the active document changes (which can silently reset
-    // `state.groupBy` back to `'structure'` for one with no `api.groups`).
+    // Reflects `state.groupBy` on the menu's own `.sel` item — called both
+    // right after a click here and from `render()` whenever the active
+    // document changes (which can silently reset `state.groupBy` back to
+    // `'structure'` for one with no `api.sections`). The button itself
+    // stays visually the same regardless of which mode is active — only
+    // the checkmark in the menu tells them apart.
     function syncGroupByUi() {
       // `state.groupBy` starts out `undefined` (see `state`'s own
       // declaration), not the string `'structure'` — this fallback is what
       // makes the very first call (right below) actually mark "API
       // Structure" selected instead of leaving neither item checked.
       var effectiveGroupBy = state.groupBy || 'structure';
-      groupByBtn.classList.toggle('active', effectiveGroupBy === 'groups');
       groupByOptions.forEach(function (opt) {
         groupByItemEls[opt.key].classList.toggle('sel', effectiveGroupBy === opt.key);
       });
     }
     syncGroupByUi();
 
+    // A funnel-icon button opening a menu of two independent multi-select
+    // filter groups (HTTP method, model kind) to narrow the sidebar down
+    // to — same `.picker-menu`/single-open-menu machinery as `groupByBtn`
+    // right next to it, just multi-select instead of picking one of two
+    // exclusive modes: each option toggles independently, and each
+    // group's own "ALL" is a plain reset back to no filter for *that*
+    // group rather than one more option alongside them. The menu stays
+    // open across a click (unlike `groupByMenu`/the document picker)
+    // since picking one option is normally the start of picking a few,
+    // not the whole interaction — "Clear All" at the top is the one
+    // action that *does* close it, being a decisive "done filtering"
+    // reset rather than another selection.
+    var filterBadge = el('span', { class: 'filter-badge', hidden: true }, ['0']);
+    var methodFilterBtn = el(
+      'button',
+      { class: 'sidebar-groupby-btn', id: 'opra-methodfilter-btn', type: 'button', title: 'Filter Options' },
+      [iconFor('filter'), filterBadge],
+    );
+    var methodFilterMenu = el('div', { class: 'picker-menu sidebar-groupby-menu filter-menu' });
+    methodFilterMenu.hidden = true;
+
+    var clearAllBtn = el('button', { class: 'picker-item filter-clear-all', type: 'button' }, ['Clear All']);
+    clearAllBtn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      state.methodFilter = [];
+      state.modelKindFilter = [];
+      sidebarFilterInput.value = '';
+      syncFilterUi();
+      onSidebarFilterInput(sidebarFilterInput);
+      methodFilterMenu.hidden = true;
+      openPickerMenu = null;
+    });
+    methodFilterMenu.appendChild(clearAllBtn);
+
+    // A generic toggle-group builder — one `state[stateKey]` array, an
+    // "ALL" reset item, and one item per `{key, content}` option; shared
+    // by the method group (colored `methodBadge` chips, for quick visual
+    // recognition — GET/POST/PATCH already read this way everywhere else
+    // in the sidebar) and the model-kind group (icon + label, matching
+    // how the Models section itself marks each kind) below.
+    var filterItemEls = {};
+    function filterGroup(stateKey, label, options) {
+      methodFilterMenu.appendChild(el('div', { class: 'group-label' }, [label]));
+      var idPrefix = 'opra-' + stateKey + '-';
+      function item(key, content) {
+        var el_ = el('div', { class: 'picker-item groupby-item', id: idPrefix + key }, [
+          content,
+          iconFor('check', 'groupby-check'),
+        ]);
+        el_.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          if (key === 'ALL') {
+            state[stateKey] = [];
+          } else {
+            var list = state[stateKey] || (state[stateKey] = []);
+            var idx = list.indexOf(key);
+            if (idx === -1) list.push(key);
+            else list.splice(idx, 1);
+          }
+          syncFilterUi();
+          buildSidebar(navList, state.docKey, docs[state.docKey]);
+          highlightActive(navList);
+        });
+        filterItemEls[idPrefix + key] = el_;
+        return el_;
+      }
+      methodFilterMenu.appendChild(item('ALL', el('span', { class: 't' }, ['ALL'])));
+      options.forEach(function (opt) {
+        methodFilterMenu.appendChild(item(opt.key, opt.content));
+      });
+    }
+    // Every HTTP method OPRA's own schema supports (see `OpraSchema.HttpMethod`
+    // in `packages/common`), not just the handful the demo happens to use.
+    var METHOD_FILTER_OPTIONS = [
+      'GET',
+      'POST',
+      'PUT',
+      'PATCH',
+      'DELETE',
+      'HEAD',
+      'OPTIONS',
+      'QUERY',
+      'SEARCH',
+    ];
+    filterGroup(
+      'methodFilter',
+      'Filter by Method',
+      METHOD_FILTER_OPTIONS.map(function (m) {
+        return { key: m, content: methodBadge(m) };
+      }),
+    );
+    var MODEL_KIND_FILTER_OPTIONS = ['ComplexType', 'SimpleType', 'EnumType'];
+    filterGroup(
+      'modelKindFilter',
+      'Filter by Model',
+      MODEL_KIND_FILTER_OPTIONS.map(function (kind) {
+        return {
+          key: kind,
+          content: el('span', {}, [
+            iconFor(dataTypeIconKind(kind), 'c-' + dataTypeIconKind(kind)),
+            ' ' + dataTypeGroupLabel(kind),
+          ]),
+        };
+      }),
+    );
+    methodFilterBtn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      methodFilterMenu.hidden = !methodFilterMenu.hidden;
+      openPickerMenu = methodFilterMenu.hidden ? null : methodFilterMenu;
+    });
+    // Reflects both filter groups' state on the button (an `.active`
+    // outline plus a small count badge whenever either is narrowing
+    // anything) and each menu item's own `.sel` — a group's own "ALL" is
+    // checked exactly when nothing else in *that* group is selected.
+    function syncFilterUi() {
+      var methodCount = (state.methodFilter && state.methodFilter.length) || 0;
+      var modelCount = (state.modelKindFilter && state.modelKindFilter.length) || 0;
+      var total = methodCount + modelCount;
+      methodFilterBtn.classList.toggle('active', total > 0);
+      filterBadge.hidden = total === 0;
+      filterBadge.textContent = String(total);
+      filterItemEls['opra-methodFilter-ALL'].classList.toggle('sel', !methodCount);
+      METHOD_FILTER_OPTIONS.forEach(function (m) {
+        filterItemEls['opra-methodFilter-' + m].classList.toggle(
+          'sel',
+          !!(methodCount && state.methodFilter.indexOf(m) !== -1),
+        );
+      });
+      filterItemEls['opra-modelKindFilter-ALL'].classList.toggle('sel', !modelCount);
+      MODEL_KIND_FILTER_OPTIONS.forEach(function (kind) {
+        filterItemEls['opra-modelKindFilter-' + kind].classList.toggle(
+          'sel',
+          !!(modelCount && state.modelKindFilter.indexOf(kind) !== -1),
+        );
+      });
+    }
+    syncFilterUi();
+
     var sidebar = el('div', { class: 'sidebar' }, [
       el('div', { class: 'sidebar-filter' }, [
         el('div', { class: 'sidebar-groupby-wrap' }, [groupByBtn, groupByMenu]),
+        el('div', { class: 'sidebar-groupby-wrap' }, [methodFilterBtn, methodFilterMenu]),
         el('div', { class: 'search sidebar-filter-search' }, [sidebarFilterInput, sidebarFilterClear]),
       ]),
       navList,

@@ -18,7 +18,7 @@ describe('common:HttpApi', () => {
     expect(api.servers).toStrictEqual([
       { url: 'https://api.example.com', description: 'Test server' },
     ]);
-    expect(api.groups).toStrictEqual([
+    expect(api.sections).toStrictEqual([
       { name: 'Customers', description: 'Customer management', icon: '👤' },
     ]);
   });
@@ -36,14 +36,14 @@ describe('common:HttpApi', () => {
     expect(api.controllers.get('Customers')).toBeInstanceOf(HttpController);
   });
 
-  it('Should set HttpOperation#title and #groups', async () => {
+  it('Should set HttpOperation#title and #sections', async () => {
     const api = doc.api as HttpApi;
     const operation = api.controllers.get('Customer')?.operations.get('get');
     expect(operation?.title).toEqual('Get a customer');
-    expect(operation?.groups).toStrictEqual(['Customers']);
+    expect(operation?.sections).toStrictEqual(['Customers']);
     expect(operation?.toJSON()).toMatchObject({
       title: 'Get a customer',
-      groups: ['Customers'],
+      sections: ['Customers'],
     });
   });
 });

@@ -73,7 +73,7 @@ export namespace ApiUiSchemaBuilder {
         transport: 'http',
         url: api.url,
         servers: api.servers?.length ? api.servers : undefined,
-        groups: api.groups?.length ? api.groups : undefined,
+        sections: api.sections?.length ? api.sections : undefined,
         controllers,
       });
     }
@@ -485,7 +485,7 @@ function mapHttpOperation(
     method: op.method,
     title: op.title,
     description: op.description,
-    groups: op.groups?.length ? op.groups : undefined,
+    sections: op.sections?.length ? op.sections : undefined,
     path: op.path,
     mergePath: op.mergePath || undefined,
     composition: op.composition,

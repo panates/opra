@@ -78,7 +78,7 @@ SOFTWARE.`,
         servers: [
           { url: 'http://localhost:3001', description: 'Local dev server' },
         ],
-        groups: [
+        sections: [
           {
             name: 'Account',
             description: 'Signing in and managing your own profile',

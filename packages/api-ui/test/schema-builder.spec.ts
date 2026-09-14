@@ -17,6 +17,9 @@ import { ApiUiSchemaBuilder } from '../src/schema-builder.js';
 class Dog {
   @ApiField({ required: true })
   declare name: string;
+
+  @(ApiField({ readonly: true }).Override('db', { readonly: false }))
+  declare id: string;
 }
 
 @ComplexType({ description: 'A cat' })
@@ -88,6 +91,13 @@ describe('api-ui:ApiUiSchemaBuilder', () => {
     const schema: any = ApiUiSchemaBuilder.build(doc);
     expect(schema.types.Puppy.fields.name.from).toStrictEqual('Dog');
     expect(schema.types.Puppy.fields.birthDate.from).toBeUndefined();
+  });
+
+  it('Should apply a field.Override() for the requested scope, not just its base metadata', () => {
+    const noScope: any = ApiUiSchemaBuilder.build(doc);
+    expect(noScope.types.Dog.fields.id.readonly).toStrictEqual(true);
+    const dbScope: any = ApiUiSchemaBuilder.build(doc, { scope: 'db' });
+    expect(dbScope.types.Dog.fields.id.readonly).toBeUndefined();
   });
 });
 

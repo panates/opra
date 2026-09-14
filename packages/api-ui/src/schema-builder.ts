@@ -147,6 +147,13 @@ function mapField(
   ctx: BuildContext,
   owner: ComplexType | MappedType | MixinType,
 ) {
+  // Applies any `.Override(scopePattern, ...)` for this scope (e.g.
+  // `readonly: false` in "db") before reading the field's own properties
+  // below — a no-op (returns `field` itself) when nothing overrides it
+  // for this scope. `field.origin` (used for `from` below) is unaffected
+  // either way — an override never changes which type actually declared
+  // the field.
+  field = field.forScope(ctx.scope);
   return omitUndefined({
     type: mapTypeRef(field.type, ctx),
     description: field.description,

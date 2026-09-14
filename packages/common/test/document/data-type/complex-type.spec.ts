@@ -134,6 +134,23 @@ describe('common:ComplexType', () => {
     expect(x.fields!.dbField).toBeDefined();
   });
 
+  it('Should toJSON(scope) apply a field.Override() for that scope, not just its base metadata', async () => {
+    // `createdAt` is declared directly on `Record` (the base type every
+    // model in this fixture extends) — `customer.toJSON()`'s own `fields`
+    // only lists fields *declared at that level* (inherited ones are
+    // referenced via `base` instead, not repeated), so this needs
+    // `Record` itself to actually exercise `ComplexType.toJSON()`'s own
+    // field loop rather than `getField()`'s already-correct resolution.
+    const dt = doc.node.getComplexType('Record');
+    expect(dt).toBeDefined();
+    // `readonly: true` everywhere, `.Override('db', { readonly: false })`
+    // makes it writable specifically in the "db" scope.
+    const noScope = dt!.toJSON();
+    expect(noScope.fields!.createdAt.readonly).toStrictEqual(true);
+    const dbScope = dt!.toJSON({ scope: 'db' });
+    expect(dbScope.fields!.createdAt.readonly).toBeUndefined();
+  });
+
   describe('_generateSchema()', () => {
     it('Should _generate ValGen schema', async () => {
       const dt = doc.node.getComplexType('Customer');

@@ -171,3 +171,94 @@ describe('http:ExpressAdapter', () => {
     expect(instance).toBeInstanceOf(CustomersController);
   });
 });
+
+describe('http:ExpressAdapter ($schema/$openapi/apiUi options)', () => {
+  let document: ApiDocument;
+
+  before(async () => {
+    document = await createTestApi();
+  });
+
+  it('Should publish $schema by default', async () => {
+    const app = express();
+    const adapter = new ExpressAdapter(app, document);
+    try {
+      const resp = await supertest(app).get('/$schema');
+      expect(resp.status).toStrictEqual(200);
+    } finally {
+      await adapter.close();
+    }
+  });
+
+  it('Should not publish $schema when schema:false', async () => {
+    const app = express();
+    const adapter = new ExpressAdapter(app, document, { schema: false });
+    try {
+      const resp = await supertest(app).get('/$schema');
+      expect(resp.status).toStrictEqual(404);
+    } finally {
+      await adapter.close();
+    }
+  });
+
+  it('Should not publish $openapi by default', async () => {
+    const app = express();
+    const adapter = new ExpressAdapter(app, document);
+    try {
+      const resp = await supertest(app).get('/$openapi');
+      expect(resp.status).toStrictEqual(404);
+    } finally {
+      await adapter.close();
+    }
+  });
+
+  it('Should publish $openapi when openapi:true', async () => {
+    const app = express();
+    const adapter = new ExpressAdapter(app, document, { openapi: true });
+    try {
+      const resp = await supertest(app).get('/$openapi');
+      expect(resp.status).toStrictEqual(200);
+      expect(resp.body.openapi).toStrictEqual('3.0.3');
+      expect(resp.body.paths).toBeInstanceOf(Object);
+    } finally {
+      await adapter.close();
+    }
+  });
+
+  it('Should not mount the api-ui page by default', async () => {
+    const app = express();
+    const adapter = new ExpressAdapter(app, document);
+    try {
+      const resp = await supertest(app).get('/$ui');
+      expect(resp.status).toStrictEqual(404);
+    } finally {
+      await adapter.close();
+    }
+  });
+
+  it('Should mount the api-ui page at the default path ($ui) when apiUi:true', async () => {
+    const app = express();
+    const adapter = new ExpressAdapter(app, document, { apiUi: true });
+    try {
+      const resp = await supertest(app).get('/$ui');
+      expect(resp.status).toStrictEqual(200);
+      expect(resp.headers['content-type']).toMatch(/text\/html/);
+    } finally {
+      await adapter.close();
+    }
+  });
+
+  it('Should mount the api-ui page at a custom path', async () => {
+    const app = express();
+    const adapter = new ExpressAdapter(app, document, {
+      apiUi: { path: '/ui', pageTitle: 'Custom Title' },
+    });
+    try {
+      const resp = await supertest(app).get('/ui');
+      expect(resp.status).toStrictEqual(200);
+      expect(resp.text).toContain('<title>Custom Title</title>');
+    } finally {
+      await adapter.close();
+    }
+  });
+});

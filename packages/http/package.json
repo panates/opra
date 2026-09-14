@@ -57,8 +57,18 @@
     "yaml": "^2.9.0"
   },
   "peerDependencies": {
+    "@opra/api-ui": "^1.30.0",
     "@opra/common": "^1.30.0",
-    "@opra/core": "^1.30.0"
+    "@opra/core": "^1.30.0",
+    "@opra/openapi": "^1.30.0"
+  },
+  "peerDependenciesMeta": {
+    "@opra/api-ui": {
+      "optional": true
+    },
+    "@opra/openapi": {
+      "optional": true
+    }
   },
   "optionalDependencies": {
     "express": "^4.0.0 || ^5.0.0",
@@ -66,6 +76,8 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",
+    "@opra/api-ui": "^1.30.0",
+    "@opra/openapi": "^1.30.0",
     "@types/accepts": "^1.3.7",
     "@types/base64-stream": "^1.0.5",
     "@types/busboy": "^1.5.4",

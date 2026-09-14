@@ -1,6 +1,7 @@
 import * as process from 'node:process';
 import type { Readable } from 'node:stream';
 import typeIs from '@browsery/type-is';
+import type { ApiUiOptions } from '@opra/api-ui';
 import {
   ArrayType,
   BadRequestError,
@@ -26,6 +27,7 @@ import {
   safeJsonStringify,
 } from '@opra/common';
 import { kAssetCache, PlatformAdapter } from '@opra/core';
+import type { OpenApiDocumentFactory } from '@opra/openapi';
 import { parse as parseContentType } from 'content-type';
 import { splitString } from 'fast-tokenizer';
 import http from 'http';
@@ -63,17 +65,33 @@ export abstract class HttpAdapter<
   // readonly handler: HttpHandler;
   readonly transform: OpraSchema.Transport = 'http';
   readonly basePath: string;
-  scope?: string;
+  scope: string;
   interceptors: (
     HttpAdapter.InterceptorFunction | HttpAdapter.IHttpInterceptor
   )[];
+  /** Whether `$schema` (native Opra schema) is published. See
+   *  `HttpAdapter.Options.schema`. */
+  schema: boolean;
+  /** Whether `$openapi` is published, and with which options, if any.
+   *  See `HttpAdapter.Options.openapi`. */
+  openapi: boolean | OpenApiDocumentFactory.Options;
+  /** Whether the `@opra/api-ui` reference page is published, and with
+   *  which options, if any. See `HttpAdapter.Options.apiUi`. Concrete
+   *  adapters (e.g. `ExpressAdapter`) are the ones that actually mount
+   *  it — this base class only carries the option through, the same way
+   *  `scope`/`basePath` do, since *how* a UI page gets mounted is
+   *  entirely transport-specific. */
+  apiUi: boolean | (ApiUiOptions & { path?: string });
 
   protected constructor(options?: HttpAdapter.Options) {
     super(options);
     this.interceptors = [...(options?.interceptors || [])];
     this.basePath = options?.basePath || '/';
     if (!this.basePath.startsWith('/')) this.basePath = '/' + this.basePath;
-    this.scope = options?.scope;
+    this.scope = options?.scope ?? 'api';
+    this.schema = options?.schema ?? true;
+    this.openapi = options?.openapi ?? false;
+    this.apiUi = options?.apiUi ?? false;
   }
 
   get api(): HttpApi {
@@ -775,6 +793,72 @@ export abstract class HttpAdapter<
   }
 
   /**
+   * Sends the document mapped to an OpenAPI 3.0/3.1 document as JSON —
+   * the `$openapi` counterpart of `sendDocumentSchema()` above, same
+   * `?id=` sub-document lookup included. Requires the optional
+   * `@opra/openapi` package; it's lazily imported here (only once,
+   * cached by Node itself) rather than imported at the top of this file,
+   * so an adapter that never enables `openapi` never loads it.
+   *
+   * @param context - The HTTP execution context.
+   * @returns A promise that resolves when the document is sent.
+   */
+  async sendOpenApiDocument(context: HttpContext): Promise<void> {
+    const { request, response } = context;
+    const { document } = this;
+    const url = new URL(
+      request.originalUrl || request.url || '/',
+      'http://tempuri.org',
+    );
+    const { searchParams } = url;
+    const documentId = searchParams.get('id');
+    const doc = documentId ? document.findDocument(documentId) : document;
+    if (!doc) {
+      context.errors.push(
+        new BadRequestError({
+          message: `Document with given id [${documentId}] does not exists`,
+        }),
+      );
+      return this.sendResponse(context);
+    }
+    if (!(doc.api instanceof HttpApi)) {
+      context.errors.push(
+        new BadRequestError({
+          message: `Document${documentId ? ` [${documentId}]` : ''} has no HTTP api to convert to OpenAPI`,
+        }),
+      );
+      return this.sendResponse(context);
+    }
+    let responseBody = this[kAssetCache].get(doc, `$openapi`);
+    if (!responseBody) {
+      let generate: typeof import('@opra/openapi').OpenApiDocumentFactory.generate;
+      try {
+        ({
+          OpenApiDocumentFactory: { generate },
+        } = await import('@opra/openapi'));
+      } catch {
+        context.errors.push(
+          new InternalServerError({
+            message:
+              'OpenAPI export requires the "@opra/openapi" package to be installed',
+          }),
+        );
+        return this.sendResponse(context);
+      }
+      const openApiOptions =
+        typeof this.openapi === 'object' ? this.openapi : undefined;
+      const openApiDoc = generate(doc, {
+        scope: this.scope,
+        ...openApiOptions,
+      });
+      responseBody = JSON.stringify(openApiDoc);
+      this[kAssetCache].set(doc, `$openapi`, responseBody);
+    }
+    response.setHeader('content-type', MimeTypes.json);
+    response.end(responseBody);
+  }
+
+  /**
    * Determines the response arguments (status code, content type, etc.) for a given response value.
    *
    * @param context - The HTTP execution context.
@@ -983,7 +1067,40 @@ export namespace HttpAdapter {
   export interface Options extends PlatformAdapter.Options {
     basePath?: string;
     interceptors?: (InterceptorFunction | IHttpInterceptor)[];
-    scope?: string | '*';
+    scope?: string;
+    /**
+     * Whether to publish the document's own native Opra schema at
+     * `GET $schema` (and accept `$bundle` multipart batch requests — see
+     * `handleBundle`). Enabled by default, matching this adapter's
+     * long-standing behavior; set to `false` to omit it entirely (e.g. to
+     * keep the schema private in production).
+     * @default true
+     */
+    schema?: boolean;
+    /**
+     * Whether to publish an OpenAPI 3.0/3.1 mapping of the document at
+     * `GET $openapi`. Requires the optional `@opra/openapi` package to be
+     * installed — lazily imported on first request, so an adapter that
+     * leaves this disabled (the default) never loads it. Pass an options
+     * object instead of `true` to customize the generated document (see
+     * `OpenApiDocumentFactory.Options`).
+     * @default false
+     */
+    openapi?: boolean | OpenApiDocumentFactory.Options;
+    /**
+     * Whether to publish the interactive API reference UI (`@opra/api-ui`)
+     * alongside this adapter's own routes. Requires the optional
+     * `@opra/api-ui` package to be installed — lazily imported on first
+     * request, so an adapter that leaves this disabled (the default)
+     * never loads it. Pass an options object instead of `true` to
+     * customize the rendered page (see `ApiUiOptions`); `path` (default
+     * `"$ui"`) picks where it's mounted, relative to this adapter's own
+     * `basePath`. *How* this actually gets mounted is entirely
+     * transport-specific — see each concrete adapter (e.g.
+     * `ExpressAdapter`) for what it does with this option.
+     * @default false
+     */
+    apiUi?: boolean | (ApiUiOptions & { path?: string });
   }
 
   /**

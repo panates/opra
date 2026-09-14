@@ -9,6 +9,7 @@ import {
   type Application,
   type NextFunction,
   type Request,
+  type RequestHandler,
   type Response,
   Router,
 } from 'express';
@@ -79,11 +80,57 @@ export class ExpressAdapter extends HttpAdapter {
     this.app.use(this.basePath, router);
 
     /* Add an endpoint that returns document schema */
-    router.get('/\\$schema', (_req, _res, next) => {
-      this.createContext(_req, _res)
-        .then(ctx => this.sendDocumentSchema(ctx).catch(next))
-        .catch(next);
-    });
+    if (this.schema) {
+      router.get('/\\$schema', (_req, _res, next) => {
+        this.createContext(_req, _res)
+          .then(ctx => this.sendDocumentSchema(ctx).catch(next))
+          .catch(next);
+      });
+    }
+
+    /* Add an endpoint that returns an OpenAPI mapping of the document —
+     * lazily loads `@opra/openapi` (see `sendOpenApiDocument`), so this
+     * costs nothing when `this.openapi` is left disabled (the default). */
+    if (this.openapi) {
+      router.get('/\\$openapi', (_req, _res, next) => {
+        this.createContext(_req, _res)
+          .then(ctx => this.sendOpenApiDocument(ctx).catch(next))
+          .catch(next);
+      });
+    }
+
+    /* Mount the interactive API reference UI (`@opra/api-ui`) — lazily
+     * imported on the *first actual request* to this path, not here at
+     * construction time, since `expressApiUi()` needs to run synchronously
+     * to produce an Express handler but the import itself is async. Once
+     * resolved, the real handler is cached in `apiUiHandler` and every
+     * later request (to this or any of its own sub-routes, e.g.
+     * `$ui/schema/root.json`) is served directly. */
+    if (this.apiUi) {
+      const { path: apiUiPath, ...apiUiOptions } =
+        typeof this.apiUi === 'object' ? this.apiUi : {};
+      let apiUiHandler: RequestHandler | undefined;
+      router.use(apiUiPath || '/$ui', (_req, _res, next) => {
+        if (apiUiHandler) {
+          apiUiHandler(_req, _res, next);
+          return;
+        }
+        import('@opra/api-ui')
+          .then(({ expressApiUi }) => {
+            apiUiHandler = expressApiUi(this.document, {
+              scope: this.scope,
+              ...apiUiOptions,
+            });
+            apiUiHandler(_req, _res, next);
+          })
+          .catch(() => {
+            _res.status(501).json({
+              error:
+                'The API reference UI requires the "@opra/api-ui" package to be installed',
+            });
+          });
+      });
+    }
 
     /* Add an endpoint that returns document schema */
     router.post('/\\$bundle', (_req, _res, next) => {

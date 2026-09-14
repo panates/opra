@@ -6,9 +6,16 @@
     "rootDir": "src",
     "outDir": "./build",
     "paths": {
+      "@opra/api-ui": ["../api-ui/src/index.js"],
       "@opra/common": ["../common/src/index.js"],
-      "@opra/core": ["../core/src/index.js"]
+      "@opra/core": ["../core/src/index.js"],
+      "@opra/openapi": ["../openapi/src/index.js"]
     }
   },
-  "references": [{ "path": "../common" }, { "path": "../core" }]
+  "references": [
+    { "path": "../api-ui" },
+    { "path": "../common" },
+    { "path": "../core" },
+    { "path": "../openapi" }
+  ]
 }

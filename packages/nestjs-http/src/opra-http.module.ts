@@ -38,6 +38,16 @@ export namespace OpraHttpModule {
       | HttpAdapter.IHttpInterceptor
       | Type<HttpAdapter.IHttpInterceptor>
     )[];
+    /** Whether to publish the native Opra schema at `GET $schema` (and
+     *  accept `$bundle` multipart batch requests). @default true */
+    schema?: HttpAdapter.Options['schema'];
+    /** Whether to publish an OpenAPI 3.0/3.1 mapping at `GET $openapi`.
+     *  Requires the optional `@opra/openapi` package. @default false */
+    openapi?: HttpAdapter.Options['openapi'];
+    /** Whether to publish the interactive API reference UI (`@opra/api-ui`).
+     *  Requires the optional `@opra/api-ui` package; only works when this
+     *  application runs on the Express platform. @default false */
+    apiUi?: HttpAdapter.Options['apiUi'];
   }
 
   /**

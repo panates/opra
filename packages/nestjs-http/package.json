@@ -24,18 +24,30 @@
     "tslib": "^2.8.1"
   },
   "peerDependencies": {
+    "@opra/api-ui": "^1.30.0",
     "@opra/common": "^1.30.0",
     "@opra/core": "^1.30.0",
     "@opra/nestjs": "^1.30.0",
     "@opra/http": "^1.30.0",
+    "@opra/openapi": "^1.30.0",
     "@nestjs/common": ">=10 <=12",
     "@nestjs/core": ">=10 <=12"
+  },
+  "peerDependenciesMeta": {
+    "@opra/api-ui": {
+      "optional": true
+    },
+    "@opra/openapi": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",
     "@nestjs/platform-express": "^12.0.1",
     "@nestjs/microservices": "^12.0.1",
     "@nestjs/testing": "^12.0.1",
+    "@opra/api-ui": "^1.30.0",
+    "@opra/openapi": "^1.30.0",
     "expect": "^30.5.1",
     "express": "^5.2.1",
     "multipart-stream": "^2.0.1",

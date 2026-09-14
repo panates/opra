@@ -20,7 +20,11 @@ import { AppDbModule } from './app-db.module.js';
           'Sample Opra API demonstrating a NestJS integration with authentication and a customer/notes CRUD API backed by MongoDB',
         termsOfService: 'https://panates.com/terms-of-service',
         contact: [
-          { name: 'Panates', email: 'info@panates.com', url: 'https://panates.com' },
+          {
+            name: 'Panates',
+            email: 'info@panates.com',
+            url: 'https://panates.com',
+          },
         ],
         license: { name: 'MIT', url: 'https://opensource.org/licenses/MIT' },
       },
@@ -34,6 +38,15 @@ import { AppDbModule } from './app-db.module.js';
         CustomerNotesController,
       ],
       schemaIsPublic: true,
+      openapi: true,
+      apiUi: {
+        path: '/docs',
+        pageTitle: 'Customer Application',
+        // Same two scopes `examples/express-mongo`'s own Express wiring
+        // publishes — see its `customer-application.ts` for what "db"
+        // actually reveals (soft-delete/audit fields, `Config`, etc.).
+        scopes: ['api', 'db'],
+      },
     }),
   ],
 })

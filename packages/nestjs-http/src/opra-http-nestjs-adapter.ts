@@ -3,6 +3,7 @@ import { type IncomingMessage, type ServerResponse } from 'node:http';
 import nodePath from 'node:path';
 import { isConstructor } from '@jsopen/objects';
 import {
+  All,
   Controller,
   Delete,
   Get,
@@ -122,7 +123,18 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
   }
 
   /**
-   * Adds the root controller that serves the OPRA schema.
+   * Adds the root controller that serves the OPRA schema, OpenAPI mapping
+   * and the reference UI, and accepts `$bundle` multipart batch requests —
+   * the NestJS counterpart of `ExpressAdapter._initRouter()`.
+   *
+   * `$schema` and `$openapi` are added via `Object.defineProperty` +
+   * imperative decorator calls (`Get(path)(prototype, key, descriptor)`)
+   * rather than `@Get()` literal syntax, since whether they exist at all
+   * depends on `this.schema`/`this.openapi` — the same technique
+   * `_addToNestControllers` below already uses to attach one HTTP-method
+   * decorator per operation depending on its own `method`. `$bundle`
+   * stays a plain literal method — it's unconditional, same as in
+   * `ExpressAdapter`.
    *
    * @param isPublic - Whether the schema is accessible without authentication.
    * @protected
@@ -134,10 +146,6 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
       path: this.basePath,
     })
     class RootController {
-      @Get('/\\$schema')
-      schema(@Req() _req: any, @Next() next: Function) {
-        _this.sendDocumentSchema(_req.opraContext).catch(() => next());
-      }
       @Post('/\\$bundle')
       @HttpCode(200)
       bundle(@Req() _req: any, @Res() _res, @Next() next: Function) {
@@ -156,15 +164,150 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
       }
     }
 
-    if (isPublic) {
-      Public()(
+    if (this.schema) {
+      Object.defineProperty(RootController.prototype, 'schema', {
+        writable: true,
+        configurable: true,
+        value(_req: any, next: Function) {
+          _this.sendDocumentSchema(_req.opraContext).catch(() => next());
+        },
+      });
+      Req()(RootController.prototype, 'schema', 0);
+      Next()(RootController.prototype, 'schema', 1);
+      const schemaDescriptor = Object.getOwnPropertyDescriptor(
         RootController.prototype,
         'schema',
-        Object.getOwnPropertyDescriptor(RootController.prototype, 'schema')!,
+      )!;
+      Get('/\\$schema')(RootController.prototype, 'schema', schemaDescriptor);
+      if (isPublic) {
+        Public()(RootController.prototype, 'schema', schemaDescriptor);
+      }
+    }
+
+    if (this.openapi) {
+      Object.defineProperty(RootController.prototype, 'openapi', {
+        writable: true,
+        configurable: true,
+        value(_req: any, next: Function) {
+          _this.sendOpenApiDocument(_req.opraContext).catch(() => next());
+        },
+      });
+      Req()(RootController.prototype, 'openapi', 0);
+      Next()(RootController.prototype, 'openapi', 1);
+      const openapiDescriptor = Object.getOwnPropertyDescriptor(
+        RootController.prototype,
+        'openapi',
+      )!;
+      Get('/\\$openapi')(
+        RootController.prototype,
+        'openapi',
+        openapiDescriptor,
       );
     }
 
+    if (this.apiUi) this._addApiUiRoutes(RootController);
+
     this.nestControllers.push(RootController);
+  }
+
+  /**
+   * Adds two wildcard routes forwarding into `@opra/api-ui`'s
+   * `expressApiUi()` — a plain Express `(req, res, next) => void` handler
+   * that expects to be mounted the way `ExpressAdapter` mounts it, via
+   * `router.use(path, handler)`: it reads `req.path` relative to, and
+   * `req.baseUrl` as, its own mount point. NestJS controller routes get
+   * neither for free (unlike Express's own `.use()`, a Nest/Express route
+   * match — even a wildcard `@All()` one — never rewrites `req.url`/
+   * `req.baseUrl`), so this reconstructs both by hand from the *known*
+   * matched suffix (`req.params.splat`, populated by the `/*splat`
+   * wildcard below) rather than trying to predict the mount point's own
+   * absolute path up front — which would otherwise have to account for
+   * Nest's global prefix, versioning, etc. Subtracting the (known)
+   * suffix's length off the end of `req.path` yields the real absolute
+   * mount path regardless of any of that.
+   *
+   * Only works when this application actually runs on the Express
+   * platform — `expressApiUi` (and `@opra/api-ui` generally) has no
+   * Fastify equivalent today.
+   *
+   * @protected
+   */
+  protected _addApiUiRoutes(RootController: Type) {
+    const _this = this;
+    const { path: apiUiPathOpt, ...apiUiOptions } =
+      typeof this.apiUi === 'object' ? this.apiUi : ({} as any);
+    const apiUiPath = String(apiUiPathOpt || '$docs').replace(/^\/+/, '');
+    let apiUiHandler: ((req: any, res: any, next: any) => void) | undefined;
+
+    const serveApiUi = (
+      _req: any,
+      _res: any,
+      next: any,
+      mountPath: string,
+      remainder: string,
+    ) => {
+      _req.baseUrl = mountPath;
+      let newUrl = remainder.charAt(0) === '/' ? remainder : '/' + remainder;
+      const qIdx = String(_req.url).indexOf('?');
+      if (qIdx !== -1) newUrl += _req.url.slice(qIdx);
+      _req.url = newUrl;
+      if (apiUiHandler) {
+        apiUiHandler(_req, _res, next);
+        return;
+      }
+      import('@opra/api-ui')
+        .then(({ expressApiUi }) => {
+          const handler = expressApiUi(_this.document, {
+            scope: _this.scope,
+            ...apiUiOptions,
+          });
+          apiUiHandler = handler;
+          handler(_req, _res, next);
+        })
+        .catch(() => {
+          _res.status(501).json({
+            error:
+              'The API reference UI requires the "@opra/api-ui" package to be installed',
+          });
+        });
+    };
+
+    Object.defineProperty(RootController.prototype, 'apiUiRoot', {
+      writable: true,
+      configurable: true,
+      value(_req: any, _res: any, next: Function) {
+        serveApiUi(_req, _res, next, _req.path, '/');
+      },
+    });
+    Req()(RootController.prototype, 'apiUiRoot', 0);
+    Res()(RootController.prototype, 'apiUiRoot', 1);
+    Next()(RootController.prototype, 'apiUiRoot', 2);
+    All('/' + apiUiPath)(
+      RootController.prototype,
+      'apiUiRoot',
+      Object.getOwnPropertyDescriptor(RootController.prototype, 'apiUiRoot')!,
+    );
+
+    Object.defineProperty(RootController.prototype, 'apiUiRest', {
+      writable: true,
+      configurable: true,
+      value(_req: any, _res: any, next: Function) {
+        const splat: string[] = _req.params?.splat || [];
+        const remainder = '/' + splat.join('/');
+        const fullPath: string = _req.path;
+        const mountPath =
+          fullPath.slice(0, fullPath.length - remainder.length) || '/';
+        serveApiUi(_req, _res, next, mountPath, remainder);
+      },
+    });
+    Req()(RootController.prototype, 'apiUiRest', 0);
+    Res()(RootController.prototype, 'apiUiRest', 1);
+    Next()(RootController.prototype, 'apiUiRest', 2);
+    All('/' + apiUiPath + '/*splat')(
+      RootController.prototype,
+      'apiUiRest',
+      Object.getOwnPropertyDescriptor(RootController.prototype, 'apiUiRest')!,
+    );
   }
 
   /**

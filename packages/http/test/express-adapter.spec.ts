@@ -229,18 +229,18 @@ describe('http:ExpressAdapter ($schema/$openapi/apiUi options)', () => {
     const app = express();
     const adapter = new ExpressAdapter(app, document);
     try {
-      const resp = await supertest(app).get('/$ui');
+      const resp = await supertest(app).get('/$docs');
       expect(resp.status).toStrictEqual(404);
     } finally {
       await adapter.close();
     }
   });
 
-  it('Should mount the api-ui page at the default path ($ui) when apiUi:true', async () => {
+  it('Should mount the api-ui page at the default path ($docs) when apiUi:true', async () => {
     const app = express();
     const adapter = new ExpressAdapter(app, document, { apiUi: true });
     try {
-      const resp = await supertest(app).get('/$ui');
+      const resp = await supertest(app).get('/$docs');
       expect(resp.status).toStrictEqual(200);
       expect(resp.headers['content-type']).toMatch(/text\/html/);
     } finally {

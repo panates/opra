@@ -105,12 +105,12 @@ export class ExpressAdapter extends HttpAdapter {
      * to produce an Express handler but the import itself is async. Once
      * resolved, the real handler is cached in `apiUiHandler` and every
      * later request (to this or any of its own sub-routes, e.g.
-     * `$ui/schema/root.json`) is served directly. */
+     * `$docs/schema/root.json`) is served directly. */
     if (this.apiUi) {
       const { path: apiUiPath, ...apiUiOptions } =
         typeof this.apiUi === 'object' ? this.apiUi : {};
       let apiUiHandler: RequestHandler | undefined;
-      router.use(apiUiPath || '/$ui', (_req, _res, next) => {
+      router.use(apiUiPath || '/$docs', (_req, _res, next) => {
         if (apiUiHandler) {
           apiUiHandler(_req, _res, next);
           return;

@@ -1094,7 +1094,7 @@ export namespace HttpAdapter {
      * request, so an adapter that leaves this disabled (the default)
      * never loads it. Pass an options object instead of `true` to
      * customize the rendered page (see `ApiUiOptions`); `path` (default
-     * `"$ui"`) picks where it's mounted, relative to this adapter's own
+     * `"$docs"`) picks where it's mounted, relative to this adapter's own
      * `basePath`. *How* this actually gets mounted is entirely
      * transport-specific — see each concrete adapter (e.g.
      * `ExpressAdapter`) for what it does with this option.

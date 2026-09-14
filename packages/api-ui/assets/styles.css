@@ -326,6 +326,26 @@ a {
   color: var(--text);
 }
 
+/* Reuses `.header-export-btn` (trigger) and `.picker-menu`/`.groupby-item`
+   (the opened dropdown, checkmark included) wholesale — see
+   `scopeSelector` in app.js — rather than introducing a second visual
+   language for "a header control that opens a small options menu".
+   `position: relative` is the only thing this wrapper itself needs to
+   add, to anchor `.header-scope-menu` under the button. */
+.header-scope-wrap {
+  position: relative;
+}
+
+/* Left-anchored under its own (much narrower than the document picker's)
+   button, at the menu's natural width — not stretched edge-to-edge the
+   way `.picker-menu`'s default `right: 0` would under a full-width
+   parent. Same override `.sidebar-groupby-menu` already uses for the
+   same reason. */
+.header-scope-menu {
+  left: 0;
+  right: auto;
+}
+
 .search {
   width: 240px;
   position: relative;

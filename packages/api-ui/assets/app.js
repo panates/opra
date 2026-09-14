@@ -4395,6 +4395,55 @@
     });
   }
 
+  /** A `.picker-menu` dropdown (the same look/behavior as the document
+   *  picker and "View Schema" right next to it — `.header-export-btn`'s
+   *  own trigger style, a `.groupby-item`-shaped row with a checkmark for
+   *  the active one, same `openPickerMenu` single-open bookkeeping)
+   *  switching which *scope* of the document is being viewed (see
+   *  `ApiUiOptions.scopes`/`scope`) — `null` whenever the server didn't
+   *  embed a `ui.scopes` list at all (a single fixed scope has nothing to
+   *  switch between). A native `<select>` was tried first here, but its
+   *  own browser-drawn open-dropdown chrome looks nothing like every
+   *  other menu in this header — this reuses the exact same building
+   *  blocks as those instead of introducing a second visual language.
+   *  Unlike the theme toggle above or the sidebar's own Group By (both
+   *  pure client-side state), picking a scope is a *real navigation*:
+   *  each scope is its own server-rendered page — see `expressApiUi`'s
+   *  `/{scope}` routing — since two scopes of the same OPRA document can
+   *  expose genuinely different fields/types, not just a filtered view of
+   *  one fixed rendering. `location.hash` is preserved across the reload,
+   *  so switching scope keeps you on the same operation/model page, now
+   *  viewed under the new scope — exactly the point of comparing the two. */
+  function scopeSelector(ui) {
+    if (!ui.scopes || ui.scopes.length < 2) return null;
+    var btn = el('button', { class: 'header-export-btn', type: 'button', title: 'Scope' }, [
+      el('span', {}, ['Scope: ' + (ui.scope || '')]),
+      iconFor('chevronDown'),
+    ]);
+    var menu = el('div', { class: 'picker-menu header-scope-menu' });
+    menu.hidden = true;
+    ui.scopes.forEach(function (s) {
+      var item = el('div', { class: 'picker-item groupby-item' + (s === ui.scope ? ' sel' : '') }, [
+        el('span', { class: 't' }, [s]),
+        iconFor('check', 'groupby-check'),
+      ]);
+      item.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        menu.hidden = true;
+        openPickerMenu = null;
+        if (s === ui.scope) return;
+        window.location.href = (ui.basePath || '') + '/' + encodeURIComponent(s) + window.location.hash;
+      });
+      menu.appendChild(item);
+    });
+    btn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      menu.hidden = !menu.hidden;
+      openPickerMenu = menu.hidden ? null : menu;
+    });
+    return el('div', { class: 'header-scope-wrap' }, [btn, menu]);
+  }
+
   // ---------- schema export ----------
 
   /** Base URL for this document's server-side export endpoints (see
@@ -5076,6 +5125,9 @@
     }
     headerChildren.push(el('div', { class: 'picker-wrap', id: 'opra-picker' }));
     var headerRight = [];
+
+    var scopeSelectEl = scopeSelector(ui);
+    if (scopeSelectEl) headerRight.push(scopeSelectEl);
 
     // A labeled "View Schema" button opening a menu of the two formats
     // this document can be viewed as — its own native Opra schema

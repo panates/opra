@@ -68,7 +68,15 @@ export function renderApiUiHtml(
   docs: ApiUiDocs,
   options: ApiUiOptions = {},
 ): string {
-  const { pageTitle, theme = 'dark', customCss, nonce } = options;
+  const {
+    pageTitle,
+    theme = 'dark',
+    customCss,
+    nonce,
+    scope,
+    scopes,
+    basePath,
+  } = options;
   const title = escapeHtml(
     pageTitle || docs.root.info?.title || 'API Reference',
   );
@@ -84,7 +92,16 @@ export function renderApiUiHtml(
     options.logo === null
       ? null
       : (options.logo ?? { src: DEFAULT_LOGO_SRC, alt: 'OPRA', label: 'OPRA' });
-  const ui = { logo };
+  // `scopes`/`basePath` are only meaningful together (see `ApiUiOptions`) —
+  // omitted here (rather than sent as `undefined`/empty) whenever there's
+  // nothing to switch between, so `assets/app.js` can key its own "show a
+  // scope selector at all?" check off a single truthy check on `ui.scopes`.
+  const ui = {
+    logo,
+    scope,
+    scopes: scopes && scopes.length > 1 ? scopes : undefined,
+    basePath,
+  };
 
   return `<!doctype html>
 <html data-theme="${theme}">

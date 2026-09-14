@@ -1,4 +1,3 @@
-import { expressApiUi } from '@opra/api-ui';
 import { ApiDocument } from '@opra/common';
 import { ExpressAdapter, HttpAdapter } from '@opra/http';
 import express from 'express';
@@ -28,17 +27,22 @@ export class CustomerApplication {
     }
     app.document = await CustomerApiDocument.create(app.db);
     app.express = express();
-    // Mounted before ExpressAdapter — its router is mounted at "/" and
-    // would otherwise swallow "/ui" with a "no endpoint found" error.
-    app.express.use(
-      '/ui',
-      expressApiUi(app.document, {
-        pageTitle: 'Customer Application',
-        scope: 'api',
-      }),
-    );
+    // `$openapi`/`apiUi` are published by the adapter itself now (see
+    // `ExpressAdapter._initRouter`) — no more manually mounting
+    // `expressApiUi` on `app.express` ourselves beforehand.
     app.adapter = new ExpressAdapter(app.express, app.document, {
       scope: 'api',
+      openapi: true,
+      apiUi: {
+        path: '/ui',
+        pageTitle: 'Customer Application',
+        // `db`-scoped fields (soft-delete/audit columns writable instead
+        // of readonly, `Customer.dbField`, the whole `Config` type — see
+        // `examples/_lib/customer-mongo/src/models`) are invisible under
+        // the `api` scope the adapter itself runs requests under. This
+        // lets backend readers switch the *docs* to `db` and see them too.
+        scopes: ['api', 'db'],
+      },
       ...options,
     });
     return app;

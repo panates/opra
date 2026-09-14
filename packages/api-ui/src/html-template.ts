@@ -26,6 +26,7 @@ function readAsset(name: string): string {
 }
 
 const STYLES = readAsset('styles.css');
+const VENDOR_MINISEARCH = readAsset('vendor/minisearch.js');
 const APP_SCRIPT = readAsset('app.js');
 /** Base64 data URI so the default logo needs no extra request — the page
  *  stays a single self-contained file like the rest of this renderer. */
@@ -97,6 +98,7 @@ export function renderApiUiHtml(
     <div id="app"></div>
     <script${nonceAttr}>window.__OPRA_DOCS__ = ${serializeForScript(docs)};</script>
     <script${nonceAttr}>window.__OPRA_UI__ = ${serializeForScript(ui)};</script>
+    <script${nonceAttr}>${VENDOR_MINISEARCH}</script>
     <script${nonceAttr}>${APP_SCRIPT}</script>
   </body>
 </html>`;

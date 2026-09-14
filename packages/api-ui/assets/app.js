@@ -2123,12 +2123,22 @@
   /** Base URL for generated request snippets (cURL/Fetch/Axios/Python) — the
    *  document's own first declared server (`OpraSchema.HttpServer`, exposed
    *  client-side as `doc.api.servers`), falling back to this page's own
-   *  origin when no server is declared, since this reference UI is
-   *  typically served from the same host as the API it documents. */
+   *  origin when no server is declared at all, since this reference UI is
+   *  typically served from the same host as the API it documents. A
+   *  declared `url` that's relative (`"/api"`, say — no scheme/host of its
+   *  own) is resolved against that same origin rather than used as-is:
+   *  every snippet here needs a *complete* URL up front (unlike a real
+   *  in-browser fetch, a pasted `curl` command has no "current page" to
+   *  resolve a bare path against). `new URL(url, origin)` handles both
+   *  cases in one call — it passes an already-absolute `url` through
+   *  unchanged, and joins a relative one onto `origin` — and stripping any
+   *  trailing slash keeps `baseUrl + fullPath` (see `buildRequestModel`)
+   *  from ever doubling up into `//`. */
   function apiBaseUrl(doc) {
     var servers = doc.api && doc.api.servers;
-    if (servers && servers.length && servers[0].url) return servers[0].url;
-    return window.location.origin;
+    var url = servers && servers.length && servers[0].url;
+    if (!url) return window.location.origin;
+    return new URL(url, window.location.origin).href.replace(/\/+$/, '');
   }
 
   /** Substitutes every `:paramName` token in `path` with that path
@@ -3538,7 +3548,7 @@
 
   function buildSidebar(nav, docKey, doc) {
     clear(nav);
-    var filterValue = ((document.getElementById('opra-search') || {}).value || '').toLowerCase();
+    var filterValue = ((document.getElementById('opra-sidebar-filter') || {}).value || '').toLowerCase();
     // `null` (not just falsy) when nothing's selected, so every check
     // below reads the same as `filterValue`'s own "empty means no
     // filter" convention rather than a subtly different truthy/length
@@ -4641,6 +4651,398 @@
       });
   }
 
+  // ---------- full-text search ----------
+
+  /** One MiniSearch index per document, built once and cached — every
+   *  controller, operation, its own parameters, every model, and every
+   *  model field becomes one searchable entry. `label` is the entry's own
+   *  display name (boosted highest — a name match should always outrank
+   *  a description-only one); `desc` is its description/prose, the only
+   *  field an excerpt (see `buildExcerpt`) is ever built from; `aux`
+   *  carries an operation's raw `opKey`/path (searchable — a technical
+   *  name like `avatar` still finds "Update avatar" — but never shown or
+   *  excerpted, since it isn't prose). MiniSearch (vendored, see
+   *  `assets/vendor/minisearch.js`) does its own per-token prefix and
+   *  fuzzy (edit-distance) matching, which is what plain
+   *  substring/subsequence matching (this function's previous, hand-
+   *  rolled incarnation) couldn't: a multi-word query like "the porfile"
+   *  tokenizes into "the" + "porfile", and each token is fuzzy-matched
+   *  *independently* against the index, so a typo in one word doesn't
+   *  sink the whole query the way a single whole-string edit-
+   *  distance/subsequence check did. Scoped to a single document, the
+   *  same way the sidebar's own Quick Filter always has been — this app
+   *  has no notion of a single search spanning multiple documents at
+   *  once. */
+  var searchIndexCache = {};
+  function buildSearchIndex(docKey) {
+    if (searchIndexCache[docKey]) return searchIndexCache[docKey];
+    var doc = docs[docKey];
+    var entries = [];
+    var nextId = 0;
+    function push(entry) {
+      entry.id = nextId++;
+      entries.push(entry);
+    }
+    if (doc && doc.api && doc.api.controllers) {
+      (function walk(controllers, parentRoute, parentLabel) {
+        Object.keys(controllers).forEach(function (name) {
+          var ctrl = controllers[name];
+          var route = parentRoute + '/' + encodeURIComponent(name);
+          var label = parentLabel ? parentLabel + ' › ' + name : name;
+          push({
+            type: 'controller',
+            label: name,
+            // A root-level controller has no meaningful parent to show —
+            // an empty breadcrumb here (see `renderResults`), not a
+            // generic "Controller" fallback that would just repeat what
+            // this row's own group header ("Controllers") already says.
+            sublabel: parentLabel || '',
+            desc: ctrl.description || '',
+            aux: '',
+            route: route,
+          });
+          if (ctrl.operations) {
+            Object.keys(ctrl.operations).forEach(function (opKey) {
+              var op = ctrl.operations[opKey];
+              var opRoute = route + '/' + encodeURIComponent(opKey);
+              var opLabel = op.title || opKey;
+              push({
+                type: 'operation',
+                label: opLabel,
+                sublabel: label,
+                method: op.method,
+                desc: op.description || '',
+                aux: opKey + ' ' + (op.path || ''),
+                route: opRoute,
+              });
+              (op.parameters || []).forEach(function (p) {
+                push({
+                  type: 'parameter',
+                  label: p.name,
+                  sublabel: opLabel,
+                  desc: p.description || '',
+                  aux: '',
+                  route: opRoute,
+                });
+              });
+            });
+          }
+          if (ctrl.controllers) walk(ctrl.controllers, route, label);
+        });
+      })(doc.api.controllers, 'ctl', '');
+    }
+    var types = doc.types || {};
+    Object.keys(types).forEach(function (name) {
+      var t = types[name];
+      var route = 'model/' + encodeURIComponent(name);
+      push({
+        type: 'model',
+        label: name,
+        sublabel: dataTypeGroupLabel(t.kind),
+        desc: t.description || '',
+        aux: '',
+        route: route,
+      });
+      if (t.fields) {
+        Object.keys(t.fields).forEach(function (fname) {
+          var f = t.fields[fname];
+          push({
+            type: 'field',
+            label: fname,
+            sublabel: name,
+            desc: f.description || '',
+            aux: '',
+            route: route,
+          });
+        });
+      }
+    });
+
+    var mini = new MiniSearch({
+      fields: ['label', 'desc', 'aux'],
+      storeFields: ['type', 'label', 'sublabel', 'desc', 'route', 'method'],
+      searchOptions: {
+        boost: { label: 3, aux: 1.2 },
+        fuzzy: 0.25,
+        prefix: true,
+      },
+    });
+    mini.addAll(entries);
+    var built = { mini: mini };
+    searchIndexCache[docKey] = built;
+    return built;
+  }
+
+  /** Wraps every occurrence of any of `terms` in `text` in a `<mark>` —
+   *  like the sidebar's own `highlightParts` above, but for *several*
+   *  terms at once, and where a term isn't necessarily a literal
+   *  substring of what the user typed: MiniSearch's fuzzy/prefix matching
+   *  means the term that actually matched (e.g. "profile", found in the
+   *  index) can differ from the query token that found it (e.g.
+   *  "porfile") — `terms` here is always the former, read off each
+   *  result's own `match` map (see `renderResults`), so this highlights
+   *  the real word, not the typo. Overlapping/adjacent hits merge into
+   *  one `<mark>` instead of nesting or duplicating. */
+  function highlightTerms(text, terms) {
+    if (!terms || !terms.length) return [text];
+    var lower = text.toLowerCase();
+    var ranges = [];
+    terms.forEach(function (term) {
+      if (!term) return;
+      var pos = 0;
+      var idx;
+      while ((idx = lower.indexOf(term, pos)) !== -1) {
+        ranges.push([idx, idx + term.length]);
+        pos = idx + term.length;
+      }
+    });
+    if (!ranges.length) return [text];
+    ranges.sort(function (a, b) {
+      return a[0] - b[0] || a[1] - b[1];
+    });
+    var merged = [ranges[0].slice()];
+    ranges.slice(1).forEach(function (r) {
+      var last = merged[merged.length - 1];
+      if (r[0] <= last[1]) last[1] = Math.max(last[1], r[1]);
+      else merged.push(r.slice());
+    });
+    var parts = [];
+    var pos = 0;
+    merged.forEach(function (r) {
+      if (r[0] > pos) parts.push(text.slice(pos, r[0]));
+      parts.push(el('mark', { class: 'match-highlight' }, [text.slice(r[0], r[1])]));
+      pos = r[1];
+    });
+    if (pos < text.length) parts.push(text.slice(pos));
+    return parts;
+  }
+
+  /** A KWIC ("keyword in context") snippet — the same idea Docusaurus's
+   *  own search results show: not the whole description, just a window
+   *  around wherever a matched term actually landed, so the reader sees
+   *  *why* this result matched, not only *that* it did. `descTerms` are
+   *  the (already-lowercased) real words `renderResults` found matched
+   *  specifically within this entry's `desc` field; returns `null` when
+   *  there's nothing to show one for — the match came from the label or
+   *  the hidden `aux` field instead, and the row's breadcrumb alone is
+   *  enough context for that. */
+  function buildExcerpt(desc, descTerms) {
+    if (!desc || !descTerms.length) return null;
+    var lower = desc.toLowerCase();
+    var bestIdx = -1;
+    descTerms.forEach(function (term) {
+      var idx = lower.indexOf(term);
+      if (idx !== -1 && (bestIdx === -1 || idx < bestIdx)) bestIdx = idx;
+    });
+    if (bestIdx === -1) return null;
+    var BEFORE = 40;
+    var AFTER = 100;
+    var start = Math.max(0, bestIdx - BEFORE);
+    var end = Math.min(desc.length, bestIdx + AFTER);
+    var snippet = desc.slice(start, end).trim();
+    return (start > 0 ? '…' : '') + snippet + (end < desc.length ? '…' : '');
+  }
+
+  /** Fixed display order (top to bottom) for whichever of these five
+   *  groups actually turned up a match — independent of `allocateRows`'s
+   *  own ascending-by-count sort below, which only decides *how many*
+   *  rows each gets, not the order they're shown in. */
+  var SEARCH_CATEGORIES = [
+    { type: 'controller', label: 'Controllers' },
+    { type: 'operation', label: 'Operations' },
+    { type: 'parameter', label: 'Parameters' },
+    { type: 'model', label: 'Models' },
+    { type: 'field', label: 'Fields' },
+  ];
+  var SEARCH_MAX_ROWS = 12;
+
+  /** Splits a fixed `maxRows` budget across categories so a search that
+   *  happens to turn up 30 fields and 3 models doesn't bury those 3
+   *  models under a screen entirely full of fields. Water-filling from
+   *  the smallest count up: a category with fewer matches than an equal
+   *  share gets all of them (nothing wasted), and whatever it *didn't*
+   *  use rolls over into the equal share recomputed for the categories
+   *  still waiting — so 8 controllers/30 fields/3 models at maxRows=12
+   *  comes out 4/5/3 (models take all 3 of their own first, freeing 9 to
+   *  split between the remaining two), not an even, comparison-blind 4
+   *  each or a purely proportional (and modest-category-crushing) split. */
+  function allocateRows(counts, maxRows) {
+    var cats = Object.keys(counts).filter(function (c) {
+      return counts[c] > 0;
+    });
+    cats.sort(function (a, b) {
+      return counts[a] - counts[b];
+    });
+    var remaining = maxRows;
+    var alloc = {};
+    cats.forEach(function (cat, i) {
+      var isLast = i === cats.length - 1;
+      var share = isLast ? remaining : Math.floor(remaining / (cats.length - i));
+      var take = Math.min(counts[cat], share);
+      alloc[cat] = take;
+      remaining -= take;
+    });
+    return alloc;
+  }
+
+  /** A Docusaurus-style search — everywhere the sidebar's own Quick
+   *  Filter doesn't reach: operation/parameter/model/field
+   *  *descriptions*, not just names already visible as a nav row. Built
+   *  entirely client-side from `buildSearchIndex` (the whole document is
+   *  already embedded in the page — nothing to fetch, and at the size of
+   *  a single API's own reference — hundreds, not millions, of entries —
+   *  MiniSearch's own index build/query cost is well under a frame's
+   *  budget on every keystroke). A popup anchored under the header's own
+   *  search box (see `init`), not a centered modal — the box itself does
+   *  the actual typing, same as any other autocomplete, rather than
+   *  handing off to a separate input inside an overlay. */
+  function initSearchPopup(searchInput, searchPopup, searchResultsEl) {
+    var activeIndex = -1;
+    // Whether `activeIndex` is currently *shown* (a row actually painted
+    // `.active`) — distinct from the index itself, which `renderResults`
+    // always primes to `0` so Enter alone opens the top match. The first
+    // arrow-key press after a fresh render only reveals that row instead
+    // of skipping past it to index 1.
+    var activeVisible = false;
+
+    function isOpen() {
+      return !searchPopup.hidden;
+    }
+    function open() {
+      if (openPickerMenu && openPickerMenu !== searchPopup) openPickerMenu.hidden = true;
+      openPickerMenu = searchPopup;
+      searchPopup.hidden = false;
+      renderResults(searchInput.value);
+    }
+    function close() {
+      searchPopup.hidden = true;
+      if (openPickerMenu === searchPopup) openPickerMenu = null;
+    }
+
+    function setActive(i) {
+      var rows = searchResultsEl.querySelectorAll('.search-result-item');
+      Array.prototype.forEach.call(rows, function (r) {
+        r.classList.remove('active');
+      });
+      if (i < 0 || i >= rows.length) {
+        activeIndex = -1;
+        activeVisible = false;
+        return;
+      }
+      activeIndex = i;
+      activeVisible = true;
+      rows[i].classList.add('active');
+      rows[i].scrollIntoView({ block: 'nearest' });
+    }
+
+    function renderResults(query) {
+      clear(searchResultsEl);
+      if (!query) {
+        searchResultsEl.appendChild(
+          el('div', { class: 'search-popup-empty' }, ['Type to search across operations, models, fields, and parameters.']),
+        );
+        return;
+      }
+      // MiniSearch already returns results sorted by score, descending,
+      // across the whole document regardless of type — grouping below
+      // just partitions that single sorted list by `type`, so each
+      // group's own relative order is preserved for free.
+      var results = buildSearchIndex(state.docKey).mini.search(query);
+      var byType = {};
+      results.forEach(function (r) {
+        (byType[r.type] = byType[r.type] || []).push(r);
+      });
+      var counts = {};
+      Object.keys(byType).forEach(function (t) {
+        counts[t] = byType[t].length;
+      });
+      var alloc = allocateRows(counts, SEARCH_MAX_ROWS);
+
+      var shown = 0;
+      SEARCH_CATEGORIES.forEach(function (cat) {
+        var list = byType[cat.type];
+        var take = alloc[cat.type] || 0;
+        if (!list || !take) return;
+        searchResultsEl.appendChild(
+          el('div', { class: 'search-group-label' }, [cat.label + ' (' + list.length + ')']),
+        );
+        list.slice(0, take).forEach(function (r) {
+          // `r.match` (from MiniSearch) maps each *real* word it found —
+          // not the raw query token, which may be a typo of it — to the
+          // list of fields it matched in; split those into "found in the
+          // label" (highlight the heading) vs. "found in the
+          // description" (highlight it too, and is what `buildExcerpt`
+          // builds its snippet around) — a term matching only the hidden
+          // `aux` field (an operation's raw path) does neither.
+          var labelTerms = [];
+          var descTerms = [];
+          Object.keys(r.match).forEach(function (term) {
+            var fields = r.match[term];
+            if (fields.indexOf('label') !== -1) labelTerms.push(term);
+            if (fields.indexOf('desc') !== -1) descTerms.push(term);
+          });
+          var textChildren = [el('div', { class: 'search-result-label' }, highlightTerms(r.label, labelTerms))];
+          var excerpt = buildExcerpt(r.desc, descTerms);
+          if (excerpt) textChildren.push(el('div', { class: 'search-result-excerpt' }, highlightTerms(excerpt, descTerms)));
+          var row = el('a', { class: 'search-result-item', href: hrefFor(state.docKey, r.route) }, [
+            el('div', { class: 'search-result-crumb' }, r.sublabel ? [r.sublabel, el('span', { class: 'search-result-crumb-arrow' }, ['›'])] : []),
+            el('div', { class: 'search-result-text' }, textChildren),
+            r.method ? methodBadge(r.method) : null,
+          ]);
+          searchResultsEl.appendChild(row);
+          shown++;
+        });
+      });
+      if (!shown) {
+        searchResultsEl.appendChild(el('div', { class: 'search-popup-empty' }, ['No matches for "' + query + '".']));
+        return;
+      }
+      // The top row is the one Enter opens without having to press
+      // ArrowDown first — but that's just `activeIndex` bookkeeping, not
+      // a visual state: rows are otherwise plain until the user actually
+      // does something (hovers, or presses an arrow key), so a fresh
+      // result list never opens looking like its own top row is already
+      // selected. `setActive` (which *does* paint `.active`) is only
+      // ever called from the arrow-key handlers below.
+      activeIndex = 0;
+      activeVisible = false;
+    }
+
+    searchInput.addEventListener('focus', open);
+    searchInput.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      open();
+    });
+    searchInput.addEventListener('input', function () {
+      renderResults(searchInput.value);
+    });
+    searchInput.addEventListener('keydown', function (ev) {
+      var rows = searchResultsEl.querySelectorAll('.search-result-item');
+      if (ev.key === 'ArrowDown') {
+        ev.preventDefault();
+        // A fresh render's own `activeIndex` (always `0`) isn't shown
+        // yet — the first press just reveals it, rather than skipping
+        // straight to row 1.
+        setActive(activeVisible ? Math.min(activeIndex + 1, rows.length - 1) : activeIndex);
+      } else if (ev.key === 'ArrowUp') {
+        ev.preventDefault();
+        setActive(activeVisible ? Math.max(activeIndex - 1, 0) : activeIndex);
+      } else if (ev.key === 'Enter') {
+        ev.preventDefault();
+        if (activeIndex >= 0 && rows[activeIndex]) rows[activeIndex].click();
+      } else if (ev.key === 'Escape') {
+        close();
+        searchInput.blur();
+      }
+    });
+    // A result is a plain `<a href>` — clicking it navigates on its own;
+    // the same document-level "click anywhere closes whichever menu is
+    // open" handler `buildPicker`'s own menu already relies on closes
+    // this popup right after, since it's `openPickerMenu` while open.
+
+    return { open: open, close: close, isOpen: isOpen };
+  }
+
   function init() {
     var app = document.getElementById('app');
     var ui = window.__OPRA_UI__ || {};
@@ -4712,12 +5114,22 @@
     });
     headerRight.push(el('div', { class: 'header-export-wrap' }, [exportBtn, exportMenu]));
     headerRight.push(themeToggleButton());
+    // The results popup lives inside `.search` itself (which is already
+    // `position: relative`) so it anchors directly under the box, not as
+    // a separate centered overlay — `initSearchPopup` (see above) wires
+    // up everything else once these three exist.
+    var globalSearchInput = el('input', { id: 'opra-search', type: 'search', placeholder: 'Search' });
+    var searchResultsEl = el('div', { class: 'search-popup-results' });
+    var searchPopup = el('div', { class: 'search-popup' }, [searchResultsEl]);
+    searchPopup.hidden = true;
     headerRight.push(
       el('div', { class: 'search' }, [
-        el('input', { id: 'opra-search', type: 'search', placeholder: 'Search' }),
+        globalSearchInput,
         el('span', { class: 'search-kbd' }, [kbdShortcutLabel()]),
+        searchPopup,
       ]),
     );
+    initSearchPopup(globalSearchInput, searchPopup, searchResultsEl);
     headerChildren.push(el('div', { class: 'header-right' }, headerRight));
     var header = el('div', { class: 'header' }, headerChildren);
     // `#opra-nav` is now the *inner* scrollable list only — `buildSidebar`
@@ -4739,7 +5151,7 @@
     sidebarFilterClear.addEventListener('click', function (e) {
       e.preventDefault();
       sidebarFilterInput.value = '';
-      onSidebarFilterInput(sidebarFilterInput);
+      onSidebarFilterInput();
       sidebarFilterInput.focus();
     });
 
@@ -4922,7 +5334,7 @@
       state.modelKindFilter = [];
       sidebarFilterInput.value = '';
       syncFilterUi();
-      onSidebarFilterInput(sidebarFilterInput);
+      onSidebarFilterInput();
       methodFilterMenu.hidden = true;
       openPickerMenu = null;
     });
@@ -5045,34 +5457,24 @@
     app.appendChild(sidebar);
     app.appendChild(main);
 
-    // The header's own search box and this sidebar-local filter both drive
-    // the exact same tree-filtering logic in `buildSidebar` (which just
-    // reads `#opra-search`'s value — see its own `filterValue` line), so
-    // typing in either one keeps the other's value in sync rather than
-    // leaving it looking stale once the sidebar has already been filtered
-    // by its counterpart.
-    var searchInput = document.getElementById('opra-search');
-    function onSidebarFilterInput(source) {
-      var value = source.value;
-      if (source !== searchInput) searchInput.value = value;
-      if (source !== sidebarFilterInput) sidebarFilterInput.value = value;
+    // The Quick Filter box narrows the sidebar tree already on screen —
+    // see its own `filterValue` line in `buildSidebar`.
+    function onSidebarFilterInput() {
       sidebarFilterClear.hidden = !sidebarFilterInput.value;
       buildSidebar(navList, state.docKey, docs[state.docKey]);
       highlightActive(navList);
     }
-    searchInput.addEventListener('input', function () {
-      onSidebarFilterInput(searchInput);
-    });
     sidebarFilterInput.addEventListener('input', function () {
-      onSidebarFilterInput(sidebarFilterInput);
+      onSidebarFilterInput();
     });
     // The visible "⌘K"/"Ctrl K" hint (see `kbdShortcutLabel`) promises
-    // this actually works, not just decorates the search box.
+    // this actually works, not just decorates the search box — focusing
+    // it is what opens the results popup (see `initSearchPopup`'s own
+    // `focus` listener), so this is all ⌘K itself needs to do.
     document.addEventListener('keydown', function (e) {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault();
-        searchInput.focus();
-        searchInput.select();
+        globalSearchInput.focus();
       }
     });
     window.addEventListener('hashchange', render);

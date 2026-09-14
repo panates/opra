@@ -807,6 +807,164 @@ a {
   transform: rotate(180deg);
 }
 
+/* ---------- global search ---------- */
+
+/* Anchored under the header's own search box (`.search`, already
+   `position: relative`) instead of a centered modal overlay — a plain
+   dropdown, same spirit as `.picker-menu`/`.sidebar-groupby-menu`
+   elsewhere in the header/sidebar, just wider (results carry a
+   label+sublabel each, `.search`'s own 240px would be cramped) and
+   right-anchored so it opens toward the header's own middle instead of
+   running off the right edge of the viewport. */
+.search-popup {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 440px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  padding: 6px;
+  z-index: 30;
+}
+
+/* A class selector's own `display` (the block-level default one below,
+   inherited implicitly) doesn't fight `[hidden]` here since nothing sets
+   `display` explicitly on `.search-popup` itself — see the note on
+   `.modal-icon-btn[hidden]` elsewhere for what *does* need restating. */
+.search-popup-results {
+  display: flex;
+  flex-direction: column;
+}
+
+/* A filled band, not just colored text, so one group visibly ends and
+   the next begins even at a glance — `margin`'s negative sides bleed it
+   out to the popup's own edges (canceling `.search-popup`'s 6px padding)
+   and `padding-inline` puts that same 6px + the row's own 10px back, so
+   the label's own text still lines up with every row's text below it. */
+.search-group-label {
+  margin: 0 -6px;
+  padding: 8px 16px 6px;
+  background: var(--bg-hover);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.search-popup-empty {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* Flat and *explicitly* the page's own base color (not the popup's own
+   slightly-tinted `--code-bg`) — a plain white row underneath the
+   `.search-group-label`'s own grayer band above, so the two visibly
+   read as separate surfaces. No rounding at rest either; both change
+   only on `:hover`/`.active` below. */
+.search-result-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  text-decoration: none;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* No divider directly under a group header — that header already
+   separates it from whatever came before; the line is only for telling
+   consecutive *rows* apart. */
+.search-group-label + .search-result-item {
+  border-top: none;
+}
+
+/* Plain neutral hover/active — same `--bg-hover` treatment the sidebar's
+   own `.nav-link` uses (see there), not an accent-tinted fill: that
+   translucent-accent + inset-bar combination reads as an info/tip
+   callout box (the kind `:::tip`-style admonitions use elsewhere in this
+   app), not a selected row. */
+.search-result-item:hover,
+.search-result-item.active {
+  border-radius: 8px;
+  background: var(--bg-hover);
+}
+
+.search-result-item.active {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* The result's own breadcrumb — its parent controller/operation/model,
+   i.e. where this entry lives — as a narrow column to the *left* of the
+   heading, Docusaurus-search style, rather than a second line underneath
+   it (the previous layout). No per-row type icon/badge beside it (the
+   previous layout had one) — the group header above each block of rows
+   (see `.search-group-label`, e.g. "PARAMETERS") already says the type,
+   so repeating it on every single row was pure noise. Clamped to two
+   lines since a deeply nested controller path can run long, left-aligned
+   to match the icon-less column's own edge instead of ragging inward
+   toward the heading. */
+.search-result-crumb {
+  width: 92px;
+  flex-shrink: 0;
+  padding-top: 2px;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--text-muted);
+  text-align: left;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* The chevron closing out a breadcrumb, pointing at the heading right
+   next to it — the visual cue that this column is a *path leading here*,
+   not a stray label of its own. */
+.search-result-crumb-arrow {
+  margin-left: 3px;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.search-result-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.search-result-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The KWIC ("keyword in context") snippet built by `buildExcerpt` — the
+   description text around wherever the query actually matched, not the
+   whole thing, with `<mark>` already applied to it (see
+   `highlightTerms`). Clamped to two lines rather than `nowrap`, unlike
+   `.search-result-label` above: an excerpt is prose, meant to be read,
+   not a single-line identifier. */
+.search-result-excerpt {
+  margin-top: 2px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
 /* ---------- sidebar ---------- */
 
 /* Holds the quick filter box (fixed, never rebuilt) above `.sidebar-nav`

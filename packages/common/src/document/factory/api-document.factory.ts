@@ -209,7 +209,15 @@ export class ApiDocumentFactory {
     const document = new ApiDocument();
     document[BUILTIN] = true;
     const BigIntConstructor = Object.getPrototypeOf(BigInt(0)).constructor;
-    const BufferConstructor = Object.getPrototypeOf(Buffer.from([]));
+    // `Buffer` is a Node global, absent in a browser (e.g. `@opra/api-ui`'s
+    // client-side codegen bundle, which calls `createDocument()` on an
+    // already-exported schema) — this mapping is only ever needed to infer
+    // a decorated class field's type from its `Buffer`-typed design type,
+    // which a browser, never decorating classes itself, has no use for.
+    const BufferConstructor =
+      typeof Buffer !== 'undefined'
+        ? Object.getPrototypeOf(Buffer.from([]))
+        : undefined;
     const _ctorTypeMap = document.types[kCtorMap];
     _ctorTypeMap.set(Object, 'object');
     _ctorTypeMap.set(String, 'string');
@@ -219,7 +227,7 @@ export class ApiDocumentFactory {
     _ctorTypeMap.set(Date, 'datetime');
     _ctorTypeMap.set(BigIntConstructor, 'bigint');
     _ctorTypeMap.set(ArrayBuffer, 'base64');
-    _ctorTypeMap.set(BufferConstructor, 'base64');
+    if (BufferConstructor) _ctorTypeMap.set(BufferConstructor, 'base64');
     await this.initDocument(document, context, init);
     return document;
   }

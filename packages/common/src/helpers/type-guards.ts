@@ -1,5 +1,5 @@
 /// <reference lib="dom" />
-import { Readable, Stream } from 'stream';
+import type { Readable, Stream } from 'stream';
 
 export function isStream(x: any): x is Stream {
   return x !== null && typeof x === 'object' && typeof x.pipe === 'function';

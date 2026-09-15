@@ -115,7 +115,7 @@ export async function generateDataType(
       const codeBlock = (file.code['type_' + typeName] = new CodeBlock());
       codeBlock.header_start = `/**\n`;
       codeBlock.header = ` * ${wrapJSDocString(dataType.description || '')}\n`;
-      codeBlock.header += ` * @url ${path.posix.join(doc.url || this.serviceUrl, '$schema', '#types/' + typeName)}\n`;
+      codeBlock.header += ` * @url ${path.posix.join(doc.url || this.serviceUrl || '', '$schema', '#types/' + typeName)}\n`;
       codeBlock.header_end = `*/\n`;
       codeBlock.type_start = `export `;
       await this._generateTypeCode(file, dataType, codeBlock, 'root');

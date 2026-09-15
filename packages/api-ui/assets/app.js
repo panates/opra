@@ -4193,6 +4193,13 @@
     var hasHttpApi = !!(doc.api && doc.api.transport === 'http');
     var viewOpenapiItem = document.getElementById('opra-view-openapi');
     if (viewOpenapiItem) viewOpenapiItem.hidden = !hasHttpApi;
+    // The generated client is an HTTP client — same "nothing to map"
+    // reasoning as the OpenAPI item just above, so it's hidden for the
+    // same types-only documents.
+    var viewTsClientItem = document.getElementById('opra-view-tsclient');
+    if (viewTsClientItem) viewTsClientItem.hidden = !hasHttpApi;
+    var tsClientLabel = document.getElementById('opra-view-tsclient-label');
+    if (tsClientLabel) tsClientLabel.hidden = !hasHttpApi;
     buildSidebar(nav, state.docKey, doc);
     buildPicker(picker);
     highlightActive(nav);
@@ -4396,7 +4403,7 @@
   }
 
   /** A `.picker-menu` dropdown (the same look/behavior as the document
-   *  picker and "View Schema" right next to it — `.header-export-btn`'s
+   *  picker and "Export" right next to it — `.header-export-btn`'s
    *  own trigger style, a `.groupby-item`-shaped row with a checkmark for
    *  the active one, same `openPickerMenu` single-open bookkeeping)
    *  switching which *scope* of the document is being viewed (see
@@ -4698,6 +4705,219 @@
       .catch(function () {
         code.textContent = 'Failed to load.';
       });
+  }
+
+  /** Lazily loads the browser-side TypeScript-client generator bundle (see
+   *  `expressApiUi`'s own `/codegen/*.js` route and `codegen-bundle/
+   *  browser-entry.ts`) — a dynamic `import()` so the (fairly large)
+   *  bundle is only ever fetched once someone actually clicks "TypeScript
+   *  Client" below, and cached so a second click doesn't refetch it. */
+  var codegenBundlePromise = null;
+  function loadCodegenBundle() {
+    if (!codegenBundlePromise) {
+      codegenBundlePromise = import(exportBaseUrl() + '/codegen/browser-entry.js');
+    }
+    return codegenBundlePromise;
+  }
+
+  function clientZipFilename(docKey) {
+    var slug = docTitle(docKey)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return (slug || docKey) + '.client.zip';
+  }
+
+  /** Generates a TypeScript client for the currently active document and
+   *  saves it as a zip — entirely in this browser tab (see
+   *  `codegen-bundle/browser-entry.ts`'s own doc comment for why: the
+   *  server only ever serves already-public schema JSON and this one
+   *  static script, never runs the generator itself). Mirrors
+   *  `getDocsByKey()` on the server side: the active document's own
+   *  schema carries only a lightweight `{id, url, info}` pointer per
+   *  reference namespace, so each one's *full* schema is fetched
+   *  separately (the same `/schema/<ns>.json` route, once per namespace)
+   *  before handing everything to `generateTypeScriptClientZip`. Returns
+   *  the promise so `openTsClientModal`'s own download button can drive
+   *  its label/status from it, rather than this function reaching into a
+   *  particular button's DOM itself (see `generateTypeScriptClient`'s
+   *  previous, menu-item-specific incarnation).
+   */
+  function generateAndDownloadTsClient() {
+    var docKey = state.docKey;
+    return fetch(exportUrl('schema', docKey))
+      .then(function (res) {
+        if (!res.ok) throw new Error('Failed to load schema');
+        return res.json();
+      })
+      .then(function (rootSchema) {
+        var refNames = Object.keys(rootSchema.references || {}).filter(function (ns) {
+          return ns !== 'opra';
+        });
+        return Promise.all(
+          refNames.map(function (ns) {
+            return fetch(exportUrl('schema', ns))
+              .then(function (res) {
+                if (!res.ok) throw new Error('Failed to load reference schema "' + ns + '"');
+                return res.json();
+              })
+              .then(function (json) {
+                return [ns, json];
+              });
+          }),
+        ).then(function (pairs) {
+          var referenceSchemas = {};
+          pairs.forEach(function (pair) {
+            referenceSchemas[pair[0]] = pair[1];
+          });
+          return loadCodegenBundle().then(function (mod) {
+            return mod.generateTypeScriptClientZip(rootSchema, referenceSchemas);
+          });
+        });
+      })
+      .then(function (zipBytes) {
+        var blob = new Blob([zipBytes], { type: 'application/zip' });
+        var blobUrl = URL.createObjectURL(blob);
+        downloadUrl(blobUrl, clientZipFilename(docKey));
+        setTimeout(function () {
+          URL.revokeObjectURL(blobUrl);
+        }, 1000);
+      });
+  }
+
+  /** The base URL a `$schema`-aware tool (namely `@opra/cli`'s own
+   *  `oprimp generate`) should be pointed at — the adapter's own service
+   *  root, where `GET $schema` actually lives (see `HttpAdapter`), which
+   *  is *not* necessarily this page's own mount (`ui.basePath`, e.g.
+   *  `/ui`): the two happen to be the same origin in every example this
+   *  app ships with (the adapter mounted at the app root, `apiUi` as a
+   *  sibling route on it), so `location.origin` is offered as a best-
+   *  effort default rather than something guaranteed correct for every
+   *  possible deployment — the modal says as much. */
+  function guessServiceUrl() {
+    return location.origin;
+  }
+
+  var tsClientModalOverlay = null;
+
+  function closeTsClientModal() {
+    if (!tsClientModalOverlay) return;
+    tsClientModalOverlay.remove();
+    tsClientModalOverlay = null;
+    document.removeEventListener('keydown', onTsClientModalKeydown);
+  }
+
+  function onTsClientModalKeydown(ev) {
+    if (ev.key === 'Escape') closeTsClientModal();
+  }
+
+  /** The "Export" menu's "TypeScript Client" entry opens this instead of
+   *  downloading straight away — generating one takes a moment and isn't
+   *  the only way to get a client, so it's worth a beat to show both
+   *  options: the `@opra/cli` command line (the more flexible route —
+   *  custom output directory, file headers, etc.) and a direct in-
+   *  browser download (the same generation this app itself now runs,
+   *  saved as a zip with no separate install). */
+  function openTsClientModal() {
+    closeTsClientModal();
+
+    var closeBtn = el(
+      'button',
+      { class: 'modal-icon-btn', type: 'button', title: 'Close' },
+      [iconFor('close')],
+    );
+    closeBtn.addEventListener('click', closeTsClientModal);
+    var header = el('div', { class: 'modal-header' }, [
+      el('div', { class: 'modal-header-left' }, [
+        iconFor('download'),
+        el('span', { class: 'modal-title' }, ['TypeScript Client']),
+      ]),
+      el('div', { class: 'modal-header-actions' }, [closeBtn]),
+    ]);
+
+    var cmd = 'npx oprimp generate -u ' + guessServiceUrl() + ' -o ./client';
+    var cmdRow = el('div', { class: 'tsclient-cmd' }, [
+      el('code', { class: 'mono' }, [cmd]),
+      copyButton(cmd, 14),
+    ]);
+
+    var statusEl = el('div', { class: 'tsclient-status', hidden: true });
+    var downloadLabel = el('span', {}, ['Download']);
+    var downloadBtn = el(
+      'button',
+      { class: 'tsclient-download-btn', type: 'button' },
+      [iconFor('download'), downloadLabel],
+    );
+    downloadBtn.addEventListener('click', function () {
+      if (downloadBtn.classList.contains('busy')) return;
+      downloadBtn.classList.add('busy');
+      downloadLabel.textContent = 'Generating…';
+      statusEl.hidden = true;
+      generateAndDownloadTsClient()
+        .then(function () {
+          statusEl.hidden = false;
+          statusEl.className = 'tsclient-status ok';
+          statusEl.textContent = 'Client downloaded.';
+        })
+        .catch(function (err) {
+          statusEl.hidden = false;
+          statusEl.className = 'tsclient-status err';
+          statusEl.textContent =
+            'Failed to generate client: ' + (err && err.message ? err.message : err);
+        })
+        .finally(function () {
+          downloadBtn.classList.remove('busy');
+          downloadLabel.textContent = 'Download';
+        });
+    });
+
+    var body = el('div', { class: 'modal-body tsclient-body' }, [
+      el('p', {}, [
+        'Generate a fully typed TypeScript client for this API, either from the command line or directly here in your browser.',
+      ]),
+      el('div', { class: 'tsclient-h' }, ['From the command line']),
+      el('p', {}, [
+        'Use the ',
+        el('code', { class: 'mono' }, ['@opra/cli']),
+        ' package for full control over the output — a custom output directory, file headers, and more:',
+      ]),
+      cmdRow,
+      el('p', { class: 'tsclient-hint' }, [
+        "If this API isn't mounted at its host's root, adjust the URL above to point at your own service root instead.",
+      ]),
+      el('div', { class: 'tsclient-h' }, ['Or download it now']),
+      el('p', {}, [
+        'Generates the same client right here and saves it as a zip — nothing beyond this page\'s own (already public) schema is sent anywhere.',
+      ]),
+      downloadBtn,
+      statusEl,
+    ]);
+
+    var dialog = el('div', { class: 'modal-dialog tsclient-dialog' }, [header, body]);
+    tsClientModalOverlay = el('div', { class: 'modal-overlay' }, [dialog]);
+    tsClientModalOverlay.addEventListener('click', function (ev) {
+      if (ev.target === tsClientModalOverlay) closeTsClientModal();
+    });
+    document.body.appendChild(tsClientModalOverlay);
+    document.addEventListener('keydown', onTsClientModalKeydown);
+  }
+
+  /** The "Export" menu's own "TypeScript Client" entry — opens
+   *  `openTsClientModal` rather than acting directly, since (unlike its
+   *  two siblings, which just open a read-only viewer) there's a real
+   *  choice to offer here: the CLI or a direct browser download. */
+  function typescriptClientMenuItem(menu) {
+    var item = el('div', { class: 'picker-item groupby-item', id: 'opra-view-tsclient' }, [
+      iconFor('download'),
+      el('span', { class: 't' }, ['TypeScript Client']),
+    ]);
+    item.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      menu.hidden = true;
+      openPickerMenu = null;
+      openTsClientModal();
+    });
+    return item;
   }
 
   // ---------- full-text search ----------
@@ -5129,7 +5349,7 @@
     var scopeSelectEl = scopeSelector(ui);
     if (scopeSelectEl) headerRight.push(scopeSelectEl);
 
-    // A labeled "View Schema" button opening a menu of the two formats
+    // A labeled "Export" button opening a menu of the two formats
     // this document can be viewed as — its own native Opra schema
     // (always available) and an OpenAPI mapping (only when this document
     // actually has an HTTP api — see `render()`'s own `viewOpenapiItem`
@@ -5152,12 +5372,14 @@
       });
       return item;
     }
-    exportMenu.appendChild(viewMenuItem('opra-view-schema', 'schema', 'book', 'OPRA 1.0'));
-    exportMenu.appendChild(viewMenuItem('opra-view-openapi', 'openapi', 'globe', 'OpenAPI 3.0'));
+    exportMenu.appendChild(viewMenuItem('opra-view-schema', 'schema', 'book', 'OPRA Schema 1.0'));
+    exportMenu.appendChild(viewMenuItem('opra-view-openapi', 'openapi', 'globe', 'OpenAPI Schema 3.0'));
+    exportMenu.appendChild(el('div', { class: 'group-label', id: 'opra-view-tsclient-label' }, ['Download']));
+    exportMenu.appendChild(typescriptClientMenuItem(exportMenu));
     var exportBtn = el(
       'button',
-      { class: 'header-export-btn', id: 'opra-export-btn', type: 'button', title: 'View schema' },
-      [iconFor('eye'), el('span', {}, ['View Schema'])],
+      { class: 'header-export-btn', id: 'opra-export-btn', type: 'button', title: 'Export' },
+      [iconFor('eye'), el('span', {}, ['Export'])],
     );
     exportBtn.addEventListener('click', function (ev) {
       ev.stopPropagation();

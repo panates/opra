@@ -197,3 +197,101 @@ describe('api-ui:expressApiUi (scopes)', () => {
     expect(dbRes.text).toContain('"scope":"db"');
   });
 });
+
+describe('api-ui:expressApiUi (codegen bundle)', () => {
+  let doc: ApiDocument;
+  let app: ReturnType<typeof express>;
+
+  before(async () => {
+    doc = await ApiDocumentFactory.createDocument({
+      spec: OpraSchema.SpecVersion,
+      info: { title: 'TestApi', version: 'v1' },
+      types: [Customer],
+      api: { transport: 'http', name: 'TestApi', controllers: [] },
+    });
+    app = express();
+    app.use('/reference', expressApiUi(doc));
+  });
+
+  // esbuild bundling takes real, noticeable time — high enough for a
+  // single test run to occasionally need more than mocha's own default.
+  it('Should serve the codegen bundle entry file', async function () {
+    this.timeout(30_000);
+    const res = await supertest(app).get('/reference/codegen/browser-entry.js');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('text/javascript');
+    expect(res.text).toContain('generateTypeScriptClientZip');
+  });
+
+  it('Should respond 404 for an unknown codegen file', async () => {
+    const res = await supertest(app).get('/reference/codegen/nope.js');
+    expect(res.status).toBe(404);
+  });
+
+  it('Should actually generate a working TypeScript client zip from the served bundle', async function () {
+    this.timeout(30_000);
+    const { buildClientCodegenBundle } =
+      await import('../src/client-codegen-bundle.js');
+    const files = await buildClientCodegenBundle();
+    const entry = files.get('browser-entry.js');
+    expect(entry).toBeDefined();
+
+    // The bundle is code-split into several files importing each other by
+    // relative name — write every one of them into the same temp
+    // directory so those relative imports resolve. Executed via a
+    // genuinely separate `node` process (not a dynamic `import()` from
+    // right here) — this test file itself runs under mocha's own
+    // CJS/ESM-interop test loader, which doesn't reliably support
+    // synchronously importing a *multi-chunk* ESM graph like this one;
+    // a real browser loading this bundle wouldn't have that problem
+    // either, so a plain child process is both the fix and the more
+    // realistic way to exercise it.
+    const fs = await import('node:fs');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const { execFileSync } = await import('node:child_process');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opra-codegen-test-'));
+    try {
+      for (const [filename, file] of files) {
+        fs.writeFileSync(path.join(dir, filename), file.contents);
+      }
+      fs.writeFileSync(
+        path.join(dir, 'schema.json'),
+        JSON.stringify(doc.export()),
+      );
+      fs.writeFileSync(
+        path.join(dir, 'verify.mjs'),
+        `
+import fs from 'node:fs';
+import { generateTypeScriptClientZip } from './browser-entry.js';
+const schema = JSON.parse(fs.readFileSync('./schema.json', 'utf-8'));
+const zipBytes = await generateTypeScriptClientZip(schema);
+fs.writeFileSync('./output.zip', Buffer.from(zipBytes));
+`,
+      );
+      execFileSync(process.execPath, ['verify.mjs'], {
+        cwd: dir,
+        stdio: 'pipe',
+      });
+
+      const zipBytes = fs.readFileSync(path.join(dir, 'output.zip'));
+      expect(zipBytes.length).toBeGreaterThan(0);
+      // Zip local file header signature ("PK\x03\x04") — confirms fflate
+      // actually produced a real zip, not just arbitrary bytes.
+      expect(Array.from(zipBytes.subarray(0, 4))).toEqual([
+        0x50, 0x4b, 0x03, 0x04,
+      ]);
+
+      const { unzipSync, strFromU8 } = await import('fflate');
+      const unzipped = unzipSync(new Uint8Array(zipBytes));
+      expect(unzipped['index.ts']).toBeDefined();
+      const typesFile = Object.keys(unzipped).find(f =>
+        f.endsWith('Customer.ts'),
+      );
+      expect(typesFile).toBeDefined();
+      expect(strFromU8(unzipped[typesFile!])).toContain('Customer');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

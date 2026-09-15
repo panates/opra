@@ -1,11 +1,13 @@
 import type { ApiDocument } from '@opra/common';
 import type { RequestHandler, Response } from 'express';
 import { ApiUiFactory } from '../api-ui.factory.js';
+import { buildClientCodegenBundle } from '../client-codegen-bundle.js';
 import type { ApiUiOptions } from '../types.js';
 
 const SCOPE_ROUTE = /^\/([^/]+)(\/.*)?$/;
 const SCHEMA_ROUTE = /^\/schema\/([^/]+)\.json$/;
 const OPENAPI_ROUTE = /^\/openapi\/([^/]+)\.json$/;
+const CODEGEN_ROUTE = /^\/codegen\/([^/]+\.js)$/;
 
 function sendJson(res: Response, value: unknown): void {
   res.type('application/json').send(JSON.stringify(value, null, 2));
@@ -19,15 +21,19 @@ function sendJson(res: Response, value: unknown): void {
  * process, since it only depends on the `ApiDocument` and the options
  * passed here.
  *
- * Two extra routes are served alongside the page itself, relative to
+ * Three extra routes are served alongside the page itself, relative to
  * wherever this handler is mounted (the page's own navigation is entirely
  * `location.hash`-based — see `assets/app.js` — so real sub-paths never
  * collide with it): `/schema/<docKey>.json` (this document's own native
- * Opra schema, exactly `ApiDocument#export()`'s output) and
- * `/openapi/<docKey>.json` (the same document mapped through
- * `@opra/openapi`). `<docKey>` is `"root"` for the document passed in
- * here, or a reference's own namespace — the same keys the page's own
- * document switcher uses.
+ * Opra schema, exactly `ApiDocument#export()`'s output), `/openapi/
+ * <docKey>.json` (the same document mapped through `@opra/openapi`), and
+ * `/codegen/<file>.js` (the browser-side TypeScript-client generator
+ * bundle powering the "Download TypeScript Client" button — see
+ * `client-codegen-bundle.ts`; `<file>` isn't a fixed name, since that
+ * bundle is code-split into several files that import each other by
+ * name). `<docKey>` is `"root"` for the document passed in here, or a
+ * reference's own namespace — the same keys the page's own document
+ * switcher uses.
  *
  * When `options.scopes` lists more than one scope, every route above moves
  * one segment deeper, behind a leading `/<scope>` (e.g.
@@ -116,6 +122,49 @@ export function expressApiUi(
           res.status(501).json({
             error:
               'OpenAPI export requires the "@opra/openapi" package to be installed',
+          });
+        });
+      return;
+    }
+
+    m = CODEGEN_ROUTE.exec(reqPath);
+    if (m) {
+      const filename = m[1];
+      // Lazily built (and, once built, cached forever — see
+      // `buildClientCodegenBundle`) so a consumer who never clicks
+      // "Download TypeScript Client" never pays for `esbuild`/`@opra/cli`
+      // to even load, let alone run.
+      buildClientCodegenBundle()
+        .then(files => {
+          const file = files.get(filename);
+          if (!file) {
+            res.status(404).json({ error: `Unknown file "${filename}"` });
+            return;
+          }
+          // Only esbuild's own content-hashed shared chunks (`chunk-
+          // <hash>.js`) are safe to cache indefinitely — a byte for byte
+          // change there always comes with a new filename. The entry
+          // file itself (`browser-entry.js`, always that exact name) has
+          // no such guarantee: its *content* changes across restarts/
+          // upgrades while its name stays fixed, so marking it
+          // `immutable` would leave browsers serving a stale copy
+          // (referencing chunk filenames the server may no longer even
+          // have) forever after the next deploy.
+          const isContentHashedChunk = /^chunk-[^/]+\.js$/.test(filename);
+          res
+            .type(file.contentType)
+            .setHeader(
+              'Cache-Control',
+              isContentHashedChunk
+                ? 'public, max-age=31536000, immutable'
+                : 'no-cache',
+            )
+            .send(Buffer.from(file.contents));
+        })
+        .catch(() => {
+          res.status(501).json({
+            error:
+              'The TypeScript client generator requires the optional "esbuild" and "@opra/cli" packages to be installed',
           });
         });
       return;

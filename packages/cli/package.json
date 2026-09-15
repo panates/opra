@@ -35,6 +35,10 @@
     "@opra/client": "^1.30.0",
     "@opra/common": "^1.30.0"
   },
+  "devDependencies": {
+    "expect": "^30.5.1",
+    "reflect-metadata": "^0.2.2"
+  },
   "type": "module",
   "module": "./index.js",
   "types": "./index.d.ts",

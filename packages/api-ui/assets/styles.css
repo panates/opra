@@ -827,6 +827,114 @@ a {
   transform: rotate(180deg);
 }
 
+/* ---------- TypeScript client modal ---------- */
+
+/* Narrower than the schema viewer's own `.modal-dialog` (1200px, sized
+   for a wide JSON/YAML pane) — this one is a short read plus one button,
+   a wide dialog would just leave its text stranded in a mostly-empty box. */
+.tsclient-dialog {
+  max-width: 560px;
+}
+
+.tsclient-body {
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.tsclient-body p {
+  margin: 0 0 4px;
+  color: var(--text-muted);
+}
+
+.tsclient-body code {
+  font-size: 12.5px;
+  background: var(--code-bg);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* Stands in for this modal's own `h3` — the app's real heading styles
+   (`.main h1`/`.main h2`) are scoped to the document content column, so a
+   bare heading tag here would fall back to the browser's own default UA
+   styling instead, which doesn't match anything else in this UI. */
+.tsclient-h {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 14px 0 2px;
+}
+
+.tsclient-h:first-of-type {
+  margin-top: 4px;
+}
+
+.tsclient-cmd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 8px 8px 12px;
+  overflow-x: auto;
+}
+
+.tsclient-cmd code {
+  background: transparent;
+  padding: 0;
+  white-space: nowrap;
+  color: var(--json-string);
+}
+
+.tsclient-hint {
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.tsclient-download-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tsclient-download-btn:hover {
+  filter: brightness(1.08);
+}
+
+.tsclient-download-btn.busy {
+  opacity: 0.7;
+  cursor: default;
+  pointer-events: none;
+}
+
+.tsclient-status {
+  font-size: 12.5px;
+  margin-top: 2px;
+}
+
+.tsclient-status.ok {
+  color: var(--post);
+}
+
+.tsclient-status.err {
+  color: var(--delete);
+}
+
 /* ---------- global search ---------- */
 
 /* Anchored under the header's own search box (`.search`, already

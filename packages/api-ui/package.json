@@ -23,14 +23,26 @@
   },
   "dependencies": {
     "@jsopen/objects": "^2.3.1",
+    "events": "^3.3.0",
+    "fflate": "^0.8.3",
+    "path-browserify": "^1.0.1",
+    "process": "^0.11.10",
     "tslib": "^2.8.1"
   },
   "peerDependencies": {
+    "@opra/cli": "^1.30.0",
     "@opra/common": "^1.30.0",
-    "@opra/openapi": "^1.30.0"
+    "@opra/openapi": "^1.30.0",
+    "esbuild": "^0.28.0"
   },
   "peerDependenciesMeta": {
+    "@opra/cli": {
+      "optional": true
+    },
     "@opra/openapi": {
+      "optional": true
+    },
+    "esbuild": {
       "optional": true
     }
   },
@@ -38,8 +50,11 @@
     "express": "^4.0.0 || ^5.0.0"
   },
   "devDependencies": {
+    "@opra/cli": "^1.30.0",
+    "@opra/client": "^1.30.0",
     "@opra/openapi": "^1.30.0",
     "@types/express": "^5.0.6",
+    "esbuild": "^0.28.2",
     "expect": "^30.5.1",
     "express": "^5.1.0",
     "minisearch": "^7.2.0",

@@ -1,13 +1,8 @@
 import { EventEmitter } from 'node:events';
-import fs from 'node:fs';
-import path from 'node:path';
-import process from 'node:process';
 import { ApiDocument } from '@opra/common';
 import colors from 'ansi-colors';
-import { FileWriter } from '../file-writer.js';
 import type { IFileWriter } from '../interfaces/file-writer.interface.js';
 import type { ILogger } from '../interfaces/logger.interface.js';
-import { cleanDirectory } from './generators/clean-directory.js';
 import {
   _generateArrayTypeCode,
   _generateComplexTypeCode,
@@ -22,6 +17,7 @@ import {
 import { generateDocument } from './generators/generate-document.js';
 import { generateHttpApi } from './generators/generate-http-api.js';
 import { generateHttpController } from './generators/generate-http-controller.js';
+import { generateProjectFiles } from './generators/generate-project-files.js';
 import { TsFile } from './ts-file.js';
 
 /**
@@ -34,11 +30,18 @@ export namespace TsGenerator {
    * Configuration options for TsGenerator.
    */
   export interface Options {
-    /** The URL of the OPRA service. */
-    serviceUrl: string;
-    /** The output directory for the generated files. */
-    outDir: string;
-    /** The current working directory. Defaults to process.cwd(). */
+    /** The URL of the OPRA service. Only required when generating from a
+     *  URL/document-id (the default) rather than passing an already-built
+     *  `ApiDocument` straight to `generateFiles()`. */
+    serviceUrl?: string;
+    /** The output directory for the generated files. Only meaningful for
+     *  `generate()`'s own disk-writing step — `generateFiles()` alone
+     *  never reads it. Defaults to `cwd`. */
+    outDir?: string;
+    /** The current working directory `outDir` is resolved against.
+     *  Defaults to `process.cwd()` — resolved lazily, by `generate()`,
+     *  not here, so constructing a `TsGenerator` has no Node-API
+     *  dependency of its own. */
     cwd?: string;
     /** Logger instance for outputting information. */
     logger?: ILogger;
@@ -51,6 +54,16 @@ export namespace TsGenerator {
     /** Whether to export references with namespaces. */
     referenceNamespaces?: boolean;
   }
+
+  /** One generated source file, purely in memory — what `generateFiles()`
+   *  returns, before `generate()`'s own disk-writing step turns each of
+   *  these into a real file under `outDir`. */
+  export interface GeneratedFile {
+    /** Path relative to `outDir` (e.g. `./models/types/customer.ts`). */
+    filename: string;
+    /** The file's own generated TypeScript source. */
+    content: string;
+  }
 }
 
 /**
@@ -59,7 +72,6 @@ export namespace TsGenerator {
  * Main class for managing the TypeScript code generation process.
  */
 export class TsGenerator extends EventEmitter {
-  declare protected cleanDirectory: typeof cleanDirectory;
   declare protected generateDocument: typeof generateDocument;
   declare protected generateDataType: typeof generateDataType;
   declare protected _generateTypeCode: typeof _generateTypeCode;
@@ -88,10 +100,14 @@ export class TsGenerator extends EventEmitter {
     }
   >;
   protected _filesMap: WeakMap<Object, TsFile>;
-  readonly serviceUrl: string;
-  readonly outDir: string;
-  readonly cwd: string;
-  readonly writer: IFileWriter;
+  protected _generatedFiles?: TsGenerator.GeneratedFile[];
+  readonly serviceUrl?: string;
+  /** Raw, as given to the constructor — resolved against `cwd` (with
+   *  its own `process.cwd()` fallback) lazily, only by `generate()`'s
+   *  own disk-writing step. */
+  readonly outDir?: string;
+  readonly cwd?: string;
+  readonly writer?: IFileWriter;
   readonly options: {
     importExt: boolean;
     referenceNamespaces?: boolean;
@@ -106,10 +122,10 @@ export class TsGenerator extends EventEmitter {
   constructor(init: TsGenerator.Options) {
     super();
     this.serviceUrl = init.serviceUrl;
-    this.cwd = init.cwd || process.cwd();
-    this.outDir = init.outDir ? path.resolve(this.cwd, init.outDir) : this.cwd;
+    this.cwd = init.cwd;
+    this.outDir = init.outDir;
     this.fileHeader = init.fileHeader || '';
-    this.writer = init.writer || new FileWriter();
+    this.writer = init.writer;
     this.options = {
       importExt: !!init.importExt,
       referenceNamespaces: init.referenceNamespaces,
@@ -135,28 +151,72 @@ export class TsGenerator extends EventEmitter {
   }
 
   /**
-   * Starts the code generation process.
+   * Runs the actual code-generation pipeline and returns the produced
+   * files purely in memory — no disk access at all. This is the
+   * Node-API-free half of `generate()` (see there for the other half:
+   * writing these to disk under `outDir`), kept separate so a caller
+   * that already has a live `ApiDocument` (e.g. one reconstructed
+   * client-side from a fetched schema, with no `outDir`/filesystem to
+   * speak of) can generate without either.
+   *
+   * Passing `document` skips the `serviceUrl` HTTP fetch inside
+   * `generateDocument()` entirely. Memoized — a second call (with or
+   * without `document`) returns the same result rather than
+   * regenerating.
+   */
+  async generateFiles(
+    document?: ApiDocument,
+  ): Promise<TsGenerator.GeneratedFile[]> {
+    if (this._generatedFiles) return this._generatedFiles;
+    this._apiPath = '/api';
+    this._typesRoot = '/models';
+    // `this._document` is a scratch field `generateDocument()` reassigns
+    // for *whatever* document it's currently processing - including, deep
+    // inside data-type generation, a plain reference lookup for a
+    // primitive type's own builtin document (see `generate-data-type.ts`'s
+    // `this.generateDocument(doc)`) - so by the time everything settles it
+    // no longer reliably points at the root document. `generateDocument()`'s
+    // own return value doesn't have that problem: it resolves to a local
+    // binding fixed at the top of *this* call, so it's used here instead.
+    const { document: rootDocument } = await this.generateDocument(document);
+    const { importExt } = this.options;
+    this._generatedFiles = [
+      ...Object.values(this._files).map(file => ({
+        filename: file.filename,
+        content: file.generate({ importExt }),
+      })),
+      // README/LICENSE describe the generated *package* as a whole, so
+      // they're only ever built from the root document, once.
+      ...generateProjectFiles(rootDocument),
+    ];
+    return this._generatedFiles;
+  }
+
+  /**
+   * Starts the code generation process: builds every file (see
+   * `generateFiles()`, which this passes `document` through to) then
+   * writes each one to disk under `outDir`, after first removing
+   * whatever was generated there previously. `write-to-disk.js` (the
+   * only Node-API-dependent part of this whole class) is imported here,
+   * dynamically, rather than at this file's own top level — see there
+   * for why.
    *
    * @throws {@link Error} If generation fails.
    */
-  async generate() {
+  async generate(document?: ApiDocument) {
     if (this._started) return;
     this.emit('start');
     try {
       this._started = true;
       this.emit('log', colors.cyan('Removing old files..'));
-      this.cleanDirectory(this.outDir);
-      this._apiPath = '/api';
-      this._typesRoot = '/models';
-      await this.generateDocument();
-      const { importExt } = this.options;
-      // Write files
-      for (const file of Object.values(this._files)) {
-        const filename = path.join(this.outDir, file.filename);
-        const targetDir = path.dirname(filename);
-        fs.mkdirSync(targetDir, { recursive: true });
-        await this.writer.writeFile(filename, file.generate({ importExt }));
-      }
+      const files = await this.generateFiles(document);
+      const { writeFilesToDisk } = await import('./write-to-disk.js');
+      await writeFilesToDisk(files, {
+        outDir: this.outDir,
+        cwd: this.cwd,
+        writer: this.writer,
+        onVerbose: message => this.emit('verbose', message),
+      });
     } catch (e) {
       this.emit('error', e);
       throw e;
@@ -209,7 +269,6 @@ export class TsGenerator extends EventEmitter {
   }
 
   static {
-    TsGenerator.prototype.cleanDirectory = cleanDirectory;
     TsGenerator.prototype.generateDocument = generateDocument;
     TsGenerator.prototype.generateDataType = generateDataType;
     TsGenerator.prototype._generateTypeCode = _generateTypeCode;

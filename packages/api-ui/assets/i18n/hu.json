@@ -99,6 +99,7 @@
     "rawBody": "Nyers törzs — nincs további séma megadva.",
     "noBodyAlternative": "Ehhez a változathoz nincs törzs.",
     "responses": "Válaszok",
+    "returns": "Visszaad: ",
     "noBody": "Nincs törzs",
     "showSchema": "Séma megjelenítése",
     "httpStatusCode": "HTTP-állapotkód: ",

@@ -99,6 +99,7 @@
     "rawBody": "কাঁচা বডি — আর কোনো স্কিমা ঘোষণা করা হয়নি।",
     "noBodyAlternative": "এই বিকল্পের জন্য কোনো বডি নেই।",
     "responses": "প্রতিক্রিয়া",
+    "returns": "রিটার্ন করে: ",
     "noBody": "বডি নেই",
     "showSchema": "স্কিমা দেখান",
     "httpStatusCode": "HTTP স্ট্যাটাস কোড: ",

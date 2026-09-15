@@ -99,6 +99,7 @@
     "rawBody": "Roher Body — kein weiteres Schema deklariert.",
     "noBodyAlternative": "Kein Body für diese Alternative.",
     "responses": "Antworten",
+    "returns": "Gibt zurück: ",
     "noBody": "Kein Body",
     "showSchema": "Schema anzeigen",
     "httpStatusCode": "HTTP-Statuscode: ",

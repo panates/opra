@@ -90,6 +90,7 @@
     "rawBody": "生のボディ — これ以上のスキーマは宣言されていません。",
     "noBodyAlternative": "この選択肢にボディはありません。",
     "responses": "レスポンス",
+    "returns": "戻り値: ",
     "noBody": "ボディなし",
     "showSchema": "スキーマを表示",
     "httpStatusCode": "HTTP ステータスコード: ",

@@ -90,6 +90,7 @@
     "rawBody": "เนื้อหาดิบ — ไม่ได้ประกาศสคีมาเพิ่มเติม",
     "noBodyAlternative": "ทางเลือกนี้ไม่มีเนื้อหา",
     "responses": "การตอบกลับ",
+    "returns": "คืนค่า: ",
     "noBody": "ไม่มีเนื้อหา",
     "showSchema": "แสดงสคีมา",
     "httpStatusCode": "รหัสสถานะ HTTP: ",

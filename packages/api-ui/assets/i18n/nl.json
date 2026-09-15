@@ -99,6 +99,7 @@
     "rawBody": "Ruwe body — geen verder schema gedeclareerd.",
     "noBodyAlternative": "Geen body voor dit alternatief.",
     "responses": "Antwoorden",
+    "returns": "Geeft terug: ",
     "noBody": "Geen body",
     "showSchema": "Schema tonen",
     "httpStatusCode": "HTTP-statuscode: ",

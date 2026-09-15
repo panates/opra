@@ -101,6 +101,7 @@
     "rawBody": "Surové telo — žiadna ďalšia schéma nie je deklarovaná.",
     "noBodyAlternative": "Pre tento variant nie je žiadne telo.",
     "responses": "Odpovede",
+    "returns": "Vracia: ",
     "noBody": "Žiadne telo",
     "showSchema": "Zobraziť schému",
     "httpStatusCode": "Stavový kód HTTP: ",

@@ -99,6 +99,7 @@
     "rawBody": "Corpo grezzo: nessun altro schema dichiarato.",
     "noBodyAlternative": "Nessun corpo per questa alternativa.",
     "responses": "Risposte",
+    "returns": "Restituisce: ",
     "noBody": "Nessun corpo",
     "showSchema": "Mostra schema",
     "httpStatusCode": "Codice di stato HTTP: ",

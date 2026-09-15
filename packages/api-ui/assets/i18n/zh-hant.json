@@ -90,6 +90,7 @@
     "rawBody": "原始請求主體 —— 未宣告進一步的結構。",
     "noBodyAlternative": "此替代方案沒有請求主體。",
     "responses": "回應",
+    "returns": "回傳：",
     "noBody": "沒有主體",
     "showSchema": "顯示結構",
     "httpStatusCode": "HTTP 狀態碼：",

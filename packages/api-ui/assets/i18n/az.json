@@ -99,6 +99,7 @@
     "rawBody": "Xam gövdə — başqa sxem elan olunmayıb.",
     "noBodyAlternative": "Bu variant üçün gövdə yoxdur.",
     "responses": "Cavablar",
+    "returns": "Qaytarır: ",
     "noBody": "Gövdə yoxdur",
     "showSchema": "Sxemi göstər",
     "httpStatusCode": "HTTP status kodu: ",

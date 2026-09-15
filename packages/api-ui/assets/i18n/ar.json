@@ -119,6 +119,7 @@
     "rawBody": "متن خام — لم يُصرَّح بأي مخطط إضافي.",
     "noBodyAlternative": "لا يوجد متن لهذا البديل.",
     "responses": "الاستجابات",
+    "returns": "يُعيد: ",
     "noBody": "بلا متن",
     "showSchema": "عرض المخطط",
     "httpStatusCode": "رمز حالة HTTP: ",

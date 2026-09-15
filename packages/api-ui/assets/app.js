@@ -1573,6 +1573,20 @@
     return container;
   }
 
+  /** "Returns: <Type>" for a response's body, or `null` when it declares
+   *  none. The chip itself is the one used for a field's type — same icon,
+   *  same tint, same hover card, same link to the model's page — because it
+   *  means the same thing; only the label in front of it is new, since at
+   *  the end of a sentence of prose a bare chip doesn't say what it is. */
+  function responseTypeNode(doc, r) {
+    if (!r.type) return null;
+    var chip = fieldTypeNode(doc, r.type);
+    return el('span', { class: 'response-returns' }, [
+      el('span', { class: 'response-returns-label' }, [t('operation.returns')]),
+      chip,
+    ]);
+  }
+
   function formatStatusCode(sc) {
     var list = Array.isArray(sc) ? sc : [sc];
     return list
@@ -3404,14 +3418,23 @@
       var details = el('details', { class: 'response-row', name: 'op-responses' });
       details.appendChild(
         el('summary', {}, [
+          iconFor('chevronDown', 'response-chevron'),
           el('span', { class: 'mono response-status' }, [formatStatusCode(r.statusCode)]),
-          // Plain text rather than `mdBlock`: this line shares a row with the
-          // status code, so a block-level markdown div would break it. It is
-          // still one of the document's own texts, so the studio gets to edit
-          // it here — and gets a placeholder when it has never been written.
-          r.description
-            ? markEditable(el('span', { class: 'response-desc' }, [r.description]), r, 'description')
-            : emptySlot(r, 'description', 'response-desc', 'span'),
+          el('span', { class: 'response-col' }, [
+            // Plain text rather than `mdBlock`: a block-level markdown div
+            // inside a `<summary>` costs the row its disclosure marker (which
+            // is why this one is drawn above). It is still one of the
+            // document's own texts, so the studio gets to edit it here — and
+            // gets a placeholder when it has never been written.
+            r.description
+              ? markEditable(el('span', { class: 'response-desc' }, [r.description]), r, 'description')
+              : emptySlot(r, 'description', 'response-desc', 'span'),
+            // What the call actually gives you back, on a line of its own
+            // under the prose. Inline it landed wherever the description
+            // happened to stop — a different place in every row, so a list of
+            // responses had no column to read down.
+            responseTypeNode(doc, r),
+          ]),
         ]),
       );
       var body = el('div', { class: 'body' });

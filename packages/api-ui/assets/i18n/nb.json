@@ -99,6 +99,7 @@
     "rawBody": "Rå kropp — ingen ytterligere skjema oppgitt.",
     "noBodyAlternative": "Ingen kropp for dette alternativet.",
     "responses": "Svar",
+    "returns": "Returnerer: ",
     "noBody": "Ingen kropp",
     "showSchema": "Vis skjema",
     "httpStatusCode": "HTTP-statuskode: ",

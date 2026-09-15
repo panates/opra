@@ -2431,13 +2431,19 @@ a.doc-meta-value:hover {
    default (no `open` attribute set in app.js) so a page with several
    responses reads as a short list of status codes first, each one's own
    schema only a click away, rather than every response's full type tree
-   dumped on screen at once. The disclosure triangle is the browser's own
-   free `<summary>` marker, not a custom icon. Deliberately just a divider
-   between rows — no per-row border/background/status-color box — this
-   is closer to a short index of outcomes than reference material for a
-   body you're about to construct (compare `.media-type-panel`, which IS
-   boxed); coloring or boxing every single one made each response read as
-   louder than that. */
+   dumped on screen at once. Deliberately just a divider between rows — no
+   per-row border/background/status-color box — this is closer to a short
+   index of outcomes than reference material for a body you're about to
+   construct (compare `.media-type-panel`, which IS boxed); coloring or
+   boxing every single one made each response read as louder than that.
+
+   The disclosure triangle used to be the browser's own free `<summary>`
+   marker. It isn't any more: the row stacks a description over the body
+   type it returns, and a `<summary>` with a block-level child loses its
+   marker slot. Swapped for the same `chevronDown` this UI turns everywhere
+   else (sidebar groups, type trees) — which also rotates instead of
+   jump-cutting, and mirrors correctly in RTL. `<details>`'s semantics and
+   keyboard handling are untouched; only the glyph is ours. */
 .responses-list {
   display: flex;
   flex-direction: column;
@@ -2453,16 +2459,60 @@ a.doc-meta-value:hover {
 }
 
 .response-row summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   cursor: pointer;
+  list-style: none;
+}
+
+/* Safari still draws its own triangle unless this is spelled out, on top of
+   the one above. */
+.response-row summary::-webkit-details-marker {
+  display: none;
+}
+
+.response-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transform: rotate(-90deg);
+  transition: transform 0.18s ease;
+}
+
+.response-row[open] .response-chevron {
+  transform: none;
 }
 
 .response-status {
+  flex-shrink: 0;
   font-size: 13.5px;
   font-weight: 600;
 }
 
+/* Description above, "Returns: <Type>" on its own line under it, both
+   starting at the same edge — so reading down a list of responses the
+   types line up instead of landing wherever each description happened to
+   stop. */
+.response-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.response-returns {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.response-returns-label {
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
 .response-desc {
-  margin-inline-start: 8px;
   font-size: 13.5px;
   color: var(--text-muted);
 }
@@ -3104,6 +3154,7 @@ a.doc-meta-value:hover {
 /* A chevron rotated -90° points left — the right way to say "collapsed" when
    the tree opens rightwards, and exactly backwards when it opens leftwards. */
 [dir='rtl'] .group-chevron.collapsed,
+[dir='rtl'] .response-row:not([open]) .response-chevron,
 [dir='rtl'] .nav-toggle.collapsed {
   transform: rotate(90deg);
 }

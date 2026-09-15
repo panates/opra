@@ -99,6 +99,7 @@
     "rawBody": "Ham gövde — başka bir şema tanımlanmamış.",
     "noBodyAlternative": "Bu seçenek için gövde yok.",
     "responses": "Yanıtlar",
+    "returns": "Döndürür: ",
     "noBody": "Gövde yok",
     "showSchema": "Şemayı Göster",
     "httpStatusCode": "HTTP Durum Kodu: ",

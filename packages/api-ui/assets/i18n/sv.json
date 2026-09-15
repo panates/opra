@@ -99,6 +99,7 @@
     "rawBody": "Rå kropp — inget ytterligare schema deklarerat.",
     "noBodyAlternative": "Ingen kropp för det här alternativet.",
     "responses": "Svar",
+    "returns": "Returnerar: ",
     "noBody": "Ingen kropp",
     "showSchema": "Visa schema",
     "httpStatusCode": "HTTP-statuskod: ",

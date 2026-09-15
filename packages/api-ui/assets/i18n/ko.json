@@ -90,6 +90,7 @@
     "rawBody": "원시 본문 — 더 이상의 스키마가 선언되지 않았습니다.",
     "noBodyAlternative": "이 대안에는 본문이 없습니다.",
     "responses": "응답",
+    "returns": "반환: ",
     "noBody": "본문 없음",
     "showSchema": "스키마 표시",
     "httpStatusCode": "HTTP 상태 코드: ",

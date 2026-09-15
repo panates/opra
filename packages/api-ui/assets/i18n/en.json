@@ -99,6 +99,7 @@
     "rawBody": "Raw body — no further schema declared.",
     "noBodyAlternative": "No body for this alternative.",
     "responses": "Responses",
+    "returns": "Returns: ",
     "noBody": "No body",
     "showSchema": "Show Schema",
     "httpStatusCode": "HTTP Status Code: ",

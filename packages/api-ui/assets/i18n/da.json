@@ -99,6 +99,7 @@
     "rawBody": "Rå brødtekst — intet yderligere skema angivet.",
     "noBodyAlternative": "Ingen brødtekst til dette alternativ.",
     "responses": "Svar",
+    "returns": "Returnerer: ",
     "noBody": "Ingen brødtekst",
     "showSchema": "Vis skema",
     "httpStatusCode": "HTTP-statuskode: ",

@@ -101,6 +101,7 @@
     "rawBody": "Необроблене тіло — іншої схеми не оголошено.",
     "noBodyAlternative": "Для цього варіанта тіла немає.",
     "responses": "Відповіді",
+    "returns": "Повертає: ",
     "noBody": "Без тіла",
     "showSchema": "Показати схему",
     "httpStatusCode": "Код стану HTTP: ",

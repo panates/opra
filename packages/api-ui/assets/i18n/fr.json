@@ -99,6 +99,7 @@
     "rawBody": "Corps brut — aucun autre schéma déclaré.",
     "noBodyAlternative": "Aucun corps pour cette variante.",
     "responses": "Réponses",
+    "returns": "Renvoie : ",
     "noBody": "Aucun corps",
     "showSchema": "Afficher le schéma",
     "httpStatusCode": "Code d'état HTTP : ",

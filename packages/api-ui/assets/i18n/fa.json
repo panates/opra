@@ -99,6 +99,7 @@
     "rawBody": "بدنهٔ خام — شمای دیگری اعلام نشده است.",
     "noBodyAlternative": "برای این گزینه بدنه‌ای وجود ندارد.",
     "responses": "پاسخ‌ها",
+    "returns": "برمی‌گرداند: ",
     "noBody": "بدون بدنه",
     "showSchema": "نمایش شما",
     "httpStatusCode": "کد وضعیت HTTP: ",

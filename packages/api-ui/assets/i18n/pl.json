@@ -101,6 +101,7 @@
     "rawBody": "Surowa treść — nie zadeklarowano dalszego schematu.",
     "noBodyAlternative": "Brak treści dla tego wariantu.",
     "responses": "Odpowiedzi",
+    "returns": "Zwraca: ",
     "noBody": "Brak treści",
     "showSchema": "Pokaż schemat",
     "httpStatusCode": "Kod stanu HTTP: ",

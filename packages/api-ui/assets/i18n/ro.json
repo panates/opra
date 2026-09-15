@@ -100,6 +100,7 @@
     "rawBody": "Corp brut — nicio altă schemă declarată.",
     "noBodyAlternative": "Niciun corp pentru această variantă.",
     "responses": "Răspunsuri",
+    "returns": "Returnează: ",
     "noBody": "Fără corp",
     "showSchema": "Arată schema",
     "httpStatusCode": "Cod de stare HTTP: ",

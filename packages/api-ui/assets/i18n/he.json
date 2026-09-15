@@ -108,6 +108,7 @@
     "rawBody": "גוף גולמי — לא הוגדרה סכמה נוספת.",
     "noBodyAlternative": "אין גוף לחלופה הזו.",
     "responses": "תשובות",
+    "returns": "מחזיר: ",
     "noBody": "ללא גוף",
     "showSchema": "הצגת הסכמה",
     "httpStatusCode": "קוד מצב HTTP: ",

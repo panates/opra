@@ -90,6 +90,7 @@
     "rawBody": "Badan mentah — tidak ada skema lain yang dideklarasikan.",
     "noBodyAlternative": "Tidak ada badan untuk alternatif ini.",
     "responses": "Respons",
+    "returns": "Mengembalikan: ",
     "noBody": "Tanpa badan",
     "showSchema": "Tampilkan skema",
     "httpStatusCode": "Kode status HTTP: ",

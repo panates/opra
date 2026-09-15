@@ -99,6 +99,7 @@
     "rawBody": "Raaka runko — muuta skeemaa ei ole määritelty.",
     "noBodyAlternative": "Tälle vaihtoehdolle ei ole runkoa.",
     "responses": "Vastaukset",
+    "returns": "Palauttaa: ",
     "noBody": "Ei runkoa",
     "showSchema": "Näytä skeema",
     "httpStatusCode": "HTTP-tilakoodi: ",

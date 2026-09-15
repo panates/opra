@@ -99,6 +99,7 @@
     "rawBody": "Cuerpo sin procesar: no se declaró ningún otro esquema.",
     "noBodyAlternative": "Sin cuerpo para esta alternativa.",
     "responses": "Respuestas",
+    "returns": "Devuelve: ",
     "noBody": "Sin cuerpo",
     "showSchema": "Mostrar esquema",
     "httpStatusCode": "Código de estado HTTP: ",

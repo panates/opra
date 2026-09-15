@@ -8,6 +8,7 @@ import { OpraSchema } from '../../schema/index.js';
 import type { ApiDocument } from '../api-document.js';
 import type { DocumentElement } from '../common/document-element.js';
 import { DocumentInitContext } from '../common/document-init-context.js';
+import { applyTranslations } from '../common/translate-doc.js';
 import { DECORATOR } from '../constants.js';
 import {
   AttributeDecoratorFactory,
@@ -201,6 +202,19 @@ abstract class SimpleTypeClass extends DataType {
       ? this.node.getDataTypeNameWithNs(this.base)
       : undefined;
     const attributes = omitUndefined<any>(this.ownAttributes);
+    // An attribute's own `description` is prose like any other — keyed
+    // under this type, one level down (`attributes.<name>.description`).
+    for (const [key, attr] of Object.entries<any>(attributes)) {
+      if (attr && typeof attr === 'object') {
+        applyTranslations(
+          this,
+          attr,
+          options,
+          ['description'],
+          ['attributes', key],
+        );
+      }
+    }
     let properties: any;
     if (this.properties && typeof this.properties.toJSON === 'function') {
       properties = this.properties.toJSON(this.properties, this.owner, options);

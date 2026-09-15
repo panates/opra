@@ -10,6 +10,7 @@ import { type Validator, vg } from 'valgen';
 import type { OpraSchema } from '../../schema/index.js';
 import type { ApiDocument } from '../api-document.js';
 import { DocumentElement } from '../common/document-element.js';
+import { applyTranslations } from '../common/translate-doc.js';
 import { Value } from '../common/value.js';
 import { DataType } from '../data-type/data-type.js';
 import type { EnumType } from '../data-type/enum-type.js';
@@ -32,6 +33,10 @@ export namespace HttpParameter {
       | object;
     keyParam?: boolean;
     designType?: Type;
+    /** Authoring-only; never exported. See `DocumentElement#docKey`.
+     *  Required in practice for a RegExp-named parameter, which has no
+     *  stable name of its own to key documentation by. */
+    docKey?: string;
   }
 
   export interface Options extends Partial<StrictOmit<Metadata, 'type'>> {
@@ -89,6 +94,7 @@ export const HttpParameter = function (
           : initArgs.name;
   }
   _this.location = initArgs.location;
+  _this.docKey = initArgs.docKey;
   _this.deprecated = initArgs.deprecated;
   _this.required = initArgs.required;
   if (_this.required == null && initArgs.location === 'path')
@@ -105,6 +111,19 @@ export const HttpParameter = function (
  */
 class HttpParameterClass extends Value {
   declare readonly owner: DocumentElement;
+
+  override get docKeyUnstable(): boolean {
+    return !this.docKey && this.name instanceof RegExp;
+  }
+
+  protected get docKeySegment(): string[] {
+    return [
+      'parameters',
+      this.docKey ||
+        (typeof this.name === 'string' ? this.name : this.name.source),
+    ];
+  }
+
   declare location: OpraSchema.HttpParameterLocation;
   declare keyParam?: boolean;
   declare deprecated?: boolean | string;
@@ -115,16 +134,21 @@ class HttpParameterClass extends Value {
   declare designType?: Type;
 
   toJSON(options?: ApiDocument.ExportOptions): OpraSchema.HttpParameter {
-    return omitUndefined<OpraSchema.HttpParameter>({
-      ...super.toJSON(options),
-      name: this.name,
-      location: this.location,
-      arraySeparator: this.arraySeparator,
-      keyParam: this.keyParam,
-      required: this.required,
-      default: this.default,
-      deprecated: this.deprecated,
-    });
+    return applyTranslations(
+      this,
+      omitUndefined<OpraSchema.HttpParameter>({
+        ...super.toJSON(options),
+        name: this.name,
+        location: this.location,
+        arraySeparator: this.arraySeparator,
+        keyParam: this.keyParam,
+        required: this.required,
+        default: this.default,
+        deprecated: this.deprecated,
+      }),
+      options,
+      ['description', 'deprecated'],
+    );
   }
 
   generateCodec(

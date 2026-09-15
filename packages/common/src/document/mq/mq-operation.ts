@@ -3,8 +3,10 @@ import type { Combine, ThunkAsync, Type, TypeThunkAsync } from 'ts-gems';
 import { asMutable } from 'ts-gems';
 import { type Validator, vg } from 'valgen';
 import { OpraSchema } from '../../schema/index.js';
+import type { ApiDocument } from '../api-document.js';
 import { DataTypeMap } from '../common/data-type-map.js';
 import { DocumentElement } from '../common/document-element.js';
+import { applyTranslations } from '../common/translate-doc.js';
 import { CLASS_NAME_PATTERN, DECORATOR, kDataTypeMap } from '../constants.js';
 import { DataType } from '../data-type/data-type.js';
 import type { EnumType } from '../data-type/enum-type.js';
@@ -132,6 +134,10 @@ export const MQOperation = function (this: MQOperation, ...args: any[]) {
  * @class MQOperation
  */
 class MQOperationClass extends DocumentElement {
+  protected get docKeySegment(): string[] {
+    return ['operations', this.docKey || this.name];
+  }
+
   declare readonly owner: MQController;
   declare readonly name: string;
   declare channel: string | RegExp | (string | RegExp)[];
@@ -156,23 +162,28 @@ class MQOperationClass extends DocumentElement {
     }
   }
 
-  toJSON(): OpraSchema.MQOperation {
-    const out = omitUndefined<OpraSchema.MQOperation>({
-      kind: OpraSchema.MQOperation.Kind,
-      description: this.description,
-      channel: this.channel,
-      type: this.type.name ? this.type.name : this.type.toJSON(),
-      keyType: this.keyType
-        ? this.keyType.name
+  toJSON(options?: ApiDocument.ExportOptions): OpraSchema.MQOperation {
+    const out = applyTranslations(
+      this,
+      omitUndefined<OpraSchema.MQOperation>({
+        kind: OpraSchema.MQOperation.Kind,
+        description: this.description,
+        channel: this.channel,
+        type: this.type.name ? this.type.name : this.type.toJSON(options),
+        keyType: this.keyType
           ? this.keyType.name
-          : this.keyType.toJSON()
-        : undefined,
-      response: this.response?.toJSON(),
-    });
+            ? this.keyType.name
+            : this.keyType.toJSON(options)
+          : undefined,
+        response: this.response?.toJSON(options),
+      }),
+      options,
+      ['description'],
+    );
     if (this.headers.length) {
       out.headers = [];
       for (const prm of this.headers) {
-        out.headers.push(prm.toJSON());
+        out.headers.push(prm.toJSON(options));
       }
     }
     return out;

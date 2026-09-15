@@ -1,29 +1,6 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readAsset } from './read-asset.js';
 import type { ApiUiOptions } from './types.js';
-
-/**
- * `assets/*` live at the package root, deliberately outside `src/`: a `.js`
- * file living inside `src/` would otherwise get deleted by this package's
- * own `clean:src` script (`ts-cleanup -s src --all` treats any `.js` file
- * without a matching `.ts` as stale build output — a static asset like
- * `app.js` looks exactly like one to it).
- *
- * That puts it one directory *up* from `src/html-template.ts` in dev/test,
- * but the `postbuild` script copies it *alongside* the compiled
- * `build/html-template.js` (so it ships with the published package, which
- * is `build/`'s contents) — check the sibling path first, since that's the
- * one that exists once built.
- */
-function readAsset(name: string): string {
-  const dir = path.dirname(fileURLToPath(import.meta.url));
-  const sibling = path.join(dir, 'assets', name);
-  const p = fs.existsSync(sibling)
-    ? sibling
-    : path.join(dir, '..', 'assets', name);
-  return fs.readFileSync(p, 'utf8');
-}
+import { directionFor, loadUiMessages, resolveUiLanguage } from './ui-i18n.js';
 
 const STYLES = readAsset('styles.css');
 const VENDOR_MINISEARCH = readAsset('vendor/minisearch.js');
@@ -75,8 +52,17 @@ export function renderApiUiHtml(
     nonce,
     scope,
     scopes,
+    lang,
+    languages,
+    docLanguages,
     basePath,
   } = options;
+  /* The interface's own language is resolved separately from the document's:
+   * `ApiDocument#resolveLanguage` yields `undefined` for a document carrying
+   * no translations at all — the common case — and the chrome would then
+   * never localize for anyone. `?lang=` still feeds both. */
+  const uiLang = resolveUiLanguage(options.uiLang ?? lang);
+  const dir = directionFor(uiLang);
   const title = escapeHtml(
     pageTitle || docs.root.info?.title || 'API Reference',
   );
@@ -100,11 +86,22 @@ export function renderApiUiHtml(
     logo,
     scope,
     scopes: scopes && scopes.length > 1 ? scopes : undefined,
+    // The language this page was actually rendered in, so the client can
+    // keep asking for the same one (see `exportUrl` in `assets/app.js`) —
+    // the schema modal and the generated TypeScript client would otherwise
+    // come back in the default language while the page reads in another.
+    lang,
+    languages: languages && languages.length > 1 ? languages : undefined,
+    // Which of `languages` the *document* itself is written in, so the
+    // selector can group them apart from the ones that only localize the
+    // interface (see `languageSelector` in `assets/app.js`).
+    docLanguages,
+    dir,
     basePath,
   };
 
   return `<!doctype html>
-<html data-theme="${theme}">
+<html data-theme="${theme}" lang="${escapeHtmlAttribute(uiLang)}" dir="${dir}">
   <head>
     <title>${title}</title>
     <meta charset="utf-8" />
@@ -115,6 +112,7 @@ export function renderApiUiHtml(
     <div id="app"></div>
     <script${nonceAttr}>window.__OPRA_DOCS__ = ${serializeForScript(docs)};</script>
     <script${nonceAttr}>window.__OPRA_UI__ = ${serializeForScript(ui)};</script>
+    <script${nonceAttr}>window.__OPRA_I18N__ = ${serializeForScript(loadUiMessages(uiLang))};</script>
     <script${nonceAttr}>${VENDOR_MINISEARCH}</script>
     <script${nonceAttr}>${APP_SCRIPT}</script>
   </body>

@@ -1,6 +1,10 @@
 import { updateErrorMessage } from '@jsopen/objects';
 import type { PartialSome, StrictOmit, ThunkAsync } from 'ts-gems';
 import { resolveThunk } from '../../helpers/index.js';
+import type {
+  TranslationBundle,
+  TranslationStore,
+} from '../../i18n/translation-store.js';
 import { OpraSchema } from '../../schema/index.js';
 import { ApiDocument } from '../api-document.js';
 import { DocumentInitContext } from '../common/document-init-context.js';
@@ -22,6 +26,14 @@ export namespace ApiDocumentFactory {
   > {
     references?: Record<string, ReferenceThunk>;
     types?: DataTypeInitSources;
+    /** Documentation texts per language, either inline or through a store
+     *  that loads them (a directory of JSON files, a remote source). Every
+     *  language the store lists is materialized here, while this document
+     *  is being built, so that `export()` can stay synchronous. */
+    translations?: Record<string, TranslationBundle>;
+    translationStore?: TranslationStore;
+    /** The language `export()` falls back to. Defaults to `'en'`. */
+    defaultLanguage?: string;
     api?:
       | StrictOmit<HttpApiFactory.InitArguments, 'owner'>
       | StrictOmit<MQApiFactory.InitArguments, 'owner'>
@@ -120,6 +132,7 @@ export class ApiDocumentFactory {
     init.spec = init.spec || OpraSchema.SpecVersion;
     document.url = init.url;
     if (init.info) document.info = { ...init.info };
+    await this.loadTranslations(document, init);
 
     /* Add references  */
     if (init.references) {
@@ -180,6 +193,29 @@ export class ApiDocumentFactory {
     /* Add document to global registry */
     if (!this._allDocuments[document.id])
       this._allDocuments[document.id] = document;
+  }
+
+  /**
+   * Materializes every language this document can be exported in. Bundle
+   * keys are lower-cased so that a request for `EN` or `tr-TR` resolves the
+   * same way regardless of how the language was written.
+   */
+  protected async loadTranslations(
+    document: ApiDocument,
+    init: ApiDocumentFactory.InitArguments,
+  ): Promise<void> {
+    if (init.defaultLanguage) document.defaultLanguage = init.defaultLanguage;
+    if (init.translations) {
+      for (const [lang, bundle] of Object.entries(init.translations)) {
+        document.translations.set(lang.toLowerCase(), bundle);
+      }
+    }
+    const store = init.translationStore;
+    if (!store) return;
+    for (const lang of await store.listLanguages()) {
+      const bundle = await store.load(lang);
+      if (bundle) document.translations.set(lang.toLowerCase(), bundle);
+    }
   }
 
   /**

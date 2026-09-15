@@ -7,6 +7,7 @@ import { OpraSchema } from '../../schema/index.js';
 import type { ApiDocument } from '../api-document.js';
 import { DocumentElement } from '../common/document-element.js';
 import { DocumentInitContext } from '../common/document-init-context.js';
+import { applyTranslations } from '../common/translate-doc.js';
 import { CLASS_NAME_PATTERN } from '../constants.js';
 import {
   colorFgMagenta,
@@ -24,6 +25,8 @@ export namespace DataType {
   export interface Metadata extends DataTypeBase {
     name?: string;
     scopePattern?: (string | RegExp) | (string | RegExp)[];
+    /** Authoring-only; never exported. See `DocumentElement#docKey`. */
+    docKey?: string;
   }
 
   export interface Options extends Partial<
@@ -94,6 +97,7 @@ export const DataType = function (
     : undefined;
   _this.name = initArgs.name;
   _this.description = initArgs.description;
+  _this.docKey = initArgs.docKey;
   _this.abstract = initArgs.abstract;
   _this.examples = initArgs.examples;
 } as Function as DataTypeStatic;
@@ -104,6 +108,14 @@ export const DataType = function (
  */
 abstract class DataTypeClass extends DocumentElement {
   declare readonly kind: OpraSchema.DataType.Kind;
+
+  /** An embedded (anonymous) type has no name and therefore no key of its
+   *  own — its texts, if any, hang off whatever declares it. */
+  protected get docKeySegment(): string[] | undefined {
+    const key = this.docKey || this.name;
+    return key ? ['types', key] : undefined;
+  }
+
   declare readonly owner: DocumentElement;
   declare readonly scopePattern?: (string | RegExp)[];
   declare readonly name?: string;
@@ -136,12 +148,30 @@ abstract class DataTypeClass extends DocumentElement {
         `"${baseName}" model is not available for "${options?.scope || 'null'}" scope`,
       );
     }
-    return omitUndefined({
-      kind: this.kind,
-      description: this.description,
-      abstract: this.abstract,
-      examples: this.examples,
-    }) as OpraSchema.DataType;
+    const out = applyTranslations(
+      this,
+      omitUndefined({
+        kind: this.kind,
+        description: this.description,
+        abstract: this.abstract,
+      }) as OpraSchema.DataType,
+      options,
+      ['description'],
+    );
+    if (this.examples) {
+      // Only an example's `description` is prose — its `value` is data and
+      // is copied through untouched.
+      out.examples = this.examples.map((ex, i) =>
+        applyTranslations(
+          this,
+          { ...ex },
+          options,
+          ['description'],
+          ['examples', (ex as any).docKey || String(i)],
+        ),
+      );
+    }
+    return out;
   }
 
   toString(): string {

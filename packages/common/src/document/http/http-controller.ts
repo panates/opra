@@ -7,6 +7,7 @@ import { OpraSchema } from '../../schema/index.js';
 import type { ApiDocument } from '../api-document.js';
 import { DataTypeMap } from '../common/data-type-map.js';
 import { DocumentElement } from '../common/document-element.js';
+import { applyTranslations } from '../common/translate-doc.js';
 import { CLASS_NAME_PATTERN, DECORATOR, kDataTypeMap } from '../constants.js';
 import type { EnumType } from '../data-type/enum-type.js';
 import { HttpControllerDecoratorFactory } from '../decorators/http-controller.decorator.js';
@@ -33,6 +34,8 @@ export namespace HttpController {
     types?: ThunkAsync<Type | EnumType.EnumObject | EnumType.EnumArray>[];
     operations?: Record<string, HttpOperation.Metadata>;
     parameters?: HttpParameter.Metadata[];
+    /** Authoring-only; never exported. See `DocumentElement#docKey`. */
+    docKey?: string;
   }
 
   export interface Options extends Partial<
@@ -40,6 +43,8 @@ export namespace HttpController {
   > {
     name?: string;
     controllers?: (Type | ((parent: any) => any))[];
+    /** Authoring-only; never exported. See `DocumentElement#docKey`. */
+    docKey?: string;
   }
 
   export interface InitArguments extends Combine<
@@ -47,7 +52,7 @@ export namespace HttpController {
       instance?: object;
       ctor?: Type;
     },
-    Pick<Metadata, 'name' | 'description' | 'path'>
+    Pick<Metadata, 'name' | 'description' | 'path' | 'docKey'>
   > {}
 }
 
@@ -101,6 +106,7 @@ export const HttpController = function (
   _this.parameters = [];
   _this.name = initArgs.name;
   _this.description = initArgs.description;
+  _this.docKey = initArgs.docKey;
   _this.path = initArgs.path ?? initArgs.name;
   _this.instance = initArgs.instance;
   _this.ctor = initArgs.ctor;
@@ -114,6 +120,11 @@ export const HttpController = function (
  */
 class HttpControllerClass extends DocumentElement {
   declare protected _controllerReverseMap: WeakMap<Type, HttpController | null>;
+
+  protected get docKeySegment(): string[] {
+    return ['controllers', this.docKey || this.name];
+  }
+
   declare readonly kind: OpraSchema.HttpController.Kind;
   declare readonly name: string;
   declare description?: string;
@@ -208,11 +219,16 @@ class HttpControllerClass extends DocumentElement {
    *
    */
   toJSON(options?: ApiDocument.ExportOptions): OpraSchema.HttpController {
-    const out = omitUndefined<OpraSchema.HttpController>({
-      kind: this.kind,
-      description: this.description,
-      path: this.path,
-    });
+    const out = applyTranslations(
+      this,
+      omitUndefined<OpraSchema.HttpController>({
+        kind: this.kind,
+        description: this.description,
+        path: this.path,
+      }),
+      options,
+      ['description'],
+    );
     if (this.operations.size) {
       out.operations = {};
       for (const v of this.operations.values()) {

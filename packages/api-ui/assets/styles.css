@@ -59,10 +59,16 @@
      `system-ui` itself. No network fetch, no bundled font file. */
   --font-sans:
     system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell,
-    'Noto Sans', 'Helvetica Neue', Arial, sans-serif;
+    'Noto Sans', 'Noto Sans Arabic', 'Noto Naskh Arabic', 'Noto Sans Hebrew',
+    'Helvetica Neue', Arial, sans-serif;
+  /* None of the classic programming faces carry Arabic or Hebrew, and none
+     need to — everything set in mono here is ASCII (identifiers, JSON, HTTP
+     paths; see the `direction: ltr` block near the end of this file). The
+     two Noto entries are only so that a non-Latin *string value* inside a
+     code sample degrades to a real glyph instead of tofu. */
   --font-mono:
     'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+    'Noto Sans Mono', 'DejaVu Sans Mono', 'Courier New', monospace;
 }
 
 html[data-theme='light'] {
@@ -290,7 +296,7 @@ a {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 
 .header-version {
@@ -303,6 +309,37 @@ a {
   white-space: nowrap;
 }
 
+/* The language selector's trigger: the same round icon button as the theme
+   toggle it sits next to, so the header's two icon-only controls read as a
+   pair. `position: relative` on the wrapper is what anchors its dropdown. */
+.header-lang-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.header-lang-menu {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+  min-width: 180px;
+}
+
+/* The language tag ("tr", "zh") shown after the endonym — a secondary,
+   monospaced hint rather than a second label competing with it. */
+.header-lang-menu .lang-code {
+  margin-inline-start: auto;
+  padding-inline-start: 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* `.groupby-check`'s own `margin-left: auto` would fight the code chip
+   above for the same slot — the check goes last, right after it. */
+.header-lang-menu .groupby-check {
+  margin-inline-start: 8px;
+}
+
+.lang-toggle,
 .theme-toggle {
   display: inline-flex;
   align-items: center;
@@ -318,6 +355,7 @@ a {
   flex-shrink: 0;
 }
 
+.lang-toggle:hover,
 .theme-toggle:hover {
   /* As bright as the search input (`--surface`), not `--bg-hover` — that
      one is actually darker than `--surface` now, so this would have
@@ -342,8 +380,8 @@ a {
    parent. Same override `.sidebar-groupby-menu` already uses for the
    same reason. */
 .header-scope-menu {
-  left: 0;
-  right: auto;
+  inset-inline-start: 0;
+  inset-inline-end: auto;
 }
 
 .search {
@@ -358,7 +396,7 @@ a {
 .search::before {
   content: '';
   position: absolute;
-  left: 12px;
+  inset-inline-start: 12px;
   top: 50%;
   width: 18px;
   height: 18px;
@@ -378,7 +416,8 @@ a {
   border: 1px solid var(--surface-border);
   color: var(--text);
   border-radius: 10px;
-  padding: 0 46px 0 38px;
+  padding-block: 0;
+  padding-inline: 38px 46px;
   font-size: 15px;
 }
 
@@ -396,7 +435,7 @@ a {
    click there still lands on the input underneath. */
 .search-kbd {
   position: absolute;
-  right: 8px;
+  inset-inline-end: 8px;
   top: 50%;
   transform: translateY(-50%);
   font-family: var(--font-mono);
@@ -457,7 +496,7 @@ a {
 }
 
 .picker .icon:last-child {
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 
 /* `--code-bg` (the same "elevated surface" token used for code blocks
@@ -478,6 +517,11 @@ a {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   padding: 4px;
   z-index: 20;
+  /* The language menu lists every language the interface ships in, which is
+     far more entries than the scope/group-by menus this shape was built
+     for — without a cap it runs off the bottom of the viewport. */
+  max-height: 60vh;
+  overflow-y: auto;
 }
 
 .picker-menu .group-label {
@@ -561,7 +605,7 @@ a {
    whether or not it's the active option, so the label text next to it
    doesn't shift left/right as the checked option changes. */
 .groupby-check {
-  margin-left: auto;
+  margin-inline-start: auto;
   visibility: hidden;
 }
 
@@ -577,13 +621,17 @@ a {
   position: relative;
 }
 
+/* Outlined rather than bare: these two (Export and the scope selector,
+   which reuses this class) are the header's only *labelled* controls, and
+   without a contour they read as plain text floating next to the round
+   icon buttons rather than as things you can press. */
 .header-export-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   height: 32px;
   padding: 0 10px;
-  border: none;
+  border: 1px solid var(--surface-border);
   border-radius: 8px;
   background: transparent;
   color: var(--text-muted);
@@ -594,6 +642,7 @@ a {
 
 .header-export-btn:hover {
   background: var(--surface);
+  border-color: var(--text-muted);
   color: var(--text);
 }
 
@@ -602,8 +651,8 @@ a {
    picker) — this button sits near the header's right edge, so opening
    leftward keeps the menu on-screen instead of overflowing past it. */
 .header-export-menu {
-  left: auto;
-  right: 0;
+  inset-inline-start: auto;
+  inset-inline-end: 0;
   min-width: 240px;
 }
 
@@ -645,7 +694,8 @@ a {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 10px 10px 16px;
+  padding-block: 10px;
+  padding-inline: 16px 10px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -807,9 +857,9 @@ a {
   color: var(--text-muted);
   white-space: nowrap;
   min-width: 28px;
-  text-align: right;
+  text-align: end;
   flex-shrink: 0;
-  margin-left: 4px;
+  margin-inline-start: 4px;
 }
 
 .schema-search-hit {
@@ -880,7 +930,8 @@ a {
   background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 8px 8px 8px 12px;
+  padding-block: 8px;
+  padding-inline: 12px 8px;
   overflow-x: auto;
 }
 
@@ -947,7 +998,7 @@ a {
 .search-popup {
   position: absolute;
   top: calc(100% + 8px);
-  right: 0;
+  inset-inline-end: 0;
   width: 440px;
   max-height: 70vh;
   overflow-y: auto;
@@ -1047,7 +1098,7 @@ a {
   font-size: 10.5px;
   line-height: 1.35;
   color: var(--text-muted);
-  text-align: left;
+  text-align: start;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1058,7 +1109,7 @@ a {
    next to it — the visual cue that this column is a *path leading here*,
    not a stray label of its own. */
 .search-result-crumb-arrow {
-  margin-left: 3px;
+  margin-inline-start: 3px;
   color: var(--text-muted);
   opacity: 0.6;
 }
@@ -1105,7 +1156,7 @@ a {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-right: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
   background: var(--bg-elevated);
 }
 
@@ -1166,7 +1217,7 @@ a {
 .filter-badge {
   position: absolute;
   top: -5px;
-  right: -5px;
+  inset-inline-end: -5px;
   min-width: 15px;
   height: 15px;
   padding: 0 3px;
@@ -1186,8 +1237,8 @@ a {
    full-width button; `.picker-menu`'s own `min-width` still keeps it wide
    enough to read comfortably despite the trigger being much narrower. */
 .sidebar-groupby-menu {
-  left: 0;
-  right: auto;
+  inset-inline-start: 0;
+  inset-inline-end: auto;
 }
 
 /* "Clear All" sits above both filter groups, set off by its own bottom
@@ -1205,7 +1256,7 @@ a {
   color: var(--accent);
   font-size: 12.5px;
   font-weight: 600;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
   /* The list below it can now run to nine methods plus the model-kind
      group and scroll internally (see `.filter-menu`) — staying pinned to
@@ -1230,7 +1281,7 @@ a {
   background: transparent;
   color: var(--text);
   font-size: 13.5px;
-  text-align: left;
+  text-align: start;
 }
 
 /* A section's own `icon` (plain text/emoji — see `HttpSection.icon`), not
@@ -1238,7 +1289,7 @@ a {
    are arbitrary and user-declared, unlike OPRA's own fixed set of
    type-kind icons, so there's nothing to look up here. */
 .group-icon {
-  margin-right: 2px;
+  margin-inline-end: 2px;
 }
 
 /* Reuses `.search`'s own structure (icon + input — see "header, logo &
@@ -1255,7 +1306,7 @@ a {
 
 .sidebar-filter-search input {
   height: 30px;
-  padding-right: 26px;
+  padding-inline-end: 26px;
   font-size: 13px;
   border: none;
 }
@@ -1272,7 +1323,7 @@ a {
 
 .sidebar-filter-clear {
   position: absolute;
-  right: 6px;
+  inset-inline-end: 6px;
   top: 50%;
   transform: translateY(-50%);
   width: 20px;
@@ -1385,7 +1436,8 @@ a {
 }
 
 .sidebar .kind-title {
-  padding: 8px 16px 2px 28px;
+  padding-block: 8px 2px;
+  padding-inline: 28px 16px;
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -1405,7 +1457,7 @@ a {
    between two icons. */
 .group-chevron {
   flex-shrink: 0;
-  margin-left: auto;
+  margin-inline-start: auto;
   transition: transform 0.18s ease;
 }
 
@@ -1450,7 +1502,7 @@ a {
   color: var(--text);
   text-decoration: none;
   font-size: 14px;
-  border-left: 2px solid transparent;
+  border-inline-start: 2px solid transparent;
 }
 
 .sidebar a.nav-link:hover {
@@ -1459,7 +1511,7 @@ a {
 
 .sidebar a.nav-link.active {
   background: var(--bg-hover);
-  border-left-color: var(--accent);
+  border-inline-start-color: var(--accent);
   color: var(--accent);
 }
 
@@ -1501,7 +1553,7 @@ a {
   justify-content: center;
   width: 14px;
   flex-shrink: 0;
-  margin-left: auto;
+  margin-inline-start: auto;
   color: var(--text-muted);
   cursor: pointer;
   transition: transform 0.18s ease;
@@ -1516,7 +1568,7 @@ a {
 }
 
 .sidebar a.nav-op .method-badge {
-  margin-left: auto;
+  margin-inline-start: auto;
   /* Even more toned down than `.method-badge`'s own base 0.8 — the
      sidebar packs many of these into a dense list, so they need to read
      as a quiet, secondary cue next to the operation name, not compete
@@ -1525,20 +1577,20 @@ a {
 }
 
 .sidebar a.nav-model {
-  padding-left: 28px;
+  padding-inline-start: 28px;
 }
 
 .sidebar a.nav-link.depth-1 {
-  padding-left: 26px;
+  padding-inline-start: 26px;
 }
 .sidebar a.nav-link.depth-2 {
-  padding-left: 42px;
+  padding-inline-start: 42px;
 }
 .sidebar a.nav-link.depth-3 {
-  padding-left: 58px;
+  padding-inline-start: 58px;
 }
 .sidebar a.nav-link.depth-4 {
-  padding-left: 74px;
+  padding-inline-start: 74px;
 }
 
 .method-badge {
@@ -1780,7 +1832,7 @@ a {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  border-left: 1px solid var(--border);
+  border-inline-start: 1px solid var(--border);
 }
 
 /* Full `--text` contrast by default, same as Docusaurus's TOC links (it
@@ -1788,7 +1840,8 @@ a {
    read as visually different, via accent color + weight below, not
    every other entry being a hard-to-read gray. */
 .toc-link {
-  padding: 5px 0 5px 12px;
+  padding-block: 5px;
+  padding-inline: 12px 0;
   font-size: 13px;
   line-height: 1.4;
   color: var(--text);
@@ -1931,7 +1984,7 @@ a.from-flag:hover {
 .row-link .row-desc {
   color: var(--text-muted);
   font-size: 13px;
-  margin-left: auto;
+  margin-inline-start: auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2079,20 +2132,20 @@ a.from-flag:hover {
   font-style: italic;
 }
 
-
 .field-head .flag {
   font-size: 11px;
   color: var(--text-muted);
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 0 5px;
-  margin-left: 2px;
+  margin-inline-start: 2px;
 }
 
 .field-nested {
-  margin: 10px 0 0 18px;
-  padding-left: 12px;
-  border-left: 1px solid var(--border);
+  margin-block: 10px 0;
+  margin-inline: 18px 0;
+  padding-inline-start: 12px;
+  border-inline-start: 1px solid var(--border);
 }
 
 .field-properties {
@@ -2198,10 +2251,11 @@ a.doc-meta-value:hover {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
-  font-family: var(--font-mono);
+  /* Rendered through the markdown renderer now (see `renderInfoMeta`), so
+     this is prose rather than preformatted text — the mono font and
+     `white-space: pre-wrap` it used to need would fight the wrapping. */
   font-size: 12.5px;
   line-height: 1.6;
-  white-space: pre-wrap;
   color: var(--text-muted);
   max-height: 320px;
   overflow-y: auto;
@@ -2296,7 +2350,8 @@ a.doc-meta-value:hover {
   background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 2px 4px 2px 8px;
+  padding-block: 2px;
+  padding-inline: 8px 4px;
 }
 
 .example-chip code {
@@ -2407,13 +2462,14 @@ a.doc-meta-value:hover {
 }
 
 .response-desc {
-  margin-left: 8px;
+  margin-inline-start: 8px;
   font-size: 13.5px;
   color: var(--text-muted);
 }
 
 .response-row .body {
-  padding: 12px 0 0 20px;
+  padding-block: 12px 0;
+  padding-inline: 20px 0;
 }
 
 .empty-note {
@@ -2491,7 +2547,7 @@ a.doc-meta-value:hover {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-left: auto;
+  margin-inline-start: auto;
   padding-bottom: 10px;
   font-size: 12px;
   color: var(--text-muted);
@@ -2777,7 +2833,7 @@ a.doc-meta-value:hover {
 .markdown ul,
 .markdown ol {
   margin: 0 0 16px;
-  padding-left: 22px;
+  padding-inline-start: 22px;
 }
 
 .markdown li {
@@ -2787,7 +2843,7 @@ a.doc-meta-value:hover {
 .markdown blockquote {
   margin: 0 0 16px;
   padding: 4px 12px;
-  border-left: 3px solid var(--border);
+  border-inline-start: 3px solid var(--border);
   color: var(--text-muted);
 }
 
@@ -2801,7 +2857,7 @@ a.doc-meta-value:hover {
   margin: 0 0 16px;
   padding: 12px 16px 14px;
   border-radius: 8px;
-  border-left: 4px solid var(--adm-color);
+  border-inline-start: 4px solid var(--adm-color);
   background: color-mix(in srgb, var(--adm-color) 12%, var(--code-bg));
 }
 
@@ -2878,7 +2934,8 @@ a.doc-meta-value:hover {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 1px 8px 1px 6px;
+  padding-block: 1px;
+  padding-inline: 6px 8px;
   border-radius: 12px;
   font-family: var(--font-mono);
   font-size: 0.92em;
@@ -3030,4 +3087,92 @@ a.doc-meta-value:hover {
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--tooltip-border);
+}
+
+/* ==========================================================================
+   Right-to-left
+   --------------------------------------------------------------------------
+   Almost all of this file is already direction-agnostic: the page skeleton is
+   a grid (`#app`), whose inline axis follows `direction`, so `<html dir="rtl">`
+   moves the sidebar to the right on its own, and every offset, margin, padding
+   and accent rail above is expressed in logical properties.
+
+   What's left are the cases CSS has no logical form for, and the content that
+   must *not* follow the reader's direction at all.
+   ========================================================================== */
+
+/* A chevron rotated -90° points left — the right way to say "collapsed" when
+   the tree opens rightwards, and exactly backwards when it opens leftwards. */
+[dir='rtl'] .group-chevron.collapsed,
+[dir='rtl'] .nav-toggle.collapsed {
+  transform: rotate(90deg);
+}
+
+/* Icons that mean a direction rather than a thing (the operation caret, a
+   chevron pointing along the reading order). See `MIRRORED_ICONS` in
+   `assets/app.js` — deliberately a short list: mirroring a folder or a globe
+   would just make it look broken. */
+[dir='rtl'] .icon-mirror svg {
+  transform: scaleX(-1);
+}
+
+/* The magnifier's handle runs to the bottom-right; on a leading edge that has
+   moved to the right it should run the other way. Composed with the existing
+   vertical centering, which would otherwise be dropped. */
+[dir='rtl'] .search::before {
+  transform: translateY(-50%) scaleX(-1);
+}
+
+/* `box-shadow` has no logical inset offset — the active search result's
+   accent bar has to be re-pinned by hand. */
+[dir='rtl'] .search-result-item.active {
+  box-shadow: inset -3px 0 0 var(--accent);
+}
+
+/* ==========================================================================
+   Content that stays left-to-right inside an RTL page
+   --------------------------------------------------------------------------
+   Code, JSON, HTTP paths, MIME types, shell commands and bare identifiers are
+   not prose in the reader's language — they are text in a machine's, and every
+   one of them is read, copied and pasted left-to-right no matter what surrounds
+   it. `unicode-bidi: isolate` on the inline ones keeps a Latin identifier from
+   dragging the punctuation of the Arabic sentence it sits in to the wrong side.
+   ========================================================================== */
+
+.example-json,
+.example-json code,
+.example-json-wrap,
+.modal-json,
+.tsclient-cmd,
+.tsclient-cmd code,
+.tsclient-body code,
+.main .description.path,
+.op-sub .path,
+.row-link .row-desc.path,
+.row-link .row-path,
+.request-rail-path,
+.search input,
+.sidebar-filter-search input,
+.modal-search-input,
+.search-result-label,
+.search-result-crumb {
+  direction: ltr;
+  text-align: left;
+}
+
+.mono,
+.text-icon,
+.markdown code,
+.field-list code,
+.field-properties code,
+.example-chip,
+.example-chip code,
+.example-desc code,
+.method-badge,
+.type-chip,
+.search-kbd,
+.header-lang-menu .lang-code,
+.response-rail-footer .footer-status code {
+  direction: ltr;
+  unicode-bidi: isolate;
 }

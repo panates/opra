@@ -77,6 +77,94 @@
     }
   }
 
+  // ---------- interface texts ----------
+
+  /** This page's own chrome texts, embedded by `renderApiUiHtml` already
+   *  resolved to one language and merged over English, so every key this
+   *  file asks for is guaranteed present — there is deliberately no
+   *  client-side fallback chain here, and a reader never sees a raw key.
+   *  (These are the *interface's* texts, shipped in `assets/i18n/*.json`
+   *  with the package; the documented API's own prose is a separate,
+   *  author-owned set of translations.) */
+  var MESSAGES = window.__OPRA_I18N__ || {};
+
+  /** The interface language and writing direction the server settled on —
+   *  read off `<html>` rather than `window.__OPRA_UI__.lang`, which carries
+   *  the *document's* language and is absent whenever the document has no
+   *  translations of its own. */
+  var UI_LANG = document.documentElement.getAttribute('lang') || 'en';
+  var IS_RTL = document.documentElement.getAttribute('dir') === 'rtl';
+
+  function lookupMessage(key) {
+    var node = MESSAGES;
+    var parts = key.split('.');
+    for (var i = 0; i < parts.length; i++) {
+      if (!node || typeof node !== 'object') return undefined;
+      node = node[parts[i]];
+    }
+    return typeof node === 'string' ? node : undefined;
+  }
+
+  function interpolate(template, vars) {
+    if (!vars) return template;
+    return template.replace(/\{(\w+)\}/g, function (whole, name) {
+      return Object.prototype.hasOwnProperty.call(vars, name) ? String(vars[name]) : whole;
+    });
+  }
+
+  /** `t('sidebar.overview')`, `t('overview.server', { url: … })`. Falls back
+   *  to the key itself, which only happens if a caller mistypes one — the
+   *  served dictionary is always complete. */
+  function t(key, vars) {
+    var str = lookupMessage(key);
+    return interpolate(str === undefined ? key : str, vars);
+  }
+
+  var pluralRules;
+  /** Plural form of `key` for `count`, looked up as `<key>_<category>` with
+   *  `_other` as the backstop. `Intl.PluralRules` rather than a hardcoded
+   *  one/other split: the interface ships in languages with up to six forms
+   *  (Arabic) and several with three or four (Russian, Polish, Ukrainian). */
+  function tp(key, count, vars) {
+    var category = 'other';
+    try {
+      if (!pluralRules) pluralRules = new Intl.PluralRules(UI_LANG);
+      category = pluralRules.select(count);
+    } catch (e) {
+      category = count === 1 ? 'one' : 'other';
+    }
+    var str = lookupMessage(key + '_' + category);
+    if (str === undefined) str = lookupMessage(key + '_other');
+    var vals = { count: count };
+    if (vars) {
+      Object.keys(vars).forEach(function (k) {
+        vals[k] = vars[k];
+      });
+    }
+    return interpolate(str === undefined ? key : str, vals);
+  }
+
+  /** `t()` for messages whose placeholders are DOM nodes rather than plain
+   *  values (a type chip, a link) — returns a children array ready for
+   *  `el()`. This is what lets a translation put the node wherever its own
+   *  grammar needs it, instead of the English assumption that a label is
+   *  always a prefix ("Part of X" vs. "X içinde"). */
+  function tNodes(key, nodes) {
+    var str = lookupMessage(key);
+    if (str === undefined) str = key;
+    var out = [];
+    var re = /\{(\w+)\}/g;
+    var last = 0;
+    var m;
+    while ((m = re.exec(str))) {
+      if (m.index > last) out.push(str.slice(last, m.index));
+      out.push(nodes[m[1]] === undefined ? m[0] : nodes[m[1]]);
+      last = m.index + m[0].length;
+    }
+    if (last < str.length) out.push(str.slice(last));
+    return out;
+  }
+
   // ---------- small DOM helpers ----------
 
   function el(tag, attrs, children) {
@@ -134,7 +222,7 @@
     var btn = el('button', {
       class: 'copy-btn',
       type: 'button',
-      title: 'Copy to clipboard',
+      title: t('common.copyToClipboard'),
       html: copyIconSvg(size),
       onclick: function (ev) {
         ev.stopPropagation();
@@ -249,7 +337,7 @@
       var adm = /^:::(note|tip|info|warning|danger)\s*(.*)$/i.exec(line);
       if (adm) {
         var admType = adm[1].toLowerCase();
-        var admTitle = adm[2] && adm[2].trim() ? adm[2].trim() : admType.toUpperCase();
+        var admTitle = adm[2] && adm[2].trim() ? adm[2].trim() : t('admonition.' + admType);
         i++;
         var admLines = [];
         while (i < lines.length && lines[i].trim() !== ':::') {
@@ -324,7 +412,14 @@
    *  and to power their hover tooltip. */
   function mdBlock(doc, description, cls) {
     if (!description) return null;
-    var node = el('div', { class: 'markdown' + (cls ? ' ' + cls : ''), html: mdToHtml(doc, description) });
+    var node = el('div', {
+      class: 'markdown' + (cls ? ' ' + cls : ''),
+      // The API author's prose, not the interface's: let the browser infer
+      // its direction from the text itself rather than inheriting the page's
+      // (see the "Right-to-left" section in styles.css).
+      dir: 'auto',
+      html: mdToHtml(doc, description),
+    });
     node.querySelectorAll('.type-chip').forEach(function (chip) {
       var m = MODEL_LINK_RE.exec(chip.getAttribute('href') || '');
       if (m) attachTypeHover(chip, doc, decodeURIComponent(m[1]));
@@ -384,7 +479,16 @@
     union: '∪',
   };
 
+  /** Icons that point somewhere along the reading direction and so have to
+   *  be mirrored in an RTL page — a right-pointing caret beside an operation
+   *  reads as "backwards" next to Arabic. Everything else here (folder,
+   *  book, globe…) is a picture, not a direction, and mirroring it would
+   *  just make it look wrong. Flipped in CSS via `[dir='rtl'] .icon-mirror`
+   *  rather than by swapping the SVG path. */
+  var MIRRORED_ICONS = { operation: 1, chevronRight: 1 };
+
   function iconFor(kind, cls) {
+    if (MIRRORED_ICONS[kind]) cls = (cls ? cls + ' ' : '') + 'icon-mirror';
     if (ICONS[kind]) return svg(ICONS[kind], cls);
     var label = TEXT_ICONS[kind] || '?';
     return el('span', { class: 'icon text-icon ' + (cls || '') }, [label]);
@@ -396,7 +500,11 @@
    *  `iconFor` does, so kinds like SimpleType/ArrayType/UnionType still get
    *  a visible marker instead of an empty chip. */
   function iconHtmlFor(kind) {
-    if (ICONS[kind]) return '<span class="icon">' + ICONS[kind] + '</span>';
+    if (ICONS[kind]) {
+      return (
+        '<span class="icon' + (MIRRORED_ICONS[kind] ? ' icon-mirror' : '') + '">' + ICONS[kind] + '</span>'
+      );
+    }
     var label = TEXT_ICONS[kind] || '?';
     return '<span class="icon text-icon">' + mdEscape(label) + '</span>';
   }
@@ -422,25 +530,25 @@
     }
   }
 
-  function dataTypeGroupLabel(kind) {
-    switch (kind) {
-      case 'ComplexType':
-        return 'Complex types';
-      case 'SimpleType':
-        return 'Simple types';
-      case 'EnumType':
-        return 'Enums';
-      case 'ArrayType':
-        return 'Arrays';
-      case 'UnionType':
-        return 'Unions';
-      case 'MixinType':
-        return 'Mixins';
-      case 'MappedType':
-        return 'Mapped types';
-      default:
-        return kind;
-    }
+  var TYPE_GROUP_KEYS = {
+    ComplexType: 'complex',
+    SimpleType: 'simple',
+    EnumType: 'enum',
+    ArrayType: 'array',
+    UnionType: 'union',
+    MixinType: 'mixin',
+    MappedType: 'mapped',
+  };
+
+  /** The human label for a group of data types. `count` selects the plural
+   *  form — a heading over one enum should read "Enum", not "Enums", and
+   *  which languages distinguish which counts isn't English's business (see
+   *  `tp`). Left out, it means "a group in general", i.e. the plural. An
+   *  unrecognized kind falls through to the schema's own identifier. */
+  function dataTypeGroupLabel(kind, count) {
+    var key = TYPE_GROUP_KEYS[kind];
+    if (!key) return kind;
+    return tp('typeGroups.' + key, count === undefined ? 2 : count);
   }
 
   var TYPE_GROUP_ORDER = [
@@ -574,19 +682,41 @@
     return parts;
   }
 
-  /** An operation's own `title` (see `HttpOperation.title`) is its
-   *  preferred display name wherever `opKey` alone was shown before — a
-   *  human sentence like "Create a meeting" reads as a label, not a code
-   *  identifier, so it drops the `mono` styling `opKey` on its own always
-   *  had. Falls back to plain `opKey` (still `mono`) exactly as before
-   *  when no `title` is set, so a document that doesn't use `title` is
-   *  visually unaffected. `filterValue`, when given, highlights (see
-   *  `highlightParts`) any part of whichever name ends up showing. */
+  /** The controller tree's label for an operation: always the operation's
+   *  own key, never its `title`.
+   *
+   *  That tree mirrors the code — its folders are controller identifiers,
+   *  which have no human name of their own — so prose leaves hanging off
+   *  identifier branches read as a different kind of thing. And `title` is
+   *  optional: a document that sets it on only some operations gets a
+   *  half-prose tree, and once the document is translated, a half-translated
+   *  one. The key is also what the reader types (`client.customer.update(…)`)
+   *  and what the generated TypeScript client exports.
+   *
+   *  A `title` is never lost by not being shown here — it is the operation
+   *  page's own `<h1>`, the search result's label, the "Sections" view's
+   *  label (see `opTitleNode`), and this link's tooltip.
+   *
+   *  `filterValue`, when given, highlights (see `highlightParts`) matching
+   *  parts of the key. */
   function opNameNode(op, opKey, cls, filterValue) {
+    return el(
+      'span',
+      { class: (cls ? cls + ' ' : '') + 'name mono', title: op.title || null },
+      highlightParts(opKey, filterValue),
+    );
+  }
+
+  /** The "Sections" list's label for an operation: the author's own human
+   *  name for it, since that view is the narrative one. `fallback` (a
+   *  `Controller.opKey`, not a bare key) shows when there's no title — that
+   *  list is flat, so two controllers' `update` would otherwise appear as
+   *  two identical, indistinguishable rows. */
+  function opTitleNode(op, fallback, cls, filterValue) {
     var base = cls ? cls + ' ' : '';
     return op.title
       ? el('span', { class: base + 'name' }, highlightParts(op.title, filterValue))
-      : el('span', { class: base + 'name mono' }, highlightParts(opKey, filterValue));
+      : el('span', { class: base + 'name mono' }, highlightParts(fallback, filterValue));
   }
 
   /** Unwraps any number of ArrayType layers, returning the innermost
@@ -638,8 +768,8 @@
         unionLabel,
         el('span', { class: 'type-chip-sep' }, ['|']),
       ]);
-      d.types.forEach(function (t) {
-        var member = typeRefNode(doc, t);
+      d.types.forEach(function (memberRef) {
+        var member = typeRefNode(doc, memberRef);
         member.classList.add('type-chip-member');
         unionNode.appendChild(member);
       });
@@ -647,7 +777,7 @@
     }
 
     var embedded = !!(d && !u.name && !d.name && d.fields);
-    var name = (u.name || (d && d.name) || (embedded ? 'embedded' : d && d.kind) || 'unknown') + (suffix || '');
+    var name = (u.name || (d && d.name) || (embedded ? t('field.embedded') : d && d.kind) || t('field.unknown')) + (suffix || '');
     // `d.anonymous` (see `mapDataType` in schema-builder.ts) covers both
     // this — an embedded ComplexType/Mixin/Mapped type with no name — and
     // a SimpleType customized inline for one field/parameter (which still
@@ -726,7 +856,7 @@
     var d = u.def;
     if (!d) return;
     var embedded = !u.name && !d.name && !!d.fields;
-    var name = u.name || d.name || (embedded ? 'embedded' : d.kind);
+    var name = u.name || d.name || (embedded ? t('field.embedded') : d.kind);
     var iconKind = dataTypeIconKind(d.kind);
     var tip = ensureTypeTooltip();
     clear(tip);
@@ -745,14 +875,16 @@
         d.anonymous
           ? el('span', {
               class: 'badge',
-              title: 'Defined inline for this specific field or parameter — not a standalone type with its own page.',
-            }, ['embedded'])
+              title: t('field.embeddedHint'),
+            }, [t('field.embedded')])
           : null,
       ]),
     );
     var brief = briefText(d.description, 220);
     tip.appendChild(
-      el('div', { class: 'type-tooltip-desc' + (brief ? '' : ' empty') }, [brief || 'No description.']),
+      el('div', { class: 'type-tooltip-desc' + (brief ? '' : ' empty'), dir: 'auto' }, [
+        brief || t('field.noDescription'),
+      ]),
     );
     // The type's own examples — same copyable chip as everywhere else,
     // but without each one's description (there's no room for it here,
@@ -766,6 +898,13 @@
     }
 
     var rect = anchor.getBoundingClientRect();
+    // The tooltip grows away from the anchor's *leading* edge, so in an RTL
+    // page it hangs from the anchor's right edge and overflows leftwards —
+    // mirroring which side is measured, not just which one is set, or it
+    // would flip off-screen on the first hover near a margin.
+    // A first guess before the tooltip has a measurable width, so it never
+    // flashes at wherever the previous hover left it; the frame below
+    // corrects it once `offsetWidth` is readable.
     tip.style.left = rect.left + 'px';
     tip.style.top = rect.bottom + 6 + 'px';
     tip.classList.add('visible');
@@ -774,7 +913,8 @@
       var vh = window.innerHeight;
       var tw = tip.offsetWidth;
       var th = tip.offsetHeight;
-      if (rect.left + tw > vw - 8) tip.style.left = Math.max(8, vw - tw - 8) + 'px';
+      var left = IS_RTL ? rect.right - tw : rect.left;
+      tip.style.left = Math.min(Math.max(8, left), Math.max(8, vw - tw - 8)) + 'px';
       if (rect.bottom + 6 + th > vh - 8) tip.style.top = Math.max(8, rect.top - th - 6) + 'px';
     });
   }
@@ -810,18 +950,18 @@
    *  short badge label alone ("exclusive", "localization"...) isn't
    *  self-explanatory. */
   var FLAG_HINTS = {
-    required: 'This field must be provided.',
-    deprecated: 'This field is deprecated and may be removed in the future.',
-    readonly: 'This field is read-only — it cannot be set by the client.',
-    writeonly: 'This field is write-only — it is not included in responses.',
-    exclusive: 'This field is only returned when explicitly requested, not by default.',
-    localization: 'This field supports localization — it can hold a separate value per language.',
+    required: t('flagHints.required'),
+    deprecated: t('flagHints.deprecated'),
+    readonly: t('flagHints.readonly'),
+    writeonly: t('flagHints.writeonly'),
+    exclusive: t('flagHints.exclusive'),
+    localization: t('flagHints.localization'),
   };
 
   /** A small badge for a boolean field trait (required, readonly, ...),
    *  with a hover tooltip explaining what it means. */
   function flagBadge(key, label) {
-    return el('span', { class: 'flag', title: FLAG_HINTS[key] }, [label || key]);
+    return el('span', { class: 'flag', title: FLAG_HINTS[key] }, [label || lookupMessage('flags.' + key) || key]);
   }
 
   /** A small "from X" flag shown at the end of an inherited field's line,
@@ -831,16 +971,16 @@
    *  field's own identity marker (that's what type-kind icons mean
    *  elsewhere in this UI) rather than a provenance note. */
   function fromFlag(from) {
-    var label = typeof from === 'string' ? from : (from && (from.name || from.kind)) || 'a base type';
-    var title = 'Inherited from ' + label;
+    var label = typeof from === 'string' ? from : (from && (from.name || from.kind)) || t('field.baseType');
+    var title = t('field.inheritedFrom', { type: label });
     if (typeof from === 'string') {
       return el(
         'a',
         { class: 'flag from-flag', title: title, href: hrefFor(state.docKey, 'model/' + encodeURIComponent(from)) },
-        ['from ' + label],
+        [t('field.fromType', { type: label })],
       );
     }
-    return el('span', { class: 'flag from-flag', title: title }, ['from ' + label]);
+    return el('span', { class: 'flag from-flag', title: title }, [t('field.fromType', { type: label })]);
   }
 
   /** "Extends X" / "Mixin of (X, Y)" / "Mapped from X" — shown once, above
@@ -850,13 +990,20 @@
   function renderInherits(doc, inherits) {
     if (!inherits || !inherits.types || !inherits.types.length) return null;
     var chips = [];
-    inherits.types.forEach(function (t, i) {
+    inherits.types.forEach(function (ref, i) {
       if (i > 0) chips.push(text(', '));
-      chips.push(typeRefNode(doc, t));
+      chips.push(typeRefNode(doc, ref));
     });
-    var prefix =
-      inherits.kind === 'mixin' ? 'Mixin of ' : inherits.kind === 'mapped' ? 'Mapped from ' : 'Extends ';
-    return el('p', { class: 'inherits' }, [prefix].concat(chips));
+    // The chips go through `tNodes` as a single fragment rather than being
+    // appended after a prefix string: "Extends X" is an English word order,
+    // and a translation has to be free to put the type list first.
+    var frag = document.createDocumentFragment();
+    chips.forEach(function (chip) {
+      frag.appendChild(typeof chip === 'string' ? text(chip) : chip);
+    });
+    var key =
+      inherits.kind === 'mixin' ? 'model.mixinOf' : inherits.kind === 'mapped' ? 'model.mappedFrom' : 'model.extends';
+    return el('p', { class: 'inherits' }, tNodes(key, { types: frag }));
   }
 
   /** A field's type: the same tinted icon-chip used everywhere else on the
@@ -879,6 +1026,8 @@
   /** "minValue" -> "Min value" — for labeling a SimpleType property whose
    *  raw key is a camelCase identifier. */
   function humanizePropKey(key) {
+    var translated = lookupMessage('props.' + key);
+    if (translated) return translated;
     var spaced = key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
     return spaced.charAt(0).toUpperCase() + spaced.slice(1);
   }
@@ -931,7 +1080,7 @@
       if (c.minOccurs != null) {
         container.appendChild(
           el('div', { class: 'prop-row' }, [
-            el('span', { class: 'prop-key' }, ['Min array items: ']),
+            el('span', { class: 'prop-key' }, [t('field.minArrayItems')]),
             text(String(c.minOccurs)),
           ]),
         );
@@ -939,7 +1088,7 @@
       if (c.maxOccurs != null) {
         container.appendChild(
           el('div', { class: 'prop-row' }, [
-            el('span', { class: 'prop-key' }, ['Max array items: ']),
+            el('span', { class: 'prop-key' }, [t('field.maxArrayItems')]),
             text(String(c.maxOccurs)),
           ]),
         );
@@ -1136,7 +1285,7 @@
     if (!values.length) return null;
     var container = el('div', { class: 'field-properties' });
     var row = el('div', { class: 'prop-row example-row' }, [
-      el('span', { class: 'prop-key' }, [values.length > 1 ? 'Examples: ' : 'Example: ']),
+      el('span', { class: 'prop-key' }, [tp('field.example', values.length)]),
     ]);
     values.forEach(function (v) {
       row.appendChild(exampleChip(v));
@@ -1264,7 +1413,7 @@
   function renderEnumValues(doc, d) {
     var values = d.values || {};
     var keys = Object.keys(values);
-    if (!keys.length) return el('div', { class: 'empty-note' }, ['No values.']);
+    if (!keys.length) return el('div', { class: 'empty-note' }, [t('field.noValues')]);
     var list = el('div', { class: 'field-list' });
     keys.forEach(function (val) {
       var meta = values[val] || {};
@@ -1300,7 +1449,7 @@
       r.hidden = true;
     });
     var btn = el('button', { class: 'show-more-fields', type: 'button' }, [
-      'Show ' + hidden.length + ' more field' + (hidden.length === 1 ? '' : 's'),
+      tp('field.showMoreFields', hidden.length),
     ]);
     btn.addEventListener('click', function () {
       hidden.forEach(function (r) {
@@ -1329,13 +1478,13 @@
       rows.forEach(function (r) {
         container.appendChild(r);
       });
-      if (!rows.length) return el('div', { class: 'empty-note' }, ['No fields.']);
+      if (!rows.length) return el('div', { class: 'empty-note' }, [t('field.noFields')]);
       if (collapseAfter && rows.length > collapseAfter) appendShowMoreFields(container, rows, collapseAfter);
     } else if (d.kind === 'EnumType') {
       return renderEnumValues(doc, d);
     } else if (d.kind === 'UnionType') {
-      (d.types || []).forEach(function (t) {
-        container.appendChild(renderFieldNode(doc, null, t, null));
+      (d.types || []).forEach(function (ref) {
+        container.appendChild(renderFieldNode(doc, null, ref, null));
       });
     } else if (d.kind === 'SimpleType') {
       var propRows = d.properties && renderSimpleTypePropertyRows(doc, d.properties, d.propertyDescriptions);
@@ -1344,10 +1493,10 @@
           container.appendChild(r);
         });
       } else {
-        return el('div', { class: 'empty-note' }, ['No properties.']);
+        return el('div', { class: 'empty-note' }, [t('field.noProperties')]);
       }
     } else {
-      return el('div', { class: 'empty-note' }, ['No fields.']);
+      return el('div', { class: 'empty-note' }, [t('field.noFields')]);
     }
     return container;
   }
@@ -1446,17 +1595,22 @@
       // block directly beneath it, rather than a disclosure stranded
       // somewhere else on the page.
       if (lic.content) {
-        var contentPre = el('pre', { class: 'license-content' }, [lic.content]);
+        // Rendered as markdown like every other prose block in the page,
+        // not as raw preformatted text: a license is normally hard-wrapped
+        // at ~80 columns, which reads as ragged half-lines inside this
+        // narrow column, and any emphasis in it (`*Example Inc*`) would
+        // otherwise show up as literal asterisks.
+        var contentPre = mdBlock(doc, lic.content, 'license-content');
         contentPre.hidden = true;
-        var toggleBtn = el('button', { class: 'text-toggle-btn', type: 'button' }, ['View full text']);
+        var toggleBtn = el('button', { class: 'text-toggle-btn', type: 'button' }, [t('overview.viewFullText')]);
         toggleBtn.addEventListener('click', function () {
           contentPre.hidden = !contentPre.hidden;
-          toggleBtn.textContent = contentPre.hidden ? 'View full text' : 'Hide full text';
+          toggleBtn.textContent = contentPre.hidden ? t('overview.viewFullText') : t('overview.hideFullText');
         });
         row.appendChild(toggleBtn);
         body.push(contentPre);
       }
-      items.push(metaItem('License', 'scale', body));
+      items.push(metaItem(t('overview.license'), 'scale', body));
     }
 
     if (info.contact && info.contact.length) {
@@ -1492,7 +1646,7 @@
         return card;
       });
       items.push(
-        metaItem(info.contact.length > 1 ? 'Contacts' : 'Contact', 'users', [
+        metaItem(tp('overview.contact', info.contact.length), 'users', [
           el('div', { class: 'contact-cards' }, cards),
         ]),
       );
@@ -1501,8 +1655,8 @@
     if (info.termsOfService) {
       if (isHttpUrl(info.termsOfService)) {
         items.push(
-          metaItem('Terms of Service', 'book', [
-            el('a', { href: info.termsOfService, target: '_blank', rel: 'noopener' }, ['View terms of service ↗']),
+          metaItem(t('overview.termsOfService'), 'book', [
+            el('a', { href: info.termsOfService, target: '_blank', rel: 'noopener' }, [t('overview.viewTerms')]),
           ]),
         );
       } else {
@@ -1511,13 +1665,13 @@
         // actually overflow that clamp (measured post-layout), rather than
         // showing a toggle for a one-line blurb that never needed one.
         var textEl = el('div', { class: 'terms-text clamped' }, [info.termsOfService]);
-        var moreBtn = el('button', { class: 'text-toggle-btn', type: 'button' }, ['Show more']);
+        var moreBtn = el('button', { class: 'text-toggle-btn', type: 'button' }, [t('common.showMore')]);
         moreBtn.hidden = true;
         moreBtn.addEventListener('click', function () {
           var stillClamped = textEl.classList.toggle('clamped');
-          moreBtn.textContent = stillClamped ? 'Show more' : 'Show less';
+          moreBtn.textContent = stillClamped ? t('common.showMore') : t('common.showLess');
         });
-        items.push(metaItem('Terms of Service', 'book', [textEl, moreBtn]));
+        items.push(metaItem(t('overview.termsOfService'), 'book', [textEl, moreBtn]));
         requestAnimationFrame(function () {
           if (textEl.scrollHeight > textEl.clientHeight + 1) moreBtn.hidden = false;
         });
@@ -1536,14 +1690,14 @@
   function renderReferencesSection(main) {
     var keys = Object.keys(embedded.refs || {});
     if (!keys.length) return;
-    var section = el('div', { class: 'section' }, [el('h2', {}, ['Reference documents'])]);
+    var section = el('div', { class: 'section' }, [el('h2', {}, [t('overview.referenceDocuments')])]);
     keys.sort().forEach(function (ns) {
       var rinfo = (embedded.refs[ns] && embedded.refs[ns].info) || {};
       section.appendChild(
         el('a', { class: 'row-link', href: hrefFor(ns, '') }, [
           iconFor('book'),
           el('span', { class: 'mono' }, [rinfo.title || ns]),
-          rinfo.version ? el('span', { class: 'row-desc' }, ['v' + rinfo.version]) : null,
+          rinfo.version ? el('span', { class: 'row-desc' }, [t('common.versionTag', { version: rinfo.version })]) : null,
         ]),
       );
     });
@@ -1560,14 +1714,14 @@
     var controllers = (doc.api && doc.api.controllers) || {};
     var names = Object.keys(controllers);
     if (!names.length) return;
-    var section = el('div', { class: 'section' }, [el('h2', {}, ['Controllers'])]);
+    var section = el('div', { class: 'section' }, [el('h2', {}, [t('overview.controllers')])]);
     names.sort().forEach(function (name) {
       var ctrl = controllers[name];
       var n = countOperations(ctrl);
       section.appendChild(
         el('a', { class: 'row-link', href: hrefFor(docKey, 'ctl/' + encodeURIComponent(name)) }, [
           el('span', { class: 'mono' }, [name]),
-          el('span', { class: 'row-desc' }, [n + (n === 1 ? ' operation' : ' operations')]),
+          el('span', { class: 'row-desc' }, [tp('overview.operationCount', n)]),
         ]),
       );
     });
@@ -1591,15 +1745,14 @@
     });
     var kinds = Object.keys(byKind);
     if (!kinds.length) return;
-    var section = el('div', { class: 'section' }, [el('h2', {}, ['Models'])]);
+    var section = el('div', { class: 'section' }, [el('h2', {}, [t('overview.models')])]);
     var chipRow = el('div', { class: 'stat-chips' });
     TYPE_GROUP_ORDER.concat(kinds.filter(function (k) { return TYPE_GROUP_ORDER.indexOf(k) === -1; })).forEach(
       function (kind) {
         if (!byKind[kind]) return;
         var names = byKind[kind].sort();
         var iconKind = dataTypeIconKind(kind);
-        var label = dataTypeGroupLabel(kind);
-        if (names.length === 1) label = label.replace(/s$/, '');
+        var label = dataTypeGroupLabel(kind, names.length);
         chipRow.appendChild(
           el('a', { class: 'stat-chip c-' + iconKind, href: hrefFor(docKey, 'model/' + encodeURIComponent(names[0])) }, [
             iconFor(iconKind),
@@ -1616,20 +1769,20 @@
   function renderOverviewPage(main, doc) {
     var info = doc.info || {};
     main.appendChild(
-      el('h1', {}, [
-        info.title || 'API Reference',
-        info.version ? el('span', { class: 'badge' }, ['v' + info.version]) : null,
+      el('h1', { dir: 'auto' }, [
+        info.title || t('overview.apiReference'),
+        info.version ? el('span', { class: 'badge' }, [t('common.versionTag', { version: info.version })]) : null,
       ]),
     );
     if (doc.api && doc.api.url) {
-      main.appendChild(el('p', { class: 'description path' }, ['Server: ' + doc.api.url]));
+      main.appendChild(el('p', { class: 'description path' }, [t('overview.server', { url: doc.api.url })]));
     }
     // What the API *is* comes first (description, then what it contains);
     // who owns/licenses it is a footnote, so the license/contact/terms
     // panel goes last, below everything else.
     var descBlock = mdBlock(doc, info.description);
     if (descBlock) {
-      main.appendChild(el('div', { class: 'section' }, [el('h2', {}, ['Description']), descBlock]));
+      main.appendChild(el('div', { class: 'section' }, [el('h2', {}, [t('overview.description')]), descBlock]));
     }
 
     // `embedded.refs` is always the *root* document's own references (only
@@ -1652,13 +1805,19 @@
    *  `mapHttpOperation` in schema-builder.ts). */
   function renderParametersSections(main, doc, parameters) {
     if (!parameters || !parameters.length) return;
+    var PARAMETER_SECTION_KEYS = {
+      path: 'operation.parametersPath',
+      query: 'operation.parametersQuery',
+      header: 'operation.parametersHeader',
+      cookie: 'operation.parametersCookie',
+    };
     ['path', 'query', 'header', 'cookie'].forEach(function (loc) {
       var params = parameters.filter(function (p) {
         return p.location === loc;
       });
       if (!params.length) return;
       var section = el('div', { class: 'section' }, [
-        el('h2', {}, [loc.charAt(0).toUpperCase() + loc.slice(1) + ' parameters']),
+        el('h2', {}, [t(PARAMETER_SECTION_KEYS[loc])]),
       ]);
       // Same `renderFieldNode` used for a model's own Fields — a plain
       // Name/Type/Required/Description table gave a parameter's type only
@@ -1690,7 +1849,7 @@
     if (media.example !== undefined) {
       return el('div', { class: 'field-properties' }, [
         el('div', { class: 'prop-row example-row' }, [
-          el('span', { class: 'prop-key' }, ['Example: ']),
+          el('span', { class: 'prop-key' }, [t('media.example')]),
           exampleChip(media.example),
         ]),
       ]);
@@ -1735,8 +1894,8 @@
     // e.g. a per-file `maxPartSize` distinct from the whole body's
     // `maxTotalSize`.
     var limitRows = [];
-    if (f.maxPartSize != null) limitRows.push(['Max size', text(formatBytes(f.maxPartSize))]);
-    if (f.maxFieldSize != null) limitRows.push(['Max size', text(formatBytes(f.maxFieldSize))]);
+    if (f.maxPartSize != null) limitRows.push([t('media.maxSize'), text(formatBytes(f.maxPartSize))]);
+    if (f.maxFieldSize != null) limitRows.push([t('media.maxSize'), text(formatBytes(f.maxFieldSize))]);
     if (limitRows.length) {
       row.appendChild(
         el(
@@ -1773,11 +1932,11 @@
       ? media.contentType.join(', ')
       : media.contentType || 'application/json';
     rows.push(['Content-Type', el('code', {}, [contentTypeLabel])]);
-    if (media.contentEncoding) rows.push(['Encoding', text(media.contentEncoding)]);
-    if (media.maxParts != null) rows.push(['Max parts', text(String(media.maxParts))]);
-    if (media.maxPartSize != null) rows.push(['Max part size', text(formatBytes(media.maxPartSize))]);
-    if (media.maxFieldSize != null) rows.push(['Max field size', text(formatBytes(media.maxFieldSize))]);
-    if (media.maxTotalSize != null) rows.push(['Max total size', text(formatBytes(media.maxTotalSize))]);
+    if (media.contentEncoding) rows.push([t('media.encoding'), text(media.contentEncoding)]);
+    if (media.maxParts != null) rows.push([t('media.maxParts'), text(String(media.maxParts))]);
+    if (media.maxPartSize != null) rows.push([t('media.maxPartSize'), text(formatBytes(media.maxPartSize))]);
+    if (media.maxFieldSize != null) rows.push([t('media.maxFieldSize'), text(formatBytes(media.maxFieldSize))]);
+    if (media.maxTotalSize != null) rows.push([t('media.maxTotalSize'), text(formatBytes(media.maxTotalSize))]);
     return el(
       'div',
       { class: 'field-properties' },
@@ -1827,7 +1986,7 @@
     }
 
     if (!hasContent) {
-      panel.appendChild(el('div', { class: 'empty-note' }, ['Raw body — no further schema declared.']));
+      panel.appendChild(el('div', { class: 'empty-note' }, [t('operation.rawBody')]));
     }
     return panel;
   }
@@ -1849,9 +2008,9 @@
     var raw = media.contentType;
     var list = Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split(',') : ['application/json'];
     var formats = [];
-    list.forEach(function (t) {
-      t = String(t).trim().toLowerCase();
-      var fmt = /json/.test(t) ? 'json' : /yaml/.test(t) ? 'yaml' : /toml/.test(t) ? 'toml' : null;
+    list.forEach(function (entry) {
+      entry = String(entry).trim().toLowerCase();
+      var fmt = /json/.test(entry) ? 'json' : /yaml/.test(entry) ? 'yaml' : /toml/.test(entry) ? 'toml' : null;
       if (fmt && formats.indexOf(fmt) === -1) formats.push(fmt);
     });
     if (!formats.length) formats.push('json');
@@ -1873,9 +2032,9 @@
    *  `refreshSelect`). */
   function bodyKindEntry(media) {
     var formats = mediaBodyFormats(media);
-    if (formats.length <= 1) return { key: 'body', label: 'Body' };
+    if (formats.length <= 1) return { key: 'body', label: t('operation.body') };
     return {
-      group: 'Body',
+      group: t('operation.body'),
       items: formats.map(function (f) {
         return { key: 'body-' + f, label: BODY_FORMAT_LABELS[f] };
       }),
@@ -2936,7 +3095,7 @@
           railContent.appendChild(bodyView.content);
           railCopyHolder.appendChild(bodyView.copyBtn);
         } else {
-          railContent.appendChild(el('div', { class: 'empty-note' }, ['No body for this alternative.']));
+          railContent.appendChild(el('div', { class: 'empty-note' }, [t('operation.noBodyAlternative')]));
         }
         return;
       }
@@ -3011,7 +3170,7 @@
       return;
     }
 
-    var section = el('div', { class: 'section' }, [el('h2', {}, ['Request body'])]);
+    var section = el('div', { class: 'section' }, [el('h2', {}, [t('operation.requestBody')])]);
     var metaChildren = [];
     if (requestBody.required) metaChildren.push(flagBadge('required'));
     var descBlock = mdBlock(doc, requestBody.description);
@@ -3044,7 +3203,7 @@
       section.appendChild(tabBar);
       section.appendChild(
         el('p', { class: 'content-alt-note' }, [
-          'This operation accepts more than one request format — pick one above to see its schema.',
+          t('operation.multipleFormats'),
         ]),
       );
       panels.forEach(function (p, i) {
@@ -3087,7 +3246,7 @@
    *  tabs are the primary way to flip through responses without leaving
    *  a schema expanded. */
   function renderResponsesSection(main, doc, responses, railResponseExample) {
-    var section = el('div', { class: 'section' }, [el('h2', {}, ['Responses'])]);
+    var section = el('div', { class: 'section' }, [el('h2', {}, [t('operation.responses')])]);
     var list = el('div', { class: 'responses-list' });
 
     var showSchema = false;
@@ -3138,7 +3297,7 @@
         copyBtn.classList.add('copy-btn-lg');
         railCopyHolder.appendChild(copyBtn);
       } else {
-        railContent.appendChild(el('div', { class: 'empty-note' }, ['No body']));
+        railContent.appendChild(el('div', { class: 'empty-note' }, [t('operation.noBody')]));
       }
       railFooterCode.textContent = formatStatusCode(r.statusCode);
       railFooterDesc.textContent = r.description || '';
@@ -3168,7 +3327,7 @@
         showSchema = schemaCheckbox.checked;
         renderRailContent(responses[activeIndex]);
       });
-      schemaToggleLabel = el('label', { class: 'show-schema-toggle' }, [schemaCheckbox, 'Show Schema']);
+      schemaToggleLabel = el('label', { class: 'show-schema-toggle' }, [schemaCheckbox, t('operation.showSchema')]);
       tabsBar.appendChild(schemaToggleLabel);
       railResponseExample.appendChild(tabsBar);
       railContent = el('div', { class: 'response-rail-content' });
@@ -3178,7 +3337,7 @@
       railFooterDesc = el('div', { class: 'footer-desc' }, ['']);
       railResponseExample.appendChild(
         el('div', { class: 'response-rail-footer' }, [
-          el('div', { class: 'footer-status' }, ['HTTP Status Code: ', railFooterCode]),
+          el('div', { class: 'footer-status' }, tNodes('operation.httpStatusCode', { code: railFooterCode })),
           railFooterDesc,
         ]),
       );
@@ -3195,7 +3354,7 @@
       );
       var body = el('div', { class: 'body' });
       if (r.type) body.appendChild(renderTypeTreeWithInherits(doc, r.type));
-      else body.appendChild(el('div', { class: 'empty-note' }, ['No body']));
+      else body.appendChild(el('div', { class: 'empty-note' }, [t('operation.noBody')]));
       details.appendChild(body);
       details.addEventListener('toggle', function () {
         if (details.open) selectResponse(i);
@@ -3216,7 +3375,7 @@
 
     var ops = ctrl.operations ? Object.keys(ctrl.operations) : [];
     if (ops.length) {
-      var opSection = el('div', { class: 'section' }, [el('h2', {}, ['Operations'])]);
+      var opSection = el('div', { class: 'section' }, [el('h2', {}, [t('controller.operations')])]);
       ops.forEach(function (opKey) {
         var op = ctrl.operations[opKey];
         opSection.appendChild(
@@ -3229,7 +3388,7 @@
                 ? el('span', {}, [op.title])
                 : el('span', { class: 'mono' }, [opKey + '()']),
               el('span', { class: 'row-path' }, [operationPath(found.ctrlPath || '/', op)]),
-              op.description ? el('span', { class: 'row-desc' }, [op.description]) : null,
+              op.description ? el('span', { class: 'row-desc', dir: 'auto' }, [op.description]) : null,
             ],
           ),
         );
@@ -3239,7 +3398,7 @@
 
     var children = ctrl.controllers ? Object.keys(ctrl.controllers) : [];
     if (children.length) {
-      var childSection = el('div', { class: 'section' }, [el('h2', {}, ['Child controllers'])]);
+      var childSection = el('div', { class: 'section' }, [el('h2', {}, [t('controller.childControllers')])]);
       children.forEach(function (name) {
         var child = ctrl.controllers[name];
         childSection.appendChild(
@@ -3253,7 +3412,7 @@
     }
 
     if (!ops.length && !children.length) {
-      main.appendChild(el('div', { class: 'section empty-note' }, ['This controller has no operations or child controllers.']));
+      main.appendChild(el('div', { class: 'section empty-note' }, [t('controller.empty')]));
     }
   }
 
@@ -3281,7 +3440,7 @@
     // between an operation's `summary` and its `operationId`. Without a
     // `title`, this renders exactly as it always has.
     if (op.title) {
-      topMain.appendChild(el('h1', {}, [op.title]));
+      topMain.appendChild(el('h1', { dir: 'auto' }, [op.title]));
       topMain.appendChild(el('div', { class: 'op-id mono' }, [found.opKey + '()']));
     } else {
       topMain.appendChild(el('h1', { class: 'mono' }, [found.opKey + '()']));
@@ -3290,19 +3449,26 @@
     topMain.appendChild(sub);
     if (found.ctrlName) {
       topMain.appendChild(
-        el('p', { class: 'description' }, [
-          'Part of ',
-          el('a', { href: hrefFor(docKey, found.ctrlRoute) }, [found.ctrlName]),
-        ]),
+        el(
+          'p',
+          { class: 'description' },
+          tNodes('operation.partOf', {
+            controller: el('a', { href: hrefFor(docKey, found.ctrlRoute) }, [found.ctrlName]),
+          }),
+        ),
       );
     }
 
     if (op.deprecated) {
       topMain.appendChild(
-        el('span', { class: 'badge deprecated' }, [typeof op.deprecated === 'string' ? 'deprecated: ' + op.deprecated : 'deprecated']),
+        el('span', { class: 'badge deprecated' }, [
+          typeof op.deprecated === 'string'
+            ? t('operation.deprecatedReason', { reason: op.deprecated })
+            : t('operation.deprecated'),
+        ]),
       );
     }
-    if (op.composition) topMain.appendChild(el('div', { class: 'badge' }, ['composition: ' + op.composition]));
+    if (op.composition) topMain.appendChild(el('div', { class: 'badge' }, [t('operation.composition', { value: op.composition })]));
     var opDescBlock = mdBlock(doc, op.description);
     if (opDescBlock) topMain.appendChild(opDescBlock);
 
@@ -3313,7 +3479,7 @@
     if (op.responses && op.responses.length) {
       renderResponsesSection(responsesMain, doc, op.responses, railResponseExample);
     } else {
-      responsesMain.appendChild(el('div', { class: 'section empty-note' }, ['No documented responses.']));
+      responsesMain.appendChild(el('div', { class: 'section empty-note' }, [t('operation.noResponses')]));
     }
   }
 
@@ -3441,7 +3607,7 @@
     // multi-part value.
     examples.forEach(function (ex, i) {
       var head = el('span', { class: 'field-head' }, [
-        el('span', { class: 'key' }, ['Example ' + (i + 1)]),
+        el('span', { class: 'key' }, [t('model.exampleIndex', { index: i + 1 })]),
         exampleChip(ex.value),
       ]);
       if (ex.description) {
@@ -3452,7 +3618,7 @@
         // secondary (smaller, muted, "— " prefix) keeps the chip itself
         // as the one thing that looks like the example.
         head.appendChild(
-          el('span', { class: 'example-desc', html: '— ' + mdInline(doc, ex.description) }),
+          el('span', { class: 'example-desc', dir: 'auto', html: '— ' + mdInline(doc, ex.description) }),
         );
       }
       var row = el('div', { class: 'field-row' }, [head]);
@@ -3476,7 +3642,7 @@
     var btn = copyButton(json, 15);
     btn.classList.add('copy-btn-lg');
     return el('div', { class: 'section' }, [
-      el('h2', {}, ['Example']),
+      el('h2', {}, [t('model.example')]),
       el('div', { class: 'example-json-wrap' }, [
         el('pre', { class: 'example-json' }, [el('code', { html: highlightJson(json) })]),
         btn,
@@ -3495,7 +3661,7 @@
       ]),
     );
     if (!def) {
-      main.appendChild(el('div', { class: 'empty-note' }, ['Model not found.']));
+      main.appendChild(el('div', { class: 'empty-note' }, [t('model.notFound')]));
       return;
     }
     var inheritsBlock = renderInherits(doc, def.inherits);
@@ -3503,14 +3669,14 @@
 
     var modelDescBlock = mdBlock(doc, def.description);
     if (modelDescBlock) {
-      main.appendChild(el('div', { class: 'section' }, [el('h2', {}, ['Description']), modelDescBlock]));
+      main.appendChild(el('div', { class: 'section' }, [el('h2', {}, [t('overview.description')]), modelDescBlock]));
     }
 
     var referencedBy = findReferencingTypes(doc, typeName);
     if (referencedBy.length) {
       main.appendChild(
         el('div', { class: 'section' }, [
-          el('h2', {}, ['References to this Resource']),
+          el('h2', {}, [t('model.referencesToThis')]),
           el(
             'div',
             { class: 'reference-list' },
@@ -3524,19 +3690,19 @@
 
     var fieldsHeading =
       def.kind === 'EnumType'
-        ? 'Values'
+        ? t('model.values')
         : def.kind === 'UnionType'
-          ? 'Types'
+          ? t('model.types')
           : def.kind === 'SimpleType'
-            ? 'Properties'
-            : 'Fields';
+            ? t('model.properties')
+            : t('model.fields');
     main.appendChild(
       el('div', { class: 'section' }, [el('h2', {}, [fieldsHeading]), renderTypeTree(doc, typeName)]),
     );
 
     var typeExamplesNode = renderTypeExamples(doc, def.examples);
     if (typeExamplesNode) {
-      main.appendChild(el('div', { class: 'section' }, [el('h2', {}, ['Examples']), typeExamplesNode]));
+      main.appendChild(el('div', { class: 'section' }, [el('h2', {}, [t('model.examples')]), typeExamplesNode]));
     }
 
     if (def.kind === 'ComplexType' || def.kind === 'MappedType' || def.kind === 'MixinType') {
@@ -3593,7 +3759,7 @@
     if (!filterValue) {
       nav.appendChild(
         el('a', { class: 'nav-link nav-doc-info' + (!activeRoute.length ? ' active' : ''), href: hrefFor(docKey, '') }, [
-          el('span', { class: 'name' }, ['Overview']),
+          el('span', { class: 'name' }, [t('sidebar.overview')]),
         ]),
       );
     }
@@ -3794,7 +3960,15 @@
         var route = parentRoute + '/' + encodeURIComponent(name);
         if (ctrl.operations) {
           Object.keys(ctrl.operations).forEach(function (opKey) {
-            out.push({ opKey: opKey, op: ctrl.operations[opKey], route: route + '/' + encodeURIComponent(opKey) });
+            out.push({
+              opKey: opKey,
+              // The declaring controller's name, so an operation with no
+              // `title` can still be told apart from a same-named one under
+              // another controller once this flat list mixes them together.
+              ctrlName: name,
+              op: ctrl.operations[opKey],
+              route: route + '/' + encodeURIComponent(opKey),
+            });
           });
         }
         if (ctrl.controllers) {
@@ -3842,7 +4016,7 @@
 
       function opRow(entry) {
         return el('a', { class: 'nav-link nav-op depth-1', href: hrefFor(docKey, entry.route) }, [
-          opNameNode(entry.op, entry.opKey, null, filterValue),
+          opTitleNode(entry.op, entry.ctrlName + '.' + entry.opKey, null, filterValue),
           methodBadge(entry.op.method),
         ]);
       }
@@ -3877,7 +4051,7 @@
         anyShown = true;
         var ungroupedSection = buildCollapsibleSection(
           'group-title',
-          'Ungrouped',
+          t('sidebar.ungrouped'),
           'group:__ungrouped__',
           false,
           ungroupedEntries.map(opRow),
@@ -3885,8 +4059,8 @@
         nav.appendChild(el('div', { class: 'group' }, [ungroupedSection.title, ungroupedSection.wrap]));
       }
       if (!anyShown && allOps.length) {
-        var emptyTitle = buildCollapsibleSection('group-title', 'Sections', 'sections', false, [
-          el('div', { class: 'empty-note' }, ['No matches.']),
+        var emptyTitle = buildCollapsibleSection('group-title', t('sidebar.sections'), 'sections', false, [
+          el('div', { class: 'empty-note' }, [t('sidebar.noMatches')]),
         ]);
         nav.appendChild(el('div', { class: 'group' }, [emptyTitle.title, emptyTitle.wrap]));
       }
@@ -3905,13 +4079,13 @@
         // out still gets a "No matches." note, since there's something to
         // say there.
         if (Object.keys(controllers).length) {
-          var ctlEmptyTitle = buildCollapsibleSection('group-title', 'Controllers', 'controllers', activeInCtl, [
-            el('div', { class: 'empty-note' }, ['No matches.']),
+          var ctlEmptyTitle = buildCollapsibleSection('group-title', t('sidebar.controllers'), 'controllers', activeInCtl, [
+            el('div', { class: 'empty-note' }, [t('sidebar.noMatches')]),
           ]);
           nav.appendChild(el('div', { class: 'group' }, [ctlEmptyTitle.title, ctlEmptyTitle.wrap]));
         }
       } else {
-        var ctlSection = buildCollapsibleSection('group-title', 'Controllers', 'controllers', activeInCtl, ctlChildNodes);
+        var ctlSection = buildCollapsibleSection('group-title', t('sidebar.controllers'), 'controllers', activeInCtl, ctlChildNodes);
         nav.appendChild(el('div', { class: 'group' }, [ctlSection.title, ctlSection.wrap]));
       }
     }
@@ -3956,7 +4130,7 @@
           modelBody.push(kindSection.title, kindSection.wrap);
         },
       );
-      var modelsSection = buildCollapsibleSection('group-title', 'Models', 'models', activeInModels, modelBody);
+      var modelsSection = buildCollapsibleSection('group-title', t('sidebar.models'), 'models', activeInModels, modelBody);
       nav.appendChild(el('div', { class: 'group' }, [modelsSection.title, modelsSection.wrap]));
     }
   }
@@ -4040,7 +4214,7 @@
     var current = el('div', { class: 'picker', id: 'opra-picker-btn' }, [
       iconFor('book'),
       el('span', { class: 'picker-label' }, [docTitle(state.docKey)]),
-      activeVersion ? el('span', { class: 'header-version' }, ['v' + activeVersion]) : null,
+      activeVersion ? el('span', { class: 'header-version' }, [t('common.versionTag', { version: activeVersion })]) : null,
       iconFor('chevronDown'),
     ]);
     container.appendChild(current);
@@ -4052,12 +4226,12 @@
 
     var menu = el('div', { class: 'picker-menu', id: 'opra-picker-menu' });
     menu.hidden = true;
-    menu.appendChild(el('div', { class: 'group-label' }, ['This document']));
+    menu.appendChild(el('div', { class: 'group-label' }, [t('header.thisDocument')]));
     var rootInfo = docs.root.info || {};
     menu.appendChild(
       pickerItem('root', rootInfo.title || 'root', 'root' + (rootInfo.version ? ' · v' + rootInfo.version : '')),
     );
-    menu.appendChild(el('div', { class: 'group-label' }, ['References']));
+    menu.appendChild(el('div', { class: 'group-label' }, [t('header.references')]));
     refKeys.forEach(function (ns) {
       var info = docs[ns].info || {};
       menu.appendChild(pickerItem(ns, info.title || ns, ns + (info.version ? ' · v' + info.version : '')));
@@ -4153,7 +4327,7 @@
 
     var doc = docs[parsed.docKey];
     if (!doc) {
-      contentTop.appendChild(el('div', { class: 'empty-note' }, ['Unknown document: ' + parsed.docKey]));
+      contentTop.appendChild(el('div', { class: 'empty-note' }, [t('router.unknownDocument', { key: parsed.docKey })]));
       buildToc(pageWrap, toc);
       return;
     }
@@ -4245,7 +4419,7 @@
       }
     }
     if (!handled) {
-      contentTop.appendChild(el('div', { class: 'empty-note' }, ['Page not found.']));
+      contentTop.appendChild(el('div', { class: 'empty-note' }, [t('router.pageNotFound')]));
     }
     buildToc(pageWrap, toc);
     // Bound `tocWrap`'s height to the distance between row 1's top and
@@ -4301,10 +4475,10 @@
     }
     var headings = Array.prototype.slice.call(container.querySelectorAll('h2'));
     if (!headings.length) {
-      toc.appendChild(el('div', { class: 'toc-empty' }, ['No sections']));
+      toc.appendChild(el('div', { class: 'toc-empty' }, [t('toc.noSections')]));
       return;
     }
-    toc.appendChild(el('div', { class: 'toc-title' }, ['On this page']));
+    toc.appendChild(el('div', { class: 'toc-title' }, [t('toc.onThisPage')]));
     var list = el('div', { class: 'toc-list' });
     function setActive(i) {
       links.forEach(function (l, j) {
@@ -4375,6 +4549,16 @@
     return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
   }
 
+  /** A globe with meridians — the conventional "choose a language" mark,
+   *  drawn at the same 20px/1.5-stroke weight as the theme toggle's own
+   *  contrast circle so the two round buttons sit together evenly. */
+  var LANGUAGE_ICON =
+    '<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5">' +
+    '<circle cx="10" cy="10" r="7.25"/>' +
+    '<path d="M2.75 10h14.5"/>' +
+    '<path d="M10 2.75c2 2.2 3 4.6 3 7.25s-1 5.05-3 7.25c-2-2.2-3-4.6-3-7.25s1-5.05 3-7.25Z"/>' +
+    '</svg>';
+
   var THEME_TOGGLE_ICON =
     '<svg viewBox="0 0 20 20" width="20" height="20"><circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.75a7.25 7.25 0 0 1 0 14.5Z" fill="currentColor"/></svg>';
 
@@ -4387,7 +4571,7 @@
     return el('button', {
       class: 'theme-toggle',
       type: 'button',
-      title: 'Toggle color theme',
+      title: t('header.toggleTheme'),
       html: THEME_TOGGLE_ICON,
       onClick: function () {
         var next = currentTheme() === 'dark' ? 'light' : 'dark';
@@ -4423,8 +4607,8 @@
    *  viewed under the new scope — exactly the point of comparing the two. */
   function scopeSelector(ui) {
     if (!ui.scopes || ui.scopes.length < 2) return null;
-    var btn = el('button', { class: 'header-export-btn', type: 'button', title: 'Scope' }, [
-      el('span', {}, ['Scope: ' + (ui.scope || '')]),
+    var btn = el('button', { class: 'header-export-btn', type: 'button', title: t('header.scope') }, [
+      el('span', {}, [t('header.scopeActive', { scope: ui.scope || '' })]),
       iconFor('chevronDown'),
     ]);
     var menu = el('div', { class: 'picker-menu header-scope-menu' });
@@ -4451,6 +4635,98 @@
     return el('div', { class: 'header-scope-wrap' }, [btn, menu]);
   }
 
+  /** A language's name written in that language itself ("Türkçe", not
+   *  "Turkish") — what a reader looking for their own language scans for.
+   *  `Intl.DisplayNames` is built into every browser this app targets, so
+   *  no name table ships here; the raw code is the fallback if it ever
+   *  can't resolve one. */
+  function languageLabel(code) {
+    try {
+      var names = new Intl.DisplayNames([code], { type: 'language' });
+      var name = names.of(code);
+      // Capitalized *in that language's own locale* — `toUpperCase()` would
+      // turn Turkish "i" into "I" rather than "İ".
+      if (name && name !== code) return name.charAt(0).toLocaleUpperCase(code) + name.slice(1);
+    } catch (e) {
+      // Unknown/invalid tag — fall through to the code itself.
+    }
+    return code;
+  }
+
+  /** The header's language selector: a round icon button (same shape as the
+   *  theme toggle beside it) opening the same `.picker-menu` the scope
+   *  selector uses. `null` whenever the server embedded fewer than two
+   *  languages — nothing to switch between.
+   *
+   *  The menu is split in two: languages the *document itself* is written
+   *  in, and the ones that only localize this interface. Both are worth
+   *  offering — an English-only API still reads better with its chrome in
+   *  the reader's own language — but they aren't the same promise, so they
+   *  don't sit in one undifferentiated list.
+   *
+   *  Like the scope selector, picking one is a *real navigation*: the page
+   *  is rendered (and cached) per language on the server, so this reloads
+   *  with `?lang=` set, keeping `location.hash` so the reader stays on the
+   *  same operation/model page in their new language. */
+  function languageSelector(ui) {
+    if (!ui.languages || ui.languages.length < 2) return null;
+    var active = UI_LANG;
+    var btn = el('button', {
+      class: 'lang-toggle',
+      type: 'button',
+      title: t('header.language', { language: languageLabel(active) }),
+      html: LANGUAGE_ICON,
+    });
+    var menu = el('div', { class: 'picker-menu header-lang-menu' });
+    menu.hidden = true;
+    var docLanguages = ui.docLanguages || [];
+    function isDocLanguage(code) {
+      return (
+        docLanguages.indexOf(code) !== -1 ||
+        docLanguages.some(function (l) {
+          return l.toLowerCase() === code.toLowerCase();
+        })
+      );
+    }
+    function addItem(code) {
+      var item = el('div', { class: 'picker-item groupby-item' + (code === active ? ' sel' : '') }, [
+        el('span', { class: 't' }, [languageLabel(code)]),
+        el('span', { class: 's lang-code mono' }, [code]),
+        iconFor('check', 'groupby-check'),
+      ]);
+      item.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        menu.hidden = true;
+        openPickerMenu = null;
+        if (code === active) return;
+        var url = new URL(window.location.href);
+        url.searchParams.set('lang', code);
+        window.location.href = url.toString();
+      });
+      menu.appendChild(item);
+    }
+    var translated = ui.languages.filter(isDocLanguage);
+    var interfaceOnly = ui.languages.filter(function (code) {
+      return !isDocLanguage(code);
+    });
+    // One flat list when the document isn't translated at all — an
+    // "Interface only" heading over every entry says nothing.
+    if (translated.length && interfaceOnly.length) {
+      menu.appendChild(el('div', { class: 'group-label' }, [t('header.documentLanguages')]));
+      translated.forEach(addItem);
+      menu.appendChild(el('div', { class: 'group-label' }, [t('header.interfaceOnly')]));
+      interfaceOnly.forEach(addItem);
+    } else {
+      ui.languages.forEach(addItem);
+    }
+    btn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      menu.hidden = !menu.hidden;
+      openPickerMenu = menu.hidden ? null : menu;
+    });
+    return el('div', { class: 'header-lang-wrap' }, [btn, menu]);
+  }
+
   // ---------- schema export ----------
 
   /** Base URL for this document's server-side export endpoints (see
@@ -4462,8 +4738,14 @@
     return location.pathname.replace(/\/+$/, '');
   }
 
+  /** Carries this page's own language (see `window.__OPRA_UI__.lang`, set
+   *  server-side from the request's `?lang=`) through to the export
+   *  endpoints, so a schema modal or a generated client never comes back in
+   *  a different language than the page the reader is looking at. */
   function exportUrl(kind, docKey) {
-    return exportBaseUrl() + '/' + kind + '/' + encodeURIComponent(docKey) + '.json';
+    var ui = window.__OPRA_UI__ || {};
+    var url = exportBaseUrl() + '/' + kind + '/' + encodeURIComponent(docKey) + '.json';
+    return ui.lang ? url + '?lang=' + encodeURIComponent(ui.lang) : url;
   }
 
   function exportFilename(docKey, suffix) {
@@ -4558,12 +4840,12 @@
     var copySlot = el('span', { class: 'modal-copy-slot' });
     var downloadBtn = el(
       'button',
-      { class: 'modal-icon-btn', type: 'button', title: 'Download' },
+      { class: 'modal-icon-btn', type: 'button', title: t('common.download') },
       [iconFor('download')],
     );
     var closeBtn = el(
       'button',
-      { class: 'modal-icon-btn', type: 'button', title: 'Close' },
+      { class: 'modal-icon-btn', type: 'button', title: t('common.close') },
       [iconFor('close')],
     );
     closeBtn.addEventListener('click', closeSchemaModal);
@@ -4576,17 +4858,17 @@
     var searchInput = el('input', {
       class: 'modal-search-input',
       type: 'search',
-      placeholder: 'Search in schema',
+      placeholder: t('schemaModal.searchPlaceholder'),
     });
     var searchStatus = el('span', { class: 'modal-search-status' }, ['']);
     var searchPrevBtn = el(
       'button',
-      { class: 'modal-icon-btn', type: 'button', title: 'Previous match' },
+      { class: 'modal-icon-btn', type: 'button', title: t('schemaModal.previousMatch') },
       [iconFor('chevronDown', 'rotate-180')],
     );
     var searchNextBtn = el(
       'button',
-      { class: 'modal-icon-btn', type: 'button', title: 'Next match' },
+      { class: 'modal-icon-btn', type: 'button', title: t('schemaModal.nextMatch') },
       [iconFor('chevronDown')],
     );
     var header = el('div', { class: 'modal-header' }, [
@@ -4595,7 +4877,7 @@
       el('div', { class: 'modal-header-actions' }, [copySlot, downloadBtn, closeBtn]),
     ]);
 
-    var code = el('code', {}, ['Loading…']);
+    var code = el('code', {}, [t('common.loading')]);
     var body = el('div', { class: 'modal-body' }, [el('pre', { class: 'example-json modal-json' }, [code])]);
     var dialog = el('div', { class: 'modal-dialog' }, [header, body]);
     schemaModalOverlay = el('div', { class: 'modal-overlay' }, [dialog]);
@@ -4703,7 +4985,7 @@
         renderFormat();
       })
       .catch(function () {
-        code.textContent = 'Failed to load.';
+        code.textContent = t('schemaModal.failedToLoad');
       });
   }
 
@@ -4747,7 +5029,7 @@
     var docKey = state.docKey;
     return fetch(exportUrl('schema', docKey))
       .then(function (res) {
-        if (!res.ok) throw new Error('Failed to load schema');
+        if (!res.ok) throw new Error(t('tsClient.failedSchema'));
         return res.json();
       })
       .then(function (rootSchema) {
@@ -4758,7 +5040,7 @@
           refNames.map(function (ns) {
             return fetch(exportUrl('schema', ns))
               .then(function (res) {
-                if (!res.ok) throw new Error('Failed to load reference schema "' + ns + '"');
+                if (!res.ok) throw new Error(t('tsClient.failedReferenceSchema', { namespace: ns }));
                 return res.json();
               })
               .then(function (json) {
@@ -4823,26 +5105,35 @@
 
     var closeBtn = el(
       'button',
-      { class: 'modal-icon-btn', type: 'button', title: 'Close' },
+      { class: 'modal-icon-btn', type: 'button', title: t('common.close') },
       [iconFor('close')],
     );
     closeBtn.addEventListener('click', closeTsClientModal);
     var header = el('div', { class: 'modal-header' }, [
       el('div', { class: 'modal-header-left' }, [
         iconFor('download'),
-        el('span', { class: 'modal-title' }, ['TypeScript Client']),
+        el('span', { class: 'modal-title' }, [t('tsClient.title')]),
       ]),
       el('div', { class: 'modal-header-actions' }, [closeBtn]),
     ]);
 
-    var cmd = 'npx oprimp generate -u ' + guessServiceUrl() + ' -o ./client';
+    // `oprimp generate <serviceUrl> <outDir>` — positional, not flags (see
+    // `packages/cli/src/oprimp-cli.ts`). `--lang` is appended only when
+    // this page itself is being read in a particular language, so the
+    // generated JSDoc matches what the reader sees here.
+    var uiLang = (window.__OPRA_UI__ || {}).lang;
+    var cmd =
+      'npx oprimp generate ' +
+      guessServiceUrl() +
+      ' ./client' +
+      (uiLang ? ' --lang ' + uiLang : '');
     var cmdRow = el('div', { class: 'tsclient-cmd' }, [
       el('code', { class: 'mono' }, [cmd]),
       copyButton(cmd, 14),
     ]);
 
     var statusEl = el('div', { class: 'tsclient-status', hidden: true });
-    var downloadLabel = el('span', {}, ['Download']);
+    var downloadLabel = el('span', {}, [t('common.download')]);
     var downloadBtn = el(
       'button',
       { class: 'tsclient-download-btn', type: 'button' },
@@ -4851,44 +5142,41 @@
     downloadBtn.addEventListener('click', function () {
       if (downloadBtn.classList.contains('busy')) return;
       downloadBtn.classList.add('busy');
-      downloadLabel.textContent = 'Generating…';
+      downloadLabel.textContent = t('tsClient.generating');
       statusEl.hidden = true;
       generateAndDownloadTsClient()
         .then(function () {
           statusEl.hidden = false;
           statusEl.className = 'tsclient-status ok';
-          statusEl.textContent = 'Client downloaded.';
+          statusEl.textContent = t('tsClient.downloaded');
         })
         .catch(function (err) {
           statusEl.hidden = false;
           statusEl.className = 'tsclient-status err';
           statusEl.textContent =
-            'Failed to generate client: ' + (err && err.message ? err.message : err);
+            t('tsClient.failed', { error: err && err.message ? err.message : err });
         })
         .finally(function () {
           downloadBtn.classList.remove('busy');
-          downloadLabel.textContent = 'Download';
+          downloadLabel.textContent = t('common.download');
         });
     });
 
     var body = el('div', { class: 'modal-body tsclient-body' }, [
-      el('p', {}, [
-        'Generate a fully typed TypeScript client for this API, either from the command line or directly here in your browser.',
-      ]),
-      el('div', { class: 'tsclient-h' }, ['From the command line']),
-      el('p', {}, [
-        'Use the ',
-        el('code', { class: 'mono' }, ['@opra/cli']),
-        ' package for full control over the output — a custom output directory, file headers, and more:',
-      ]),
+      el('p', {}, [t('tsClient.intro')]),
+      el('div', { class: 'tsclient-h' }, [t('tsClient.cliHeading')]),
+      el(
+        'p',
+        {},
+        // The package name is a node, not an interpolated string: it stays
+        // `<code class="mono">@opra/cli</code>` wherever a translation's own
+        // word order puts it.
+        tNodes('tsClient.cliUse', { package: el('code', { class: 'mono' }, ['@opra/cli']) }),
+      ),
       cmdRow,
-      el('p', { class: 'tsclient-hint' }, [
-        "If this API isn't mounted at its host's root, adjust the URL above to point at your own service root instead.",
-      ]),
-      el('div', { class: 'tsclient-h' }, ['Or download it now']),
-      el('p', {}, [
-        'Generates the same client right here and saves it as a zip — nothing beyond this page\'s own (already public) schema is sent anywhere.',
-      ]),
+      el('p', { class: 'tsclient-hint' }, [t('tsClient.cliNote')]),
+      el('div', { class: 'tsclient-h' }, [t('tsClient.downloadHeading')]),
+      el('p', {}, [t('tsClient.downloadNote')]),
       downloadBtn,
       statusEl,
     ]);
@@ -4909,7 +5197,7 @@
   function typescriptClientMenuItem(menu) {
     var item = el('div', { class: 'picker-item groupby-item', id: 'opra-view-tsclient' }, [
       iconFor('download'),
-      el('span', { class: 't' }, ['TypeScript Client']),
+      el('span', { class: 't' }, [t('header.tsClient')]),
     ]);
     item.addEventListener('click', function (ev) {
       ev.stopPropagation();
@@ -5002,19 +5290,19 @@
     }
     var types = doc.types || {};
     Object.keys(types).forEach(function (name) {
-      var t = types[name];
+      var type = types[name];
       var route = 'model/' + encodeURIComponent(name);
       push({
         type: 'model',
         label: name,
-        sublabel: dataTypeGroupLabel(t.kind),
-        desc: t.description || '',
+        sublabel: dataTypeGroupLabel(type.kind, 1),
+        desc: type.description || '',
         aux: '',
         route: route,
       });
-      if (t.fields) {
-        Object.keys(t.fields).forEach(function (fname) {
-          var f = t.fields[fname];
+      if (type.fields) {
+        Object.keys(type.fields).forEach(function (fname) {
+          var f = type.fields[fname];
           push({
             type: 'field',
             label: fname,
@@ -5117,11 +5405,11 @@
    *  own ascending-by-count sort below, which only decides *how many*
    *  rows each gets, not the order they're shown in. */
   var SEARCH_CATEGORIES = [
-    { type: 'controller', label: 'Controllers' },
-    { type: 'operation', label: 'Operations' },
-    { type: 'parameter', label: 'Parameters' },
-    { type: 'model', label: 'Models' },
-    { type: 'field', label: 'Fields' },
+    { type: 'controller', label: t('search.controllers') },
+    { type: 'operation', label: t('search.operations') },
+    { type: 'parameter', label: t('search.parameters') },
+    { type: 'model', label: t('search.models') },
+    { type: 'field', label: t('search.fields') },
   ];
   var SEARCH_MAX_ROWS = 12;
 
@@ -5208,7 +5496,7 @@
       clear(searchResultsEl);
       if (!query) {
         searchResultsEl.appendChild(
-          el('div', { class: 'search-popup-empty' }, ['Type to search across operations, models, fields, and parameters.']),
+          el('div', { class: 'search-popup-empty' }, [t('search.hint')]),
         );
         return;
       }
@@ -5222,8 +5510,8 @@
         (byType[r.type] = byType[r.type] || []).push(r);
       });
       var counts = {};
-      Object.keys(byType).forEach(function (t) {
-        counts[t] = byType[t].length;
+      Object.keys(byType).forEach(function (key) {
+        counts[key] = byType[key].length;
       });
       var alloc = allocateRows(counts, SEARCH_MAX_ROWS);
 
@@ -5233,7 +5521,7 @@
         var take = alloc[cat.type] || 0;
         if (!list || !take) return;
         searchResultsEl.appendChild(
-          el('div', { class: 'search-group-label' }, [cat.label + ' (' + list.length + ')']),
+          el('div', { class: 'search-group-label' }, [t('search.categoryCount', { category: cat.label, count: list.length })]),
         );
         list.slice(0, take).forEach(function (r) {
           // `r.match` (from MiniSearch) maps each *real* word it found —
@@ -5252,9 +5540,13 @@
           });
           var textChildren = [el('div', { class: 'search-result-label' }, highlightTerms(r.label, labelTerms))];
           var excerpt = buildExcerpt(r.desc, descTerms);
-          if (excerpt) textChildren.push(el('div', { class: 'search-result-excerpt' }, highlightTerms(excerpt, descTerms)));
+          if (excerpt) {
+            textChildren.push(
+              el('div', { class: 'search-result-excerpt', dir: 'auto' }, highlightTerms(excerpt, descTerms)),
+            );
+          }
           var row = el('a', { class: 'search-result-item', href: hrefFor(state.docKey, r.route) }, [
-            el('div', { class: 'search-result-crumb' }, r.sublabel ? [r.sublabel, el('span', { class: 'search-result-crumb-arrow' }, ['›'])] : []),
+            el('div', { class: 'search-result-crumb' }, r.sublabel ? [r.sublabel, el('span', { class: 'search-result-crumb-arrow' }, [IS_RTL ? '‹' : '›'])] : []),
             el('div', { class: 'search-result-text' }, textChildren),
             r.method ? methodBadge(r.method) : null,
           ]);
@@ -5263,7 +5555,7 @@
         });
       });
       if (!shown) {
-        searchResultsEl.appendChild(el('div', { class: 'search-popup-empty' }, ['No matches for "' + query + '".']));
+        searchResultsEl.appendChild(el('div', { class: 'search-popup-empty' }, [t('search.noMatches', { query: query })]));
         return;
       }
       // The top row is the one Enter opens without having to press
@@ -5337,7 +5629,7 @@
       var logoLink = el(
         'a',
         { class: 'header-logo', href: ui.logo.href || '#/ref/root/' },
-        [el('img', { src: ui.logo.src, alt: ui.logo.alt || ui.logo.label || 'Logo' })],
+        [el('img', { src: ui.logo.src, alt: ui.logo.alt || ui.logo.label || t('header.logoAlt') })],
       );
       if (ui.logo.label) logoLink.appendChild(el('span', { class: 'header-logo-label' }, [ui.logo.label]));
       headerChildren.push(logoLink);
@@ -5372,14 +5664,14 @@
       });
       return item;
     }
-    exportMenu.appendChild(viewMenuItem('opra-view-schema', 'schema', 'book', 'OPRA Schema 1.0'));
-    exportMenu.appendChild(viewMenuItem('opra-view-openapi', 'openapi', 'globe', 'OpenAPI Schema 3.0'));
-    exportMenu.appendChild(el('div', { class: 'group-label', id: 'opra-view-tsclient-label' }, ['Download']));
+    exportMenu.appendChild(viewMenuItem('opra-view-schema', 'schema', 'book', t('header.opraSchema')));
+    exportMenu.appendChild(viewMenuItem('opra-view-openapi', 'openapi', 'globe', t('header.openapiSchema')));
+    exportMenu.appendChild(el('div', { class: 'group-label', id: 'opra-view-tsclient-label' }, [t('header.downloadGroup')]));
     exportMenu.appendChild(typescriptClientMenuItem(exportMenu));
     var exportBtn = el(
       'button',
-      { class: 'header-export-btn', id: 'opra-export-btn', type: 'button', title: 'Export' },
-      [iconFor('eye'), el('span', {}, ['Export'])],
+      { class: 'header-export-btn', id: 'opra-export-btn', type: 'button', title: t('header.export') },
+      [iconFor('eye'), el('span', {}, [t('header.export')])],
     );
     exportBtn.addEventListener('click', function (ev) {
       ev.stopPropagation();
@@ -5387,12 +5679,14 @@
       openPickerMenu = exportMenu.hidden ? null : exportMenu;
     });
     headerRight.push(el('div', { class: 'header-export-wrap' }, [exportBtn, exportMenu]));
+    var langSelectEl = languageSelector(ui);
+    if (langSelectEl) headerRight.push(langSelectEl);
     headerRight.push(themeToggleButton());
     // The results popup lives inside `.search` itself (which is already
     // `position: relative`) so it anchors directly under the box, not as
     // a separate centered overlay — `initSearchPopup` (see above) wires
     // up everything else once these three exist.
-    var globalSearchInput = el('input', { id: 'opra-search', type: 'search', placeholder: 'Search' });
+    var globalSearchInput = el('input', { id: 'opra-search', type: 'search', placeholder: t('header.searchPlaceholder') });
     var searchResultsEl = el('div', { class: 'search-popup-results' });
     var searchPopup = el('div', { class: 'search-popup' }, [searchResultsEl]);
     searchPopup.hidden = true;
@@ -5414,12 +5708,12 @@
     // with the list scrolling independently beneath it (see `.sidebar-nav`
     // in CSS).
     var navList = el('nav', { class: 'sidebar-nav', id: 'opra-nav' });
-    var sidebarFilterInput = el('input', { id: 'opra-sidebar-filter', type: 'search', placeholder: 'Type to filter' });
+    var sidebarFilterInput = el('input', { id: 'opra-sidebar-filter', type: 'search', placeholder: t('sidebar.filterPlaceholder') });
     // Clears the filter without needing to select-and-delete the text by
     // hand — hidden whenever the box is already empty (toggled alongside
     // the sync logic below), so it only ever appears once there's
     // something to clear.
-    var sidebarFilterClear = el('button', { class: 'sidebar-filter-clear', type: 'button', title: 'Clear filter', hidden: true }, [
+    var sidebarFilterClear = el('button', { class: 'sidebar-filter-clear', type: 'button', title: t('sidebar.clearFilter'), hidden: true }, [
       iconFor('close'),
     ]);
     sidebarFilterClear.addEventListener('click', function (e) {
@@ -5439,15 +5733,15 @@
     // participates in, so opening this one closes that one and vice versa,
     // and the shared document-level click handler closes whichever is open
     // without each menu needing its own listener for that.
-    var groupByBtn = el('button', { class: 'sidebar-groupby-btn', id: 'opra-groupby-btn', type: 'button', title: 'View Options', hidden: true }, [
+    var groupByBtn = el('button', { class: 'sidebar-groupby-btn', id: 'opra-groupby-btn', type: 'button', title: t('sidebar.viewOptions'), hidden: true }, [
       iconFor('eye'),
     ]);
     var groupByMenu = el('div', { class: 'picker-menu sidebar-groupby-menu' });
     groupByMenu.hidden = true;
-    groupByMenu.appendChild(el('div', { class: 'group-label' }, ['Group By']));
+    groupByMenu.appendChild(el('div', { class: 'group-label' }, [t('sidebar.groupBy')]));
     var groupByOptions = [
-      { key: 'structure', label: 'API Structure', icon: 'folder' },
-      { key: 'sections', label: 'Sections', icon: 'tag' },
+      { key: 'structure', label: t('sidebar.groupByStructure'), icon: 'folder' },
+      { key: 'sections', label: t('sidebar.groupBySections'), icon: 'tag' },
     ];
     var groupByItemEls = {};
     groupByOptions.forEach(function (opt) {
@@ -5542,13 +5836,13 @@
       buildSidebar(navList, state.docKey, docs[state.docKey]);
       highlightActive(navList);
     }
-    groupByMenu.appendChild(el('div', { class: 'group-label' }, ['Sidebar']));
-    var expandAllBtn = el('button', { class: 'picker-item sidebar-menu-action', type: 'button' }, ['Expand All']);
+    groupByMenu.appendChild(el('div', { class: 'group-label' }, [t('sidebar.sidebarGroup')]));
+    var expandAllBtn = el('button', { class: 'picker-item sidebar-menu-action', type: 'button' }, [t('sidebar.expandAll')]);
     expandAllBtn.addEventListener('click', function (ev) {
       ev.stopPropagation();
       setAllNavCollapsed(false);
     });
-    var collapseAllBtn = el('button', { class: 'picker-item sidebar-menu-action', type: 'button' }, ['Collapse All']);
+    var collapseAllBtn = el('button', { class: 'picker-item sidebar-menu-action', type: 'button' }, [t('sidebar.collapseAll')]);
     collapseAllBtn.addEventListener('click', function (ev) {
       ev.stopPropagation();
       setAllNavCollapsed(true);
@@ -5595,13 +5889,13 @@
     var filterBadge = el('span', { class: 'filter-badge', hidden: true }, ['0']);
     var methodFilterBtn = el(
       'button',
-      { class: 'sidebar-groupby-btn', id: 'opra-methodfilter-btn', type: 'button', title: 'Filter Options' },
+      { class: 'sidebar-groupby-btn', id: 'opra-methodfilter-btn', type: 'button', title: t('sidebar.filterOptions') },
       [iconFor('filter'), filterBadge],
     );
     var methodFilterMenu = el('div', { class: 'picker-menu sidebar-groupby-menu filter-menu' });
     methodFilterMenu.hidden = true;
 
-    var clearAllBtn = el('button', { class: 'picker-item filter-clear-all', type: 'button' }, ['Clear All']);
+    var clearAllBtn = el('button', { class: 'picker-item filter-clear-all', type: 'button' }, [t('sidebar.clearAll')]);
     clearAllBtn.addEventListener('click', function (ev) {
       ev.stopPropagation();
       state.methodFilter = [];
@@ -5646,7 +5940,7 @@
         filterItemEls[idPrefix + key] = el_;
         return el_;
       }
-      methodFilterMenu.appendChild(item('ALL', el('span', { class: 't' }, ['ALL'])));
+      methodFilterMenu.appendChild(item('ALL', el('span', { class: 't' }, [t('sidebar.allMethods')])));
       options.forEach(function (opt) {
         methodFilterMenu.appendChild(item(opt.key, opt.content));
       });
@@ -5666,7 +5960,7 @@
     ];
     filterGroup(
       'methodFilter',
-      'Filter by Method',
+      t('sidebar.filterByMethod'),
       METHOD_FILTER_OPTIONS.map(function (m) {
         return { key: m, content: methodBadge(m) };
       }),
@@ -5674,7 +5968,7 @@
     var MODEL_KIND_FILTER_OPTIONS = ['ComplexType', 'SimpleType', 'EnumType'];
     filterGroup(
       'modelKindFilter',
-      'Filter by Model',
+      t('sidebar.filterByModel'),
       MODEL_KIND_FILTER_OPTIONS.map(function (kind) {
         return {
           key: kind,

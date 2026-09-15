@@ -1,0 +1,535 @@
+{
+  "info": {
+    "title": "Customer Application",
+    "description": "A sample Opra API that demonstrates how to build a full-featured HTTP resource server with Opra, backed by MongoDB.\n\nThis service ties together several patterns you will likely need in a real application: cookie-based authentication, a self-service profile endpoint for the signed-in user, and a full CRUD interface for managing customers together with their notes.\n\n### What's inside\n\n- **Authentication** — `login`/`logout` endpoints under `Auth`, plus a nested `MyProfile` resource for the authenticated user's own record.\n- **Customers** — full CRUD for the `Customer` resource, including a dedicated `setStatus` operation for soft-activation/deactivation instead of a hard delete.\n- **Notes** — a nested collection under each customer, exercised through its own `Notes` controller.\n- **Rich schema** — enums, array constraints, regex-validated strings and localized fields, all documented in the `Customer Models Document` reference below.\n\n:::tip\nSwitch to the **Customer Models Document** reference (top-left picker, or the *Reference documents* section below) to browse the full data model independently of the HTTP surface.\n:::",
+    "termsOfService": "By using this sample API you agree that it is provided strictly for demonstration purposes, \"as is\", without any warranty of availability, accuracy or fitness for a particular purpose, and that no real customer data should ever be submitted to it.",
+    "license": {
+      "content": "MIT License\n\nCopyright (c) 2020-present Panates\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
+    }
+  },
+  "api": {
+    "servers": {
+      "local": {
+        "description": "Local dev server"
+      }
+    },
+    "sections": {
+      "Account": {
+        "description": "Signing in and managing your own profile"
+      },
+      "Customers": {
+        "description": "Managing customer records"
+      },
+      "Notes": {
+        "description": "A customer's own notes"
+      }
+    },
+    "controllers": {
+      "Auth": {
+        "description": "Authentication endpoints for signing in and out.\n\nThis is a deliberately minimal example — see **MyProfile** below for the endpoints that read the `accessToken` header directly instead of relying on a session.\n\n- `login` — accepts a `user`/`password` pair\n- `logout` — ends the current session",
+        "operations": {
+          "login": {
+            "title": "Log in",
+            "description": "Signs the user in with a username and password.\n\n- `user` — the account's username\n- `password` — the account's password\n\n:::note\nThis sample endpoint returns a plain acknowledgement message rather than a real access token — see **MyProfile** for how an authenticated request is represented elsewhere in this API.\n:::",
+            "parameters": {
+              "user": {
+                "description": "Username to sign in with"
+              },
+              "password": {
+                "description": "Password of the user"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": ""
+              }
+            }
+          },
+          "logout": {
+            "title": "Log out",
+            "description": "Signs the current user out.\n\nReturns a plain acknowledgement message, matching `login`.",
+            "responses": {
+              "200": {
+                "description": ""
+              }
+            }
+          }
+        },
+        "controllers": {
+          "MyProfile": {
+            "description": "The signed-in user's own profile.\n\nUnlike **Customer**, this resource has no id in its path — every operation here requires an `accessToken` header instead.\n\n- `get` — reads the current profile\n- `create` — provisions a new profile\n- `update` — partially updates the profile\n- `delete` — removes the profile",
+            "operations": {
+              "create": {
+                "title": "Create my profile",
+                "description": "Creates the profile of the signed-in user.\n\nAccepts a `Profile` payload without its `_id`, which is assigned by the server.",
+                "parameters": {
+                  "projection": {
+                    "description": "Determines fields projection"
+                  }
+                },
+                "responses": {
+                  "201": {
+                    "description": "Operation is successful. Returns OperationResult with \"payload\" field that contains the created resource."
+                  },
+                  "422": {
+                    "description": "The request was well-formed but was unable to process operation due to one or many errors."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                }
+              },
+              "delete": {
+                "title": "Delete my profile",
+                "description": "Deletes the profile of the signed-in user.",
+                "responses": {
+                  "200": {
+                    "description": "Operation is successful. Returns OperationResult with \"affected\" field."
+                  },
+                  "422": {
+                    "description": "The request was well-formed but was unable to process operation due to one or many errors."
+                  }
+                }
+              },
+              "get": {
+                "title": "Get my profile",
+                "description": "Returns the profile of the signed-in user.",
+                "parameters": {
+                  "projection": {
+                    "description": "Determines fields projection"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Operation is successful. Returns OperationResult with \"payload\" field that contains the resource asked for."
+                  },
+                  "204": {
+                    "description": "Operation is successful but no resource found"
+                  },
+                  "422": {
+                    "description": "The request was well-formed but was unable to process operation due to one or many errors."
+                  }
+                }
+              },
+              "update": {
+                "description": "Updates the profile of the signed-in user.\n\nOnly the fields present in the request body are changed; omitted fields keep their current value.",
+                "parameters": {
+                  "projection": {
+                    "description": "Determines fields projection"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Operation is successful. Returns OperationResult with \"payload\" field that contains updated resource."
+                  },
+                  "204": {
+                    "description": "Operation is successful but no resource found"
+                  },
+                  "422": {
+                    "description": "The request was well-formed but was unable to process operation due to one or many errors."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                },
+                "title": "Update my profile"
+              }
+            },
+            "parameters": {
+              "accessToken": {
+                "description": "Access token of the signed-in user"
+              }
+            }
+          }
+        }
+      },
+      "Customer": {
+        "description": "A single customer, addressed by id.\n\nEvery operation here targets exactly one `Customer` record, identified by the `customerId` path parameter. The nested **Notes** controller manages that customer's own notes.",
+        "operations": {
+          "get": {
+            "title": "Get a customer",
+            "description": "Returns a single customer by id.",
+            "parameters": {
+              "projection": {
+                "description": "Determines fields projection"
+              },
+              "xId": {
+                "description": "Example of an ad-hoc query parameter"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "Operation is successful. Returns OperationResult with \"payload\" field that contains the resource asked for."
+              },
+              "204": {
+                "description": "Operation is successful but no resource found"
+              },
+              "422": {
+                "description": "The request was well-formed but was unable to process operation due to one or many errors."
+              }
+            }
+          },
+          "delete": {
+            "title": "Delete a customer",
+            "description": "Deletes a single customer by id.\n\nFor deactivating a customer without removing their record entirely, see `setStatus`.",
+            "responses": {
+              "200": {
+                "description": "Operation is successful. Returns OperationResult with \"affected\" field."
+              },
+              "422": {
+                "description": "The request was well-formed but was unable to process operation due to one or many errors."
+              }
+            }
+          },
+          "update": {
+            "title": "Update a customer",
+            "description": "Updates a single customer by id.\n\nAccepts a partial `Customer` payload — only the supplied fields are changed.",
+            "parameters": {
+              "projection": {
+                "description": "Determines fields projection"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "Operation is successful. Returns OperationResult with \"payload\" field that contains updated resource."
+              },
+              "204": {
+                "description": "Operation is successful but no resource found"
+              },
+              "422": {
+                "description": "The request was well-formed but was unable to process operation due to one or many errors."
+              }
+            },
+            "requestBody": {
+              "description": ""
+            }
+          },
+          "setStatus": {
+            "description": "Sets the active/hidden status of a customer.\n\nAn alternative to deletion:\n\n- `active` — the customer is shown normally\n- `hidden` — the customer is excluded from default listings, without deleting its data\n\n:::note\nThis operation returns no response body — check the status code to confirm the change was accepted.\n:::",
+            "parameters": {
+              "status": {
+                "description": "New status to set"
+              }
+            },
+            "title": "Set customer status"
+          },
+          "updateAvatar": {
+            "requestBody": {
+              "content": {
+                "application/json": {
+                  "description": "Set the avatar by URL, without uploading a file."
+                },
+                "multipart/form-data": {
+                  "description": "Upload the avatar image directly.",
+                  "multipartFields": {
+                    "image": {
+                      "description": "The image file itself."
+                    },
+                    "caption": {
+                      "description": "Optional caption shown under the avatar."
+                    }
+                  }
+                }
+              },
+              "description": "The new avatar — provide it as a URL reference or an uploaded file; pick whichever alternative representation fits your client."
+            },
+            "title": "Update avatar",
+            "description": "Updates the customer's avatar — either by pointing at an already-hosted image (`application/json`) or by uploading the image file directly (`multipart/form-data`).\n\n:::tip\nThis operation exists mainly to demonstrate a request body with more than one alternative representation — open the tabs above **Request body** below to compare them.\n:::",
+            "responses": {
+              "200": {
+                "description": ""
+              }
+            }
+          }
+        },
+        "controllers": {
+          "Notes": {
+            "description": "A customer's notes.\n\nEvery operation here is scoped to the parent **Customer** identified by `customerId` in the path — a note's `_id` is only unique within that customer, not across the whole API.",
+            "operations": {
+              "get": {
+                "title": "Get a note",
+                "description": "Returns a single note of the customer by id.",
+                "parameters": {
+                  "projection": {
+                    "description": "Determines fields projection"
+                  },
+                  "_id": {
+                    "description": "Id of the note"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Operation is successful. Returns OperationResult with \"payload\" field that contains the resource asked for."
+                  },
+                  "204": {
+                    "description": "Operation is successful but no resource found"
+                  },
+                  "422": {
+                    "description": "The request was well-formed but was unable to process operation due to one or many errors."
+                  }
+                }
+              },
+              "delete": {
+                "description": "Deletes a single note of the customer by id.",
+                "parameters": {
+                  "_id": {
+                    "description": "Id of the note"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Operation is successful. Returns OperationResult with \"affected\" field."
+                  },
+                  "422": {
+                    "description": "The request was well-formed but was unable to process operation due to one or many errors."
+                  }
+                },
+                "title": "Delete a note"
+              },
+              "update": {
+                "description": "Updates a single note of the customer by id.\n\nOnly the fields present in the request body are changed.",
+                "parameters": {
+                  "projection": {
+                    "description": "Determines fields projection"
+                  },
+                  "_id": {
+                    "description": "Id of the note"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Operation is successful. Returns OperationResult with \"payload\" field that contains updated resource."
+                  },
+                  "204": {
+                    "description": "Operation is successful but no resource found"
+                  },
+                  "422": {
+                    "description": "The request was well-formed but was unable to process operation due to one or many errors."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                },
+                "title": "Update a note"
+              },
+              "create": {
+                "title": "Create a note",
+                "description": "Creates a new note for the customer.\n\nAccepts a `Note` payload without its `_id`, which is assigned by the server.",
+                "parameters": {
+                  "projection": {
+                    "description": "Determines fields projection"
+                  }
+                },
+                "responses": {
+                  "201": {
+                    "description": "Operation is successful. Returns OperationResult with \"payload\" field that contains the created resource."
+                  },
+                  "422": {
+                    "description": "The request was well-formed but was unable to process operation due to one or many errors."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                }
+              },
+              "findMany": {
+                "title": "List notes",
+                "description": "Returns the customer's notes.\n\nFilterable by `_id`, `title`, `text` and `rank`; sortable by `_id` or `title` (defaults to `_id`).\n\n:::tip\nPass `count=true` to also get the total number of matches back — useful for building pagination.\n:::",
+                "parameters": {
+                  "limit": {
+                    "description": "Determines number of returning instances"
+                  },
+                  "skip": {
+                    "description": "Determines number of returning instances"
+                  },
+                  "count": {
+                    "description": "Counts all matching instances if enabled"
+                  },
+                  "projection": {
+                    "description": "Determines fields projection"
+                  },
+                  "sort": {
+                    "description": "Determines sort fields"
+                  },
+                  "filter": {
+                    "description": "Determines filter fields"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Operation is successful. Returns OperationResult with \"payload\" field that contains list of resources."
+                  },
+                  "422": {
+                    "description": "The request was well-formed but was unable to process operation due to one or many errors."
+                  }
+                }
+              },
+              "deleteMany": {
+                "description": "Deletes multiple of the customer's notes matching a filter.\n\nFilterable by `_id` or `rank`.",
+                "parameters": {
+                  "filter": {
+                    "description": "Determines filter fields"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Operation is successful. Returns OperationResult with \"affected\" field."
+                  },
+                  "422": {
+                    "description": "The request was well-formed but was unable to process operation due to one or many errors."
+                  }
+                },
+                "title": "Delete notes"
+              },
+              "updateMany": {
+                "description": "Updates multiple of the customer's notes matching a filter.\n\nFilterable by `_id` or `rank` — every matching note receives the same update payload.",
+                "parameters": {
+                  "filter": {
+                    "description": "Determines filter fields"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Operation is successful. Returns OperationResult with \"affected\" field."
+                  },
+                  "422": {
+                    "description": "The request was well-formed but was unable to process operation due to one or many errors."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                },
+                "title": "Update notes"
+              }
+            }
+          }
+        },
+        "types": {
+          "AvatarUrlInput": {
+            "description": "Sets a customer avatar by pointing at an already-hosted image, instead of uploading a file directly",
+            "fields": {
+              "url": {
+                "description": "Publicly accessible URL of the image"
+              }
+            }
+          }
+        },
+        "parameters": {
+          "customerId": {
+            "description": "Id of the customer"
+          }
+        }
+      },
+      "Customers": {
+        "description": "The customers collection.\n\nThe entry point for managing customers as a whole — create new ones here, or list/bulk-update/bulk-delete existing ones with a filter. A single customer's own operations (including its **Notes**) live under **Customer**.",
+        "operations": {
+          "create": {
+            "title": "Create a customer",
+            "description": "Creates a new customer.\n\nAccepts a `CustomerCreateInput` payload — the same shape as `Customer`, minus its server-assigned `_id`.",
+            "parameters": {
+              "projection": {
+                "description": "Determines fields projection"
+              }
+            },
+            "responses": {
+              "201": {
+                "description": "Operation is successful. Returns OperationResult with \"payload\" field that contains the created resource."
+              },
+              "422": {
+                "description": "The request was well-formed but was unable to process operation due to one or many errors."
+              }
+            },
+            "requestBody": {
+              "description": ""
+            }
+          },
+          "findMany": {
+            "title": "List customers",
+            "description": "Returns customers matching the given filter.\n\nFilterable by `_id`, `givenName`, `familyName`, `gender`, `uid`, `address.countryCode`, `deleted`, `active`, `birthDate` and `rate`; sortable by `_id`, `givenName`, `familyName`, `gender` or `address.countryCode` (defaults to `givenName`).\n\n:::tip\nPass `count=true` to also get the total number of matches back — useful for building pagination.\n:::",
+            "parameters": {
+              "limit": {
+                "description": "Determines number of returning instances"
+              },
+              "skip": {
+                "description": "Determines number of returning instances"
+              },
+              "count": {
+                "description": "Counts all matching instances if enabled"
+              },
+              "projection": {
+                "description": "Determines fields projection"
+              },
+              "filter": {
+                "description": "Determines filter fields"
+              },
+              "sort": {
+                "description": "Determines sort fields"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "Operation is successful. Returns OperationResult with \"payload\" field that contains list of resources."
+              },
+              "422": {
+                "description": "The request was well-formed but was unable to process operation due to one or many errors."
+              }
+            }
+          },
+          "deleteMany": {
+            "description": "Deletes multiple customers matching a filter.\n\nFilterable by `_id`. To deactivate customers without deleting their record, use `setStatus` on each one instead.",
+            "parameters": {
+              "filter": {
+                "description": "Determines filter fields"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "Operation is successful. Returns OperationResult with \"affected\" field."
+              },
+              "422": {
+                "description": "The request was well-formed but was unable to process operation due to one or many errors."
+              }
+            },
+            "title": "Delete customers"
+          },
+          "updateMany": {
+            "description": "Updates multiple customers matching a filter.\n\nFilterable by `_id` — every matching customer receives the same update payload.",
+            "parameters": {
+              "filter": {
+                "description": "Determines filter fields"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "Operation is successful. Returns OperationResult with \"affected\" field."
+              },
+              "422": {
+                "description": "The request was well-formed but was unable to process operation due to one or many errors."
+              }
+            },
+            "requestBody": {
+              "description": ""
+            },
+            "title": "Update customers"
+          }
+        }
+      }
+    },
+    "description": ""
+  },
+  "types": {
+    "Profile": {
+      "description": "The signed-in user's own profile"
+    },
+    "Customer": {
+      "description": "\nThe **central entity** of this API — everything else (addresses, notes,\nphone numbers) hangs off a `Customer`.\n\nA customer record is a *mix* of three things:\n\n1. Standard [Record](#/model/Record) bookkeeping — id, timestamps, soft-delete.\n2. Personal details, via the shared [Person](#/model/Person) shape (name,\n   gender, birth date).\n3. Fields declared directly here — account status, contact info, and the\n   collections of related records (addresses, notes, phone numbers).\n\n:::info\nCustomers are **never hard-deleted**. Setting `deleted: true` (soft\ndelete) is the only supported removal path — this keeps historical\norders, notes, and audit trails intact.\n:::\n\nMost fields are self-explanatory, but a few are worth calling out:\n\n- `rate` drives pricing/loyalty calculations elsewhere in the system.\n- `country` is **read-only** — it's resolved server-side from `countryCode`,\n  not something a client can set directly.\n- `tags` is a free-form label list with no fixed vocabulary; use it for\n  ad-hoc segmentation.\n"
+    },
+    "Note": {
+      "description": "A note attached to a customer"
+    },
+    "CustomerCreateInput": {
+      "description": ""
+    }
+  },
+  "description": ""
+}

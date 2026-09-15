@@ -11,9 +11,6 @@ import { Db } from 'mongodb';
 import { type PartialDTO } from 'ts-gems';
 
 @HttpController({
-  description: `A customer's notes.
-
-Every operation here is scoped to the parent **Customer** identified by \`customerId\` in the path — a note's \`_id\` is only unique within that customer, not across the whole API.`,
   path: 'Notes',
   name: 'Notes',
 })
@@ -25,10 +22,8 @@ export class CustomerNotesController {
   }
 
   @(HttpOperation.Entity.Get(Note, {
-    title: 'Get a note',
     sections: ['Notes', 'Customers'],
-    description: 'Returns a single note of the customer by id.',
-  }).KeyParam('_id', { type: Number, description: 'Id of the note' }))
+  }).KeyParam('_id', { type: Number }))
   async get(context: HttpContext): Promise<PartialDTO<Note> | undefined> {
     const { key, options } = await MongoAdapter.parseRequest(context);
     return this.service
@@ -36,9 +31,9 @@ export class CustomerNotesController {
       .findById(context.pathParams.customerId, key, options);
   }
 
-  @(HttpOperation.Entity.Delete(Note, {
-    description: 'Deletes a single note of the customer by id.',
-  }).KeyParam('_id', { type: Number, description: 'Id of the note' }))
+  @(HttpOperation.Entity.Delete(Note, { sections: ['Notes'] }).KeyParam('_id', {
+    type: Number,
+  }))
   async delete(context: HttpContext) {
     const { key, options } = await MongoAdapter.parseRequest(context);
     return await this.service
@@ -46,11 +41,9 @@ export class CustomerNotesController {
       .delete(context.pathParams.customerId, key, options);
   }
 
-  @(HttpOperation.Entity.Update(Note, {
-    description: `Updates a single note of the customer by id.
-
-Only the fields present in the request body are changed.`,
-  }).KeyParam('_id', { type: Number, description: 'Id of the note' }))
+  @(HttpOperation.Entity.Update(Note, { sections: ['Notes'] }).KeyParam('_id', {
+    type: Number,
+  }))
   async update(context: HttpContext) {
     const { key, data, options } = await MongoAdapter.parseRequest(context);
     return this.service
@@ -59,11 +52,7 @@ Only the fields present in the request body are changed.`,
   }
 
   @HttpOperation.Entity.Create(Note, {
-    title: 'Create a note',
     sections: ['Notes'],
-    description: `Creates a new note for the customer.
-
-Accepts a \`Note\` payload without its \`_id\`, which is assigned by the server.`,
     requestBody: {
       type: OmitType(Note, ['_id']),
     },
@@ -76,15 +65,7 @@ Accepts a \`Note\` payload without its \`_id\`, which is assigned by the server.
   }
 
   @(HttpOperation.Entity.FindMany(Note, {
-    title: 'List notes',
     sections: ['Notes'],
-    description: `Returns the customer's notes.
-
-Filterable by \`_id\`, \`title\`, \`text\` and \`rank\`; sortable by \`_id\` or \`title\` (defaults to \`_id\`).
-
-:::tip
-Pass \`count=true\` to also get the total number of matches back — useful for building pagination.
-:::`,
   })
     .SortFields('_id', 'title', 'title')
     .DefaultSort('_id')
@@ -108,11 +89,7 @@ Pass \`count=true\` to also get the total number of matches back — useful for 
       .findMany(context.pathParams.customerId, options);
   }
 
-  @(HttpOperation.Entity.DeleteMany(Note, {
-    description: `Deletes multiple of the customer's notes matching a filter.
-
-Filterable by \`_id\` or \`rank\`.`,
-  })
+  @(HttpOperation.Entity.DeleteMany(Note, { sections: ['Notes'] })
     .Filter('_id')
     .Filter('rank'))
   async deleteMany(context: HttpContext) {
@@ -122,11 +99,7 @@ Filterable by \`_id\` or \`rank\`.`,
       .deleteMany(context.pathParams.customerId, options);
   }
 
-  @(HttpOperation.Entity.UpdateMany(Note, {
-    description: `Updates multiple of the customer's notes matching a filter.
-
-Filterable by \`_id\` or \`rank\` — every matching note receives the same update payload.`,
-  })
+  @(HttpOperation.Entity.UpdateMany(Note, { sections: ['Notes'] })
     .Filter('_id')
     .Filter('rank'))
   async updateMany(context: HttpContext) {

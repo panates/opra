@@ -779,15 +779,28 @@ export abstract class HttpAdapter<
       );
       return this.sendResponse(context);
     }
-    /* Check if response cache exists */
-    let responseBody = this[kAssetCache].get(doc, `$schema`);
+    /* Documentation language comes from `?lang=` alone — deliberately not
+     * from `Accept-Language`. Sniffing the header would make one URL return
+     * different bodies, which any shared cache in front of this service
+     * would then serve to the wrong client (and `Vary: Accept-Language`,
+     * the alternative, all but disables caching since real header values
+     * are near-unique per browser). Without the parameter the document's
+     * own default language answers — which resolves to nothing at all for
+     * a document that ships no translations, leaving the texts written in
+     * the source exactly as they are. */
+    const lang = doc.resolveLanguage(searchParams.get('lang') || undefined);
+    /* Check if response cache exists. The language is part of the key: the
+     * same document serializes differently per language. */
+    const cacheKey = `$schema${lang ? ':' + lang : ''}`;
+    let responseBody = this[kAssetCache].get(doc, cacheKey);
     /* Create response if response cache does not exists */
     if (!responseBody) {
       const schema = doc.export({
         scope: this.scope,
+        lang,
       });
       responseBody = JSON.stringify(schema);
-      this[kAssetCache].set(doc, `$schema`, responseBody);
+      this[kAssetCache].set(doc, cacheKey, responseBody);
     }
     response.end(responseBody);
   }

@@ -22,9 +22,6 @@ import { type PartialDTO } from 'ts-gems';
 export class CustomerCreateInput extends OmitType(Customer, ['_id']) {}
 
 @HttpController({
-  description: `The customers collection.
-
-The entry point for managing customers as a whole — create new ones here, or list/bulk-update/bulk-delete existing ones with a filter. A single customer's own operations (including its **Notes**) live under **Customer**.`,
   path: 'Customers',
 })
 export class CustomersController {
@@ -35,11 +32,7 @@ export class CustomersController {
   }
 
   @HttpOperation.Entity.Create(Customer, {
-    title: 'Create a customer',
     sections: ['Customers'],
-    description: `Creates a new customer.
-
-Accepts a \`CustomerCreateInput\` payload — the same shape as \`Customer\`, minus its server-assigned \`_id\`.`,
     requestBody: {
       type: CustomerCreateInput,
     },
@@ -50,15 +43,7 @@ Accepts a \`CustomerCreateInput\` payload — the same shape as \`Customer\`, mi
   }
 
   @(HttpOperation.Entity.FindMany(Customer, {
-    title: 'List customers',
     sections: ['Customers'],
-    description: `Returns customers matching the given filter.
-
-Filterable by \`_id\`, \`givenName\`, \`familyName\`, \`gender\`, \`uid\`, \`address.countryCode\`, \`deleted\`, \`active\`, \`birthDate\` and \`rate\`; sortable by \`_id\`, \`givenName\`, \`familyName\`, \`gender\` or \`address.countryCode\` (defaults to \`givenName\`).
-
-:::tip
-Pass \`count=true\` to also get the total number of matches back — useful for building pagination.
-:::`,
   })
     .Filter('_id', ['=', '!=', '<', '>', '>=', '<=', 'in', '!in'])
     .Filter('givenName', ['=', '!=', 'like', '!like', 'ilike', '!ilike'])
@@ -93,9 +78,7 @@ Pass \`count=true\` to also get the total number of matches back — useful for 
   }
 
   @(HttpOperation.Entity.DeleteMany(Customer, {
-    description: `Deletes multiple customers matching a filter.
-
-Filterable by \`_id\`. To deactivate customers without deleting their record, use \`setStatus\` on each one instead.`,
+    sections: ['Customers'],
   }).Filter('_id', '=, !=, <, >, >=, <=, in, !in'))
   async deleteMany(context: HttpContext) {
     const { options } = await MongoAdapter.parseRequest(context);
@@ -103,9 +86,7 @@ Filterable by \`_id\`. To deactivate customers without deleting their record, us
   }
 
   @(HttpOperation.Entity.UpdateMany(Customer, {
-    description: `Updates multiple customers matching a filter.
-
-Filterable by \`_id\` — every matching customer receives the same update payload.`,
+    sections: ['Customers'],
   }).Filter('_id', '=, !=, <, >, >=, <=, in, !in'))
   async updateMany(context: HttpContext) {
     const { data, options } = await MongoAdapter.parseRequest(context);

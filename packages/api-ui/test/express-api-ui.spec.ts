@@ -93,6 +93,133 @@ describe('api-ui:expressApiUi', () => {
   });
 });
 
+describe('api-ui:expressApiUi (languages)', () => {
+  let translatedDoc: ApiDocument;
+
+  before(async () => {
+    translatedDoc = await ApiDocumentFactory.createDocument({
+      spec: OpraSchema.SpecVersion,
+      info: { title: 'TestApi', version: 'v1' },
+      types: [Customer],
+      api: { transport: 'http', name: 'TestApi', controllers: [] },
+      translations: {
+        en: { types: { Customer: { description: 'A customer (en)' } } },
+        tr: { types: { Customer: { description: 'Bir müşteri (tr)' } } },
+      },
+    } as any);
+  });
+
+  function serve() {
+    const app = express();
+    app.use('/reference', expressApiUi(translatedDoc));
+    return app;
+  }
+
+  it('Should serve the schema in the language given by ?lang=', async () => {
+    const tr = await supertest(serve()).get(
+      '/reference/schema/root.json?lang=tr',
+    );
+    const en = await supertest(serve()).get(
+      '/reference/schema/root.json?lang=en',
+    );
+    expect(tr.body.types.Customer.description).toStrictEqual(
+      'Bir müşteri (tr)',
+    );
+    expect(en.body.types.Customer.description).toStrictEqual('A customer (en)');
+  });
+
+  it('Should fall back to the default language for an unknown ?lang=', async () => {
+    const res = await supertest(serve()).get(
+      '/reference/schema/root.json?lang=zz',
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.types.Customer.description).toStrictEqual(
+      'A customer (en)',
+    );
+  });
+
+  it('Should ignore Accept-Language, so one URL always means one response', async () => {
+    const res = await supertest(serve())
+      .get('/reference/schema/root.json')
+      .set('Accept-Language', 'tr-TR,tr;q=0.9');
+    // No `?lang` at all: the document's default language, never the
+    // header's.
+    expect(res.body.types.Customer.description).toStrictEqual(
+      'A customer (en)',
+    );
+  });
+
+  it('Should cache the rendered page per language, not just per scope', async () => {
+    // One handler for both requests: a cache keyed only by scope would
+    // hand the second request whatever the first one rendered.
+    const app = serve();
+    const tr = await supertest(app).get('/reference?lang=tr');
+    const en = await supertest(app).get('/reference?lang=en');
+    expect(tr.text).toContain('Bir müşteri (tr)');
+    expect(en.text).toContain('A customer (en)');
+    expect(tr.text).toContain('"lang":"tr"');
+  });
+
+  it('Should offer document languages and interface-only languages apart', async () => {
+    const res = await supertest(serve()).get('/reference');
+    // The menu spans both sets; `docLanguages` is what lets the selector
+    // say which of them actually change the documentation's own prose.
+    expect(res.text).toContain('"docLanguages":["en","tr"]');
+    expect(res.text).toContain('"ja"');
+  });
+});
+
+describe('api-ui:expressApiUi (interface language)', () => {
+  let doc: ApiDocument;
+
+  before(async () => {
+    // Deliberately *untranslated*: the overwhelmingly common case, and the
+    // one where `ApiDocument#resolveLanguage` resolves to nothing at all.
+    doc = await ApiDocumentFactory.createDocument({
+      spec: OpraSchema.SpecVersion,
+      info: { title: 'TestApi', version: 'v1' },
+      types: [Customer],
+      api: { transport: 'http', name: 'TestApi', controllers: [] },
+    } as any);
+  });
+
+  function serve() {
+    const app = express();
+    app.use('/reference', expressApiUi(doc));
+    return app;
+  }
+
+  it('Should localize the interface even when the document has no translations', async () => {
+    const res = await supertest(serve()).get('/reference?lang=tr');
+    expect(res.text).toContain('"overview":"Genel bakış"');
+  });
+
+  it('Should set <html lang> and <html dir> from the interface language', async () => {
+    const tr = await supertest(serve()).get('/reference?lang=tr');
+    const ar = await supertest(serve()).get('/reference?lang=ar');
+    expect(tr.text).toContain('lang="tr" dir="ltr"');
+    expect(ar.text).toContain('lang="ar" dir="rtl"');
+  });
+
+  it('Should fall back to English for a language it does not ship', async () => {
+    const res = await supertest(serve()).get('/reference?lang=zz');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('lang="en" dir="ltr"');
+    expect(res.text).toContain('"overview":"Overview"');
+  });
+
+  it('Should cache the page per interface language', async () => {
+    // Both requests share one handler. With an untranslated document the
+    // document's own language is always '', so a cache key built from that
+    // alone would serve the first reader's interface to everyone after.
+    const app = serve();
+    const tr = await supertest(app).get('/reference?lang=tr');
+    const ja = await supertest(app).get('/reference?lang=ja');
+    expect(tr.text).toContain('"overview":"Genel bakış"');
+    expect(ja.text).toContain('"overview":"概要"');
+  });
+});
+
 @ComplexType({ description: 'A record with a db-only field' })
 class ScopedRecord {
   @ApiField({ required: true })

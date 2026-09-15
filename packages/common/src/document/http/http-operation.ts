@@ -7,6 +7,7 @@ import { OpraSchema } from '../../schema/index.js';
 import type { ApiDocument } from '../api-document.js';
 import { DataTypeMap } from '../common/data-type-map.js';
 import { DocumentElement } from '../common/document-element.js';
+import { applyTranslations } from '../common/translate-doc.js';
 import { CLASS_NAME_PATTERN, DECORATOR, kDataTypeMap } from '../constants.js';
 import type { DataType } from '../data-type/data-type.js';
 import type { EnumType } from '../data-type/enum-type.js';
@@ -41,6 +42,8 @@ export namespace HttpOperation {
     immediateFetch?: boolean;
     allowPatchOperators?: boolean;
     allowNullOptionals?: boolean;
+    /** Authoring-only; never exported. See `DocumentElement#docKey`. */
+    docKey?: string;
   }
 
   export interface Options extends Partial<
@@ -55,6 +58,7 @@ export namespace HttpOperation {
       | 'immediateFetch'
       | 'allowPatchOperators'
       | 'allowNullOptionals'
+      | 'docKey'
     >
   > {
     requestBody?: HttpRequestBody.Options;
@@ -78,6 +82,7 @@ export namespace HttpOperation {
       | 'immediateFetch'
       | 'allowPatchOperators'
       | 'allowNullOptionals'
+      | 'docKey'
     >
   > {}
 }
@@ -179,6 +184,7 @@ export const HttpOperation = function (this: HttpOperation, ...args: any[]) {
   _this.method = initArgs.method || 'GET';
   _this.title = initArgs.title;
   _this.description = initArgs.description;
+  _this.docKey = initArgs.docKey;
   _this.sections = initArgs.sections ? [...initArgs.sections] : undefined;
   _this.composition = initArgs.composition;
   _this.compositionOptions = initArgs.compositionOptions
@@ -192,6 +198,11 @@ export const HttpOperation = function (this: HttpOperation, ...args: any[]) {
 class HttpOperationClass extends DocumentElement {
   declare readonly owner: HttpController;
   declare readonly name: string;
+
+  protected get docKeySegment(): string[] {
+    return ['operations', this.docKey || this.name];
+  }
+
   declare method: OpraSchema.HttpMethod;
   declare title?: string;
   declare description?: string;
@@ -234,17 +245,22 @@ class HttpOperationClass extends DocumentElement {
   }
 
   toJSON(options?: ApiDocument.ExportOptions): OpraSchema.HttpOperation {
-    const out = omitUndefined<OpraSchema.HttpOperation>({
-      kind: OpraSchema.HttpOperation.Kind,
-      title: this.title,
-      description: this.description,
-      sections: this.sections,
-      method: this.method,
-      path: this.path,
-      mergePath: this.mergePath,
-      composition: this.composition,
-      requestBody: this.requestBody?.toJSON(options),
-    });
+    const out = applyTranslations(
+      this,
+      omitUndefined<OpraSchema.HttpOperation>({
+        kind: OpraSchema.HttpOperation.Kind,
+        title: this.title,
+        description: this.description,
+        sections: this.sections,
+        method: this.method,
+        path: this.path,
+        mergePath: this.mergePath,
+        composition: this.composition,
+        requestBody: this.requestBody?.toJSON(options),
+      }),
+      options,
+      ['title', 'description'],
+    );
     if (this.types.size) {
       out.types = {};
       for (const v of this.types.values()) {

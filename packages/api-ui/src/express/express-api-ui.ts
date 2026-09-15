@@ -3,6 +3,7 @@ import type { RequestHandler, Response } from 'express';
 import { ApiUiFactory } from '../api-ui.factory.js';
 import { buildClientCodegenBundle } from '../client-codegen-bundle.js';
 import type { ApiUiOptions } from '../types.js';
+import { resolveUiLanguage, UI_LANGUAGES } from '../ui-i18n.js';
 
 const SCOPE_ROUTE = /^\/([^/]+)(\/.*)?$/;
 const SCHEMA_ROUTE = /^\/schema\/([^/]+)\.json$/;
@@ -51,7 +52,9 @@ export function expressApiUi(
   const scopes =
     options?.scopes && options.scopes.length > 1 ? options.scopes : undefined;
   const defaultScope = options?.scope || scopes?.[0];
-  const htmlByScope = new Map<string | undefined, string>();
+  /** Keyed by scope *and* language: both change what the page embeds, so
+   *  one cache entry per combination. */
+  const htmlByScope = new Map<string, string>();
   let docsByKey: Map<string, ApiDocument> | undefined;
 
   function getDocsByKey(): Map<string, ApiDocument> {
@@ -65,9 +68,56 @@ export function expressApiUi(
     return docsByKey;
   }
 
+  let languageLists_: Pick<ApiUiOptions, 'languages' | 'docLanguages'>;
+  /**
+   * The selector's menu: every language the document is translated into,
+   * plus every language the interface itself ships in, deduplicated
+   * case-insensitively (a bundle keyed `zh-hant` and the canonical `zh-Hant`
+   * are one entry, spelled the canonical way). `allowed` — an explicit
+   * `options.languages` — narrows the result without being able to widen it
+   * to a language nothing can actually be rendered in.
+   */
+  function languageLists(
+    allowed?: string[],
+  ): Pick<ApiUiOptions, 'languages' | 'docLanguages'> {
+    if (!languageLists_) {
+      const canonical = new Map<string, string>();
+      for (const lang of UI_LANGUAGES) canonical.set(lang.toLowerCase(), lang);
+      const docLanguages: string[] = [];
+      for (const lang of document.translations.keys()) {
+        const known = canonical.get(lang.toLowerCase());
+        if (!known) canonical.set(lang.toLowerCase(), lang);
+        docLanguages.push(known || lang);
+      }
+      const permitted = allowed && new Set(allowed.map(l => l.toLowerCase()));
+      const keep = (l: string) => !permitted || permitted.has(l.toLowerCase());
+      languageLists_ = {
+        languages: Array.from(canonical.values()).filter(keep).sort(),
+        docLanguages: docLanguages.filter(keep).sort(),
+      };
+    }
+    return languageLists_;
+  }
+
   return (req, res) => {
     let reqPath = req.path;
     let scope = options?.scope;
+    /* Documentation language comes from `?lang=` only — never from
+     * `Accept-Language` — so that one URL always means one response and
+     * caches in front of this handler can't mix languages up. Resolved
+     * against the document's own bundles (see `ApiDocument#resolveLanguage`)
+     * so an unknown value quietly falls back rather than 404ing. */
+    const requestedLang =
+      typeof req.query?.lang === 'string' ? req.query.lang : undefined;
+    /* Without the parameter the document's own default language answers;
+     * a document with no translations at all resolves to nothing, leaving
+     * the source texts untouched. */
+    const lang = document.resolveLanguage(requestedLang);
+    /* The interface's own texts resolve against the dictionaries shipped in
+     * `assets/i18n` instead, and always land on *some* language — a document
+     * with no translations resolves `lang` to `undefined`, which would
+     * otherwise leave the chrome stuck in English for every reader. */
+    const uiLang = resolveUiLanguage(requestedLang);
 
     if (scopes) {
       const scopeMatch = SCOPE_ROUTE.exec(reqPath);
@@ -94,7 +144,15 @@ export function expressApiUi(
         res.status(404).json({ error: `Unknown document "${m[1]}"` });
         return;
       }
-      sendJson(res, doc.export({ scope }));
+      sendJson(
+        res,
+        doc.export({
+          scope,
+          // Resolved against *this* document — a reference brings its own
+          // bundles, and falls back within them alone.
+          lang: doc.resolveLanguage(requestedLang),
+        }),
+      );
       return;
     }
 
@@ -170,7 +228,12 @@ export function expressApiUi(
       return;
     }
 
-    let html = htmlByScope.get(scope);
+    /* `uiLang` earns its own place in the key: it resolves independently of
+     * the document's own bundles, so for an untranslated document `lang` is
+     * always '' and the first reader's interface language would otherwise be
+     * handed to everyone after them. */
+    const htmlCacheKey = `${scope || ''}|${lang || ''}|${uiLang}`;
+    let html = htmlByScope.get(htmlCacheKey);
     if (!html) {
       // `req.baseUrl` is this handler's own mount prefix as Express
       // resolved it (e.g. `/ui`) — it never includes the scope segment
@@ -181,9 +244,18 @@ export function expressApiUi(
       html = ApiUiFactory.render(document, {
         ...options,
         scope,
+        lang,
+        uiLang,
+        // The document's own translated languages, and the ones the
+        // interface itself ships in, are different sets — a reader whose
+        // language only exists in the second still gets a localized page, so
+        // the selector offers the union. Sorted so its order is the same on
+        // every process and platform, rather than following bundle-load
+        // order. An explicit `options.languages` narrows the menu.
+        ...languageLists(options?.languages),
         basePath: req.baseUrl,
       });
-      htmlByScope.set(scope, html);
+      htmlByScope.set(htmlCacheKey, html);
     }
     res.type('text/html').send(html);
   };

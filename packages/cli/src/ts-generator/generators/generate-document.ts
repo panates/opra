@@ -43,7 +43,10 @@ export async function generateDocument(
     // then simply never reached.
     const { OpraHttpClient } = await import('@opra/client');
     const client = new OpraHttpClient(this.serviceUrl);
-    document = await client.fetchDocument({ documentId: document });
+    document = await client.fetchDocument({
+      documentId: document,
+      lang: this.lang,
+    });
   }
   this._document = document;
   let out = this._documentsMap.get(document.id);

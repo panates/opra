@@ -34,6 +34,28 @@ export interface ApiUiOptions {
    *  *this* call — i.e. one page per scope, not all of them at once (see
    *  `expressApiUi`). */
   scope?: ApiDocument.ExportOptions['scope'];
+  /** Language the page's own embedded documentation is rendered in — the
+   *  same resolution rules as `ApiDocument#export({ lang })`. Set by
+   *  `expressApiUi` from the request's `?lang=`; a page is rendered (and
+   *  cached) per language, the same way it already is per scope. */
+  lang?: ApiDocument.ExportOptions['lang'];
+  /** Language the interface's *own* texts (section headings, buttons,
+   *  tooltips) are rendered in, resolved against the dictionaries shipped in
+   *  `assets/i18n` rather than against the document's translation bundles —
+   *  `@opra/api-ui` localizes its chrome even for a document that carries no
+   *  translations at all. `<html lang>`/`<html dir>` follow this. Defaults to
+   *  `lang`; `expressApiUi` sets both from the request's `?lang=`. */
+  uiLang?: string;
+  /** Every language offered in the header's language selector — by default
+   *  the document's own translation bundles *union* the languages the
+   *  interface itself ships in. Set this explicitly to narrow the menu to a
+   *  list you actually want to offer; the selector is hidden entirely when
+   *  fewer than two remain, the same way the scope selector is. */
+  languages?: string[];
+  /** Which of `languages` the document itself is documented in, so the
+   *  selector can group them apart from the interface-only ones. Filled in
+   *  automatically by `expressApiUi`. */
+  docLanguages?: string[];
   /** The full list of scope keys a reader can switch between (e.g.
    *  `['api', 'db']`) — the same OPRA document can expose different
    *  fields/types per scope (a field `readonly` in one, writable in

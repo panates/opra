@@ -19,7 +19,10 @@ export namespace ApiUiFactory {
     document: ApiDocument,
     options?: ApiUiOptions,
   ): string {
-    const root = ApiUiSchemaBuilder.build(document, { scope: options?.scope });
+    const root = ApiUiSchemaBuilder.build(document, {
+      scope: options?.scope,
+      lang: options?.lang,
+    });
     const refs: Record<string, object> = {};
     // `ResponsiveMap.entries()` yields its case-*normalized* internal key,
     // not the namespace as registered — `.keys()` preserves the original
@@ -31,6 +34,7 @@ export namespace ApiUiFactory {
       if (ns === 'opra') return; // the framework's own builtin reference
       refs[ns] = ApiUiSchemaBuilder.build(refDocuments[i], {
         scope: options?.scope,
+        lang: options?.lang,
       });
     });
     return renderApiUiHtml(

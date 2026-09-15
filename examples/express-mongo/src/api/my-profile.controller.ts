@@ -4,18 +4,8 @@ import { MongoAdapter } from '@opra/mongodb';
 import { MyProfileService, Profile } from 'example-customer-mongo';
 import { Db } from 'mongodb';
 
-@(HttpController({
-  description: `The signed-in user's own profile.
-
-Unlike **Customer**, this resource has no id in its path — every operation here requires an \`accessToken\` header instead.
-
-- \`get\` — reads the current profile
-- \`create\` — provisions a new profile
-- \`update\` — partially updates the profile
-- \`delete\` — removes the profile`,
-}).Header('accessToken', {
+@(HttpController({}).Header('accessToken', {
   type: 'string',
-  description: 'Access token of the signed-in user',
 }))
 export class MyProfileController {
   service: MyProfileService;
@@ -25,11 +15,7 @@ export class MyProfileController {
   }
 
   @HttpOperation.Entity.Create(Profile, {
-    title: 'Create my profile',
     sections: ['Account'],
-    description: `Creates the profile of the signed-in user.
-
-Accepts a \`Profile\` payload without its \`_id\`, which is assigned by the server.`,
     requestBody: {
       type: OmitType(Profile, ['_id']),
     },
@@ -40,9 +26,7 @@ Accepts a \`Profile\` payload without its \`_id\`, which is assigned by the serv
   }
 
   @HttpOperation.Entity.Delete(Profile, {
-    title: 'Delete my profile',
     sections: ['Account'],
-    description: 'Deletes the profile of the signed-in user.',
   })
   async delete(context: HttpContext) {
     const { options } = await MongoAdapter.parseRequest(context);
@@ -50,9 +34,7 @@ Accepts a \`Profile\` payload without its \`_id\`, which is assigned by the serv
   }
 
   @HttpOperation.Entity.Get(Profile, {
-    title: 'Get my profile',
     sections: ['Account'],
-    description: 'Returns the profile of the signed-in user.',
   })
   async get(context: HttpContext) {
     const { options } = await MongoAdapter.parseRequest(context);
@@ -60,9 +42,7 @@ Accepts a \`Profile\` payload without its \`_id\`, which is assigned by the serv
   }
 
   @HttpOperation.Entity.Update(Profile, {
-    description: `Updates the profile of the signed-in user.
-
-Only the fields present in the request body are changed; omitted fields keep their current value.`,
+    sections: ['Account'],
   })
   async update(context: HttpContext) {
     const { data, options } = await MongoAdapter.parseRequest(context);

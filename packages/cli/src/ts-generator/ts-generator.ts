@@ -53,6 +53,10 @@ export namespace TsGenerator {
     importExt?: boolean;
     /** Whether to export references with namespaces. */
     referenceNamespaces?: boolean;
+    /** Language the fetched documentation texts should be in (see
+     *  `?lang=` on the service's own `$schema` endpoint). Only meaningful
+     *  when generating from a `serviceUrl`. */
+    lang?: string;
   }
 
   /** One generated source file, purely in memory — what `generateFiles()`
@@ -102,6 +106,7 @@ export class TsGenerator extends EventEmitter {
   protected _filesMap: WeakMap<Object, TsFile>;
   protected _generatedFiles?: TsGenerator.GeneratedFile[];
   readonly serviceUrl?: string;
+  readonly lang?: string;
   /** Raw, as given to the constructor — resolved against `cwd` (with
    *  its own `process.cwd()` fallback) lazily, only by `generate()`'s
    *  own disk-writing step. */
@@ -122,6 +127,7 @@ export class TsGenerator extends EventEmitter {
   constructor(init: TsGenerator.Options) {
     super();
     this.serviceUrl = init.serviceUrl;
+    this.lang = init.lang;
     this.cwd = init.cwd;
     this.outDir = init.outDir;
     this.fileHeader = init.fileHeader || '';

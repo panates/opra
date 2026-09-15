@@ -2,9 +2,11 @@ import { omitUndefined } from '@jsopen/objects';
 import { md5 } from 'super-fast-md5';
 import type { Mutable, Type } from 'ts-gems';
 import { cloneObject, ResponsiveMap } from '../helpers/index.js';
+import type { TranslationBundle } from '../i18n/translation-store.js';
 import { OpraSchema } from '../schema/index.js';
 import { DataTypeMap } from './common/data-type-map.js';
 import { DocumentElement } from './common/document-element.js';
+import type { TranslationCollector } from './common/translate-doc.js';
 import {
   BUILTIN,
   kDataTypeMap,
@@ -29,6 +31,15 @@ export class ApiDocument extends DocumentElement {
   references = new ResponsiveMap<ApiDocument>();
   types = new DataTypeMap();
   api?: HttpApi | MQApi | WSApi;
+  /** Documentation texts per language, materialized while this document was
+   *  built (see `ApiDocumentFactory`) so that `export()` can stay entirely
+   *  synchronous. A referenced document carries its own — a node's texts are
+   *  always looked up in the document that declares it, which is what keeps
+   *  two documents from ever competing for the same key. */
+  translations = new Map<string, TranslationBundle>();
+  /** The language `export()` falls back to when the requested one has no
+   *  bundle of its own. */
+  defaultLanguage = 'en';
 
   constructor() {
     super(null as any);
@@ -110,7 +121,7 @@ export class ApiDocument extends DocumentElement {
       spec: OpraSchema.SpecVersion,
       id: this.id,
       url: this.url,
-      info: cloneObject(this.info, true),
+      info: this.exportInfo(options),
     });
     if (this.references.size) {
       let i = 0;
@@ -120,7 +131,15 @@ export class ApiDocument extends DocumentElement {
         references[ns] = {
           id: doc.id,
           url: doc.url,
-          info: cloneObject(doc.info, true),
+          // A reference's texts come from its *own* bundle, never this
+          // document's — same rule as every other node. And when keys are
+          // being collected (see `extractTranslations`), the reference
+          // contributes none of its own: its bundle is extracted from its
+          // own document, and letting it write here would overwrite this
+          // document's `info` with the reference's.
+          info: doc.exportInfo(
+            options?.collect ? { ...options, collect: undefined } : options,
+          ),
         };
         i++;
       }
@@ -137,8 +156,77 @@ export class ApiDocument extends DocumentElement {
     return out;
   }
 
+  /**
+   * Picks which of this document's own bundles serves `lang`: exact match →
+   * base language (`tr-TR` → `tr`) → `defaultLanguage` → the first language
+   * available (sorted, so the same request never resolves differently
+   * between runs). `undefined` when this document has no translations.
+   */
+  resolveLanguage(lang?: string): string | undefined {
+    if (!this.translations.size) return undefined;
+    if (lang) {
+      const wanted = lang.toLowerCase();
+      if (this.translations.has(wanted)) return wanted;
+      const i = wanted.indexOf('-');
+      const base = i > 0 ? wanted.substring(0, i) : undefined;
+      if (base && this.translations.has(base)) return base;
+    }
+    const fallback = this.defaultLanguage.toLowerCase();
+    if (this.translations.has(fallback)) return fallback;
+    return Array.from(this.translations.keys()).sort()[0];
+  }
+
+  getTranslations(lang?: string): TranslationBundle | undefined {
+    const resolved = this.resolveLanguage(lang);
+    return resolved ? this.translations.get(resolved) : undefined;
+  }
+
+  /**
+   * `info`'s own texts, translated when a language was asked for. Kept
+   * separate from `export()` because a reference document's `info` is
+   * emitted from *its* bundle, not the importing document's.
+   */
+  exportInfo(options?: ApiDocument.ExportOptions): OpraSchema.DocumentInfo {
+    const out = cloneObject(this.info, true);
+    if (options?.collect) {
+      const values: Record<string, string> = {};
+      for (const k of ['title', 'description', 'termsOfService'] as const) {
+        values[k] = typeof out[k] === 'string' ? (out[k] as string) : '';
+      }
+      const node = (options.collect.bundle.info ||= {}) as Record<string, any>;
+      Object.assign(node, values);
+      // A license's *text* is prose too (and long enough that leaving it in
+      // the source is exactly the clutter this exists to remove). Its
+      // `name`/`url` are identifiers and stay where they are.
+      if (typeof out.license?.content === 'string' || out.license) {
+        node.license = {
+          ...(typeof node.license === 'object' ? node.license : {}),
+          content: out.license?.content ?? '',
+        };
+      }
+    }
+    if (!options?.lang) return out;
+    const bundle = this.getTranslations(options.lang);
+    const texts = bundle?.info;
+    if (!texts || typeof texts === 'string') return out;
+    for (const k of ['title', 'description', 'termsOfService'] as const) {
+      const v = texts[k];
+      if (typeof v === 'string') out[k] = v;
+    }
+    const license = texts.license;
+    if (out.license && license && typeof license === 'object') {
+      const content = license.content;
+      if (typeof content === 'string' && content) out.license.content = content;
+    }
+    return out;
+  }
+
   invalidate(): void {
-    /* Generate id */
+    /* Generate id. Deliberately translation-free: `export()` only resolves
+     * texts when a `lang` is given, so the id stays a function of the
+     * document's *structure* — editing a translation file must not change
+     * the document's identity (and with it every cache key and reference
+     * id that derives from it). */
     const x = this.export({});
     delete (x as any).id;
     (this as Mutable<ApiDocument>).id = md5(JSON.stringify(x));
@@ -202,5 +290,14 @@ export class ApiDocument extends DocumentElement {
 export namespace ApiDocument {
   export interface ExportOptions {
     scope?: string;
+    /** Language to resolve documentation texts in (see
+     *  `TranslationStore`). When omitted, nothing is looked up at all and
+     *  the texts written in the source itself are exported as they are —
+     *  this is what keeps the document's own id independent of any
+     *  translation (see `invalidate()`). */
+    lang?: string;
+    /** Set by `extractTranslations()` to harvest the keys this export would
+     *  look up, rather than to render a schema. */
+    collect?: TranslationCollector;
   }
 }

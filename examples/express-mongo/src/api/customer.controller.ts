@@ -13,22 +13,15 @@ import { Db } from 'mongodb';
 import { type PartialDTO } from 'ts-gems';
 import { CustomerNotesController } from './customer-notes.controller.js';
 
-@ComplexType({
-  description:
-    'Sets a customer avatar by pointing at an already-hosted image, instead of uploading a file directly',
-})
+@ComplexType({})
 class AvatarUrlInput {
   @ApiField({
-    description: 'Publicly accessible URL of the image',
     examples: ['https://example.com/avatars/42.png'],
   })
   declare url: string;
 }
 
 @(HttpController({
-  description: `A single customer, addressed by id.
-
-Every operation here targets exactly one \`Customer\` record, identified by the \`customerId\` path parameter. The nested **Notes** controller manages that customer's own notes.`,
   path: 'Customers',
   controllers: [
     (parent: CustomerController) => new CustomerNotesController(parent.db),
@@ -36,7 +29,6 @@ Every operation here targets exactly one \`Customer\` record, identified by the 
 })
   .KeyParam('customerId', {
     type: 'integer',
-    description: 'Id of the customer',
   })
   .UseType(AvatarUrlInput))
 export class CustomerController {
@@ -47,21 +39,15 @@ export class CustomerController {
   }
 
   @(HttpOperation.Entity.Get(Customer, {
-    title: 'Get a customer',
     sections: ['Customers'],
-    description: 'Returns a single customer by id.',
-  }).QueryParam('xId', { description: 'Example of an ad-hoc query parameter' }))
+  }).QueryParam('xId'))
   async get(context: HttpContext): Promise<PartialDTO<Customer> | undefined> {
     const { key, options } = await MongoAdapter.parseRequest(context);
     return this.service.for(context).findById(key, options);
   }
 
   @HttpOperation.Entity.Delete(Customer, {
-    title: 'Delete a customer',
     sections: ['Customers'],
-    description: `Deletes a single customer by id.
-
-For deactivating a customer without removing their record entirely, see \`setStatus\`.`,
   })
   async delete(context: HttpContext) {
     const { key, options } = await MongoAdapter.parseRequest(context);
@@ -69,30 +55,14 @@ For deactivating a customer without removing their record entirely, see \`setSta
   }
 
   @HttpOperation.Entity.Update(Customer, {
-    title: 'Update a customer',
     sections: ['Customers'],
-    description: `Updates a single customer by id.
-
-Accepts a partial \`Customer\` payload — only the supplied fields are changed.`,
   })
   async update(context: HttpContext) {
     const { key, data, options } = await MongoAdapter.parseRequest(context);
     return this.service.for(context).update(key, data, options);
   }
 
-  @(HttpOperation.GET({
-    description: `Sets the active/hidden status of a customer.
-
-An alternative to deletion:
-
-- \`active\` — the customer is shown normally
-- \`hidden\` — the customer is excluded from default listings, without deleting its data
-
-:::note
-This operation returns no response body — check the status code to confirm the change was accepted.
-:::`,
-  }).QueryParam('status', {
-    description: 'New status to set',
+  @(HttpOperation.GET({ sections: ['Customers'] }).QueryParam('status', {
     type: EnumType(['active', 'hidden']),
   }))
   async setStatus(context: HttpContext) {
@@ -100,17 +70,9 @@ This operation returns no response body — check the status code to confirm the
   }
 
   @(HttpOperation.PATCH({
-    title: 'Update avatar',
     sections: ['Customers'],
-    description: `Updates the customer's avatar — either by pointing at an already-hosted image (\`application/json\`) or by uploading the image file directly (\`multipart/form-data\`).
-
-:::tip
-This operation exists mainly to demonstrate a request body with more than one alternative representation — open the tabs above **Request body** below to compare them.
-:::`,
     path: 'avatar',
     requestBody: {
-      description:
-        'The new avatar — provide it as a URL reference or an uploaded file; pick whichever alternative representation fits your client.',
       required: true,
     },
   })
@@ -118,12 +80,10 @@ This operation exists mainly to demonstrate a request body with more than one al
       contentType: 'application/json',
       contentEncoding: 'utf-8',
       type: AvatarUrlInput,
-      description: 'Set the avatar by URL, without uploading a file.',
       example: '{"url":"https://example.com/avatars/99.png"}',
     })
     .MultipartContent(
       {
-        description: 'Upload the avatar image directly.',
         maxParts: 2,
         maxTotalSize: 6 * 1024 * 1024,
       },
@@ -131,12 +91,10 @@ This operation exists mainly to demonstrate a request body with more than one al
         content.File('image', {
           contentType: 'image/png, image/jpeg, image/webp',
           required: true,
-          description: 'The image file itself.',
           maxPartSize: 5 * 1024 * 1024,
         });
         content.Field('caption', {
           type: 'string',
-          description: 'Optional caption shown under the avatar.',
           example: 'Summer 2024',
           maxFieldSize: 200,
         });

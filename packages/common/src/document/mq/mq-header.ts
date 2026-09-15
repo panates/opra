@@ -8,7 +8,9 @@ import {
 } from 'ts-gems';
 import { type Validator, vg } from 'valgen';
 import type { OpraSchema } from '../../schema/index.js';
+import type { ApiDocument } from '../api-document.js';
 import { DocumentElement } from '../common/document-element.js';
+import { applyTranslations } from '../common/translate-doc.js';
 import { Value } from '../common/value.js';
 import { DataType } from '../data-type/data-type.js';
 import type { EnumType } from '../data-type/enum-type.js';
@@ -87,17 +89,35 @@ export const MQHeader = function (
  */
 class MQHeaderClass extends Value {
   declare readonly owner: DocumentElement;
+
+  override get docKeyUnstable(): boolean {
+    return !this.docKey && this.name instanceof RegExp;
+  }
+
+  protected get docKeySegment(): string[] {
+    return [
+      'headers',
+      this.docKey ||
+        (typeof this.name === 'string' ? this.name : this.name.source),
+    ];
+  }
+
   declare deprecated?: boolean | string;
   declare required?: boolean;
   declare designType?: Type;
 
-  toJSON(): OpraSchema.MQHeader {
-    return omitUndefined<OpraSchema.MQHeader>({
-      ...super.toJSON(),
-      name: this.name,
-      required: this.required,
-      deprecated: this.deprecated,
-    });
+  toJSON(options?: ApiDocument.ExportOptions): OpraSchema.MQHeader {
+    return applyTranslations(
+      this,
+      omitUndefined<OpraSchema.MQHeader>({
+        ...super.toJSON(options),
+        name: this.name,
+        required: this.required,
+        deprecated: this.deprecated,
+      }),
+      options,
+      ['description', 'deprecated'],
+    );
   }
 
   generateCodec(

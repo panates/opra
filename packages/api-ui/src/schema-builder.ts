@@ -2,6 +2,7 @@ import { omitUndefined } from '@jsopen/objects';
 import {
   type ApiDocument,
   type ApiField,
+  applyTranslations,
   ArrayType,
   BUILTIN,
   ComplexType,
@@ -53,14 +54,20 @@ function isBuiltin(dataType: DataType): boolean {
 export namespace ApiUiSchemaBuilder {
   export interface Options {
     scope?: string;
+    /** Language documentation texts are resolved in, same rules as
+     *  `ApiDocument#export({ lang })`. */
+    lang?: string;
   }
 
   export function build(document: ApiDocument, options?: Options): object {
-    const ctx = new BuildContext(options?.scope);
+    const ctx = new BuildContext(options?.scope, options?.lang);
     const out: Record<string, unknown> = {
       spec: '1.0',
       id: document.id,
-      info: document.info,
+      // Same resolution `ApiDocument#export()` performs for `info` — this
+      // builder walks the runtime model rather than the exported schema, so
+      // it has to ask for it explicitly.
+      info: document.exportInfo({ lang: ctx.lang }),
     };
 
     const api = document.api as HttpApi | undefined;
@@ -105,12 +112,14 @@ export namespace ApiUiSchemaBuilder {
  * that transitively references itself doesn't recurse forever). */
 class BuildContext {
   readonly scope?: string;
+  readonly lang?: string;
   readonly types: Record<string, unknown> = {};
   private readonly _names = new Map<DataType, string>();
   private readonly _namesInUse = new Set<string>();
 
-  constructor(scope?: string) {
+  constructor(scope?: string, lang?: string) {
     this.scope = scope;
+    this.lang = lang;
   }
 
   /** Returns the collision-safe name to register a named DataType under,
@@ -154,24 +163,29 @@ function mapField(
   // either way — an override never changes which type actually declared
   // the field.
   field = field.forScope(ctx.scope);
-  return omitUndefined({
-    type: mapTypeRef(field.type, ctx),
-    description: field.description,
-    required: field.required || undefined,
-    deprecated: field.deprecated || undefined,
-    readonly: field.readonly || undefined,
-    writeonly: field.writeonly || undefined,
-    exclusive: field.exclusive || undefined,
-    localization: field.localization || undefined,
-    examples: field.examples || undefined,
-    // Set only when the field is inherited (via `extends` or a mixin) rather
-    // than declared directly on `owner` — the client shows a small link
-    // icon next to it, pointing back at whichever type actually declared it.
-    from:
-      field.origin && field.origin !== owner
-        ? mapTypeRef(field.origin, ctx)
-        : undefined,
-  });
+  return applyTranslations(
+    field,
+    omitUndefined({
+      type: mapTypeRef(field.type, ctx),
+      description: field.description,
+      required: field.required || undefined,
+      deprecated: field.deprecated || undefined,
+      readonly: field.readonly || undefined,
+      writeonly: field.writeonly || undefined,
+      exclusive: field.exclusive || undefined,
+      localization: field.localization || undefined,
+      examples: field.examples || undefined,
+      // Set only when the field is inherited (via `extends` or a mixin) rather
+      // than declared directly on `owner` — the client shows a small link
+      // icon next to it, pointing back at whichever type actually declared it.
+      from:
+        field.origin && field.origin !== owner
+          ? mapTypeRef(field.origin, ctx)
+          : undefined,
+    }),
+    { lang: ctx.lang },
+    ['description', 'deprecated'],
+  );
 }
 
 /**
@@ -226,13 +240,19 @@ function mapObjectLike(
   });
 }
 
-function mapEnumType(dataType: EnumType) {
+function mapEnumType(dataType: EnumType, ctx: BuildContext) {
   // `attributes` is already merged with every base EnumType's own values —
   // no separate base-walk needed. `alias` (the enum member's source name,
   // used by tooling like the CLI importer) is machine-only and not shipped.
   const values: Record<string, unknown> = {};
   for (const [key, meta] of Object.entries(dataType.attributes)) {
-    values[key] = meta?.description ? { description: meta.description } : {};
+    values[key] = applyTranslations(
+      dataType,
+      meta?.description ? { description: meta.description } : {},
+      { lang: ctx.lang },
+      ['description'],
+      ['values', key],
+    );
   }
   return { values };
 }
@@ -333,7 +353,12 @@ function mapDataType(dataType: DataType, ctx: BuildContext) {
     out = {
       kind: dataType.kind,
       name: dataType.name || namedBase?.name,
-      description: dataType.description || namedBase?.description,
+      description: applyTranslations(
+        dataType,
+        { description: dataType.description || namedBase?.description },
+        { lang: ctx.lang },
+        ['description'],
+      ).description,
       examples: dataType.examples || namedBase?.examples,
       properties,
       propertyDescriptions: mapSimpleTypePropertyDescriptions(
@@ -344,7 +369,7 @@ function mapDataType(dataType: DataType, ctx: BuildContext) {
   } else if (isFieldsBearing(dataType)) {
     out = { kind: dataType.kind, ...mapObjectLike(dataType, ctx) };
   } else if (dataType instanceof EnumType) {
-    out = { kind: dataType.kind, ...mapEnumType(dataType) };
+    out = { kind: dataType.kind, ...mapEnumType(dataType, ctx) };
   } else if (dataType instanceof ArrayType) {
     out = {
       kind: dataType.kind,
@@ -363,7 +388,14 @@ function mapDataType(dataType: DataType, ctx: BuildContext) {
   }
   // Already resolved (with its own base-fallback) for SimpleType above;
   // every other kind just takes its own description/examples as-is.
-  if (out.description === undefined) out.description = dataType.description;
+  if (out.description === undefined) {
+    out.description = applyTranslations(
+      dataType,
+      { description: dataType.description },
+      { lang: ctx.lang },
+      ['description'],
+    ).description;
+  }
   if (out.examples === undefined) out.examples = dataType.examples;
   // `dataType.name` here is the instance's *own* name — checked before any
   // SimpleType base-fallback above overwrote `out.name` with a borrowed
@@ -405,17 +437,22 @@ function mapTypeRef(dataType: DataType, ctx: BuildContext): unknown {
 }
 
 function mapHttpParameter(p: HttpParameter, ctx: BuildContext) {
-  return omitUndefined({
-    name: typeof p.name === 'string' ? p.name : String(p.name),
-    location: p.location,
-    type: p.type ? mapTypeRef(p.type, ctx) : undefined,
-    description: p.description,
-    required: p.required || undefined,
-    deprecated: p.deprecated || undefined,
-    default: p.default,
-    keyParam: p.keyParam || undefined,
-    arraySeparator: p.arraySeparator,
-  });
+  return applyTranslations(
+    p,
+    omitUndefined({
+      name: typeof p.name === 'string' ? p.name : String(p.name),
+      location: p.location,
+      type: p.type ? mapTypeRef(p.type, ctx) : undefined,
+      description: p.description,
+      required: p.required || undefined,
+      deprecated: p.deprecated || undefined,
+      default: p.default,
+      keyParam: p.keyParam || undefined,
+      arraySeparator: p.arraySeparator,
+    }),
+    { lang: ctx.lang },
+    ['description', 'deprecated'],
+  );
 }
 
 function mapHttpMediaType(m: HttpMediaType, ctx: BuildContext) {
@@ -425,7 +462,12 @@ function mapHttpMediaType(m: HttpMediaType, ctx: BuildContext) {
       : m.contentType,
     contentEncoding: m.contentEncoding,
     type: m.type ? mapTypeRef(m.type, ctx) : undefined,
-    description: m.description,
+    description: applyTranslations(
+      m,
+      { description: m.description },
+      { lang: ctx.lang },
+      ['description'],
+    ).description,
     example: m.example,
     examples: m.examples,
     multipartFields: m.multipartFields?.length
@@ -452,23 +494,33 @@ function mapHttpMultipartField(f: HttpMultipartField, ctx: BuildContext) {
 }
 
 function mapHttpRequestBody(b: HttpRequestBody, ctx: BuildContext) {
-  return omitUndefined({
-    description: b.description,
-    required: b.required || undefined,
-    content: b.content.length
-      ? b.content.map(m => mapHttpMediaType(m, ctx))
-      : undefined,
-  });
+  return applyTranslations(
+    b,
+    omitUndefined({
+      description: b.description,
+      required: b.required || undefined,
+      content: b.content.length
+        ? b.content.map(m => mapHttpMediaType(m, ctx))
+        : undefined,
+    }),
+    { lang: ctx.lang },
+    ['description'],
+  );
 }
 
 function mapHttpResponse(r: HttpOperationResponse, ctx: BuildContext) {
   const statusCodes = r.statusCode.map(x => x.toJSON());
-  return omitUndefined({
-    statusCode: statusCodes.length === 1 ? statusCodes[0] : statusCodes,
-    description: r.description,
-    type: r.type ? mapTypeRef(r.type, ctx) : undefined,
-    partial: r.partial,
-  });
+  return applyTranslations(
+    r,
+    omitUndefined({
+      statusCode: statusCodes.length === 1 ? statusCodes[0] : statusCodes,
+      description: r.description,
+      type: r.type ? mapTypeRef(r.type, ctx) : undefined,
+      partial: r.partial,
+    }),
+    { lang: ctx.lang },
+    ['description'],
+  );
 }
 
 /** `inheritedParams` are the path/header/... parameters declared on this
@@ -490,8 +542,12 @@ function mapHttpOperation(
   return omitUndefined({
     kind: 'HttpOperation',
     method: op.method,
-    title: op.title,
-    description: op.description,
+    ...applyTranslations(
+      op,
+      { title: op.title, description: op.description },
+      { lang: ctx.lang },
+      ['title', 'description'],
+    ),
     sections: op.sections?.length ? op.sections : undefined,
     path: op.path,
     mergePath: op.mergePath || undefined,
@@ -518,7 +574,12 @@ function mapHttpController(
   // shown on each operation's own page instead (see `mapHttpOperation`).
   const out: Record<string, unknown> = {
     kind: 'HttpController',
-    description: ctrl.description,
+    description: applyTranslations(
+      ctrl,
+      { description: ctrl.description },
+      { lang: ctx.lang },
+      ['description'],
+    ).description,
     path: ctrl.path,
     parameters: ctrl.parameters.length
       ? ctrl.parameters.map(p => mapHttpParameter(p, ctx))

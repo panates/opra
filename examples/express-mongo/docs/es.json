@@ -1,0 +1,535 @@
+{
+  "info": {
+    "title": "Aplicación de Clientes",
+    "description": "Una API de ejemplo con Opra que muestra cómo construir un servidor de recursos HTTP completo, respaldado por MongoDB.\n\nEste servicio reúne varios patrones que probablemente necesitarás en una aplicación real: autenticación basada en cookies, un endpoint de autoservicio para el perfil del usuario conectado y una interfaz CRUD completa para gestionar clientes junto con sus notas.\n\n### Qué incluye\n\n- **Autenticación** — endpoints `login`/`logout` bajo `Auth`, más un recurso anidado `MyProfile` para el propio registro del usuario autenticado.\n- **Clientes** — CRUD completo para el recurso `Customer`, incluida una operación `setStatus` dedicada para activar/ocultar en lugar de borrar definitivamente.\n- **Notas** — una colección anidada bajo cada cliente, gestionada a través de su propio controlador `Notes`.\n- **Esquema rico** — enums, restricciones de array, cadenas validadas con expresiones regulares y campos localizados, todo documentado en la referencia `Customer Models Document` más abajo.\n\n:::tip\nCambia a la referencia **Customer Models Document** (selector superior izquierdo o la sección *Reference documents* de abajo) para explorar el modelo de datos completo con independencia de la superficie HTTP.\n:::",
+    "termsOfService": "Al utilizar esta API de ejemplo aceptas que se ofrece exclusivamente con fines de demostración, \"tal cual\", sin ninguna garantía de disponibilidad, exactitud o idoneidad para un fin determinado, y que nunca deben enviarse datos reales de clientes.",
+    "license": {
+      "content": "MIT License\n\nCopyright (c) 2020-present Panates\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
+    }
+  },
+  "api": {
+    "servers": {
+      "local": {
+        "description": "Servidor de desarrollo local"
+      }
+    },
+    "sections": {
+      "Account": {
+        "description": "Iniciar sesión y gestionar tu propio perfil"
+      },
+      "Customers": {
+        "description": "Gestión de los registros de clientes"
+      },
+      "Notes": {
+        "description": "Las notas propias de un cliente"
+      }
+    },
+    "controllers": {
+      "Auth": {
+        "description": "Endpoints de autenticación para iniciar y cerrar sesión.\n\nEste es un ejemplo deliberadamente mínimo — consulta **MyProfile** más abajo para ver los endpoints que leen la cabecera `accessToken` directamente en lugar de depender de una sesión.\n\n- `login` — acepta un par `user`/`password`\n- `logout` — finaliza la sesión actual",
+        "operations": {
+          "login": {
+            "title": "Iniciar sesión",
+            "description": "Inicia la sesión del usuario con un nombre de usuario y una contraseña.\n\n- `user` — el nombre de usuario de la cuenta\n- `password` — la contraseña de la cuenta\n\n:::note\nEste endpoint de ejemplo devuelve un simple mensaje de confirmación en lugar de un token de acceso real — consulta **MyProfile** para ver cómo se representa una petición autenticada en el resto de esta API.\n:::",
+            "parameters": {
+              "user": {
+                "description": "Nombre de usuario con el que iniciar sesión"
+              },
+              "password": {
+                "description": "Contraseña del usuario"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": ""
+              }
+            }
+          },
+          "logout": {
+            "title": "Cerrar sesión",
+            "description": "Cierra la sesión del usuario actual.\n\nDevuelve un simple mensaje de confirmación, igual que `login`.",
+            "responses": {
+              "200": {
+                "description": ""
+              }
+            }
+          }
+        },
+        "controllers": {
+          "MyProfile": {
+            "description": "El perfil propio del usuario que ha iniciado sesión.\n\nA diferencia de **Customer**, este recurso no lleva un id en su ruta — en su lugar, cada operación requiere una cabecera `accessToken`.\n\n- `get` — lee el perfil actual\n- `create` — crea un nuevo perfil\n- `update` — actualiza parcialmente el perfil\n- `delete` — elimina el perfil",
+            "operations": {
+              "create": {
+                "title": "Crear mi perfil",
+                "description": "Crea el perfil del usuario que ha iniciado sesión.\n\nAcepta un payload `Profile` sin su `_id`, que asigna el servidor.",
+                "parameters": {
+                  "projection": {
+                    "description": "Determina la proyección de campos"
+                  }
+                },
+                "responses": {
+                  "201": {
+                    "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"payload\" que contiene el recurso creado."
+                  },
+                  "422": {
+                    "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                }
+              },
+              "delete": {
+                "title": "Eliminar mi perfil",
+                "description": "Elimina el perfil del usuario que ha iniciado sesión.",
+                "responses": {
+                  "200": {
+                    "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"affected\"."
+                  },
+                  "422": {
+                    "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+                  }
+                }
+              },
+              "get": {
+                "title": "Obtener mi perfil",
+                "description": "Devuelve el perfil del usuario que ha iniciado sesión.",
+                "parameters": {
+                  "projection": {
+                    "description": "Determina la proyección de campos"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"payload\" que contiene el recurso solicitado."
+                  },
+                  "204": {
+                    "description": "La operación se ha realizado correctamente pero no se ha encontrado ningún recurso"
+                  },
+                  "422": {
+                    "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+                  }
+                }
+              },
+              "update": {
+                "description": "Actualiza el perfil del usuario que ha iniciado sesión.\n\nSolo cambian los campos presentes en el cuerpo de la petición; los omitidos mantienen su valor actual.",
+                "parameters": {
+                  "projection": {
+                    "description": "Determina la proyección de campos"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"payload\" que contiene el recurso actualizado."
+                  },
+                  "204": {
+                    "description": "La operación se ha realizado correctamente pero no se ha encontrado ningún recurso"
+                  },
+                  "422": {
+                    "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                },
+                "title": "Actualizar mi perfil"
+              }
+            },
+            "parameters": {
+              "accessToken": {
+                "description": "Token de acceso del usuario que ha iniciado sesión"
+              }
+            }
+          }
+        }
+      },
+      "Customer": {
+        "description": "Un único cliente, direccionado por su id.\n\nCada operación aquí actúa sobre exactamente un registro `Customer`, identificado por el parámetro de ruta `customerId`. El controlador anidado **Notes** gestiona las notas propias de ese cliente.",
+        "operations": {
+          "get": {
+            "title": "Obtener un cliente",
+            "description": "Devuelve un único cliente por su id.",
+            "parameters": {
+              "projection": {
+                "description": "Determina la proyección de campos"
+              },
+              "xId": {
+                "description": "Ejemplo de un parámetro de consulta ad-hoc"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"payload\" que contiene el recurso solicitado."
+              },
+              "204": {
+                "description": "La operación se ha realizado correctamente pero no se ha encontrado ningún recurso"
+              },
+              "422": {
+                "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+              }
+            }
+          },
+          "delete": {
+            "title": "Eliminar un cliente",
+            "description": "Elimina un único cliente por su id.\n\nPara desactivar un cliente sin borrar su registro por completo, consulta `setStatus`.",
+            "responses": {
+              "200": {
+                "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"affected\"."
+              },
+              "422": {
+                "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+              }
+            }
+          },
+          "update": {
+            "title": "Actualizar un cliente",
+            "description": "Actualiza un único cliente por su id.\n\nAcepta un payload `Customer` parcial — solo se modifican los campos suministrados.",
+            "parameters": {
+              "projection": {
+                "description": "Determina la proyección de campos"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"payload\" que contiene el recurso actualizado."
+              },
+              "204": {
+                "description": "La operación se ha realizado correctamente pero no se ha encontrado ningún recurso"
+              },
+              "422": {
+                "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+              }
+            },
+            "requestBody": {
+              "description": ""
+            }
+          },
+          "setStatus": {
+            "description": "Establece el estado activo/oculto de un cliente.\n\nUna alternativa al borrado:\n\n- `active` — el cliente se muestra con normalidad\n- `hidden` — el cliente queda excluido de los listados por defecto, sin borrar sus datos\n\n:::note\nEsta operación no devuelve cuerpo de respuesta — comprueba el código de estado para confirmar que el cambio se aceptó.\n:::",
+            "parameters": {
+              "status": {
+                "description": "Nuevo estado que se va a asignar"
+              }
+            },
+            "title": "Establecer el estado del cliente"
+          },
+          "updateAvatar": {
+            "requestBody": {
+              "content": {
+                "application/json": {
+                  "description": "Establece el avatar mediante una URL, sin subir ningún archivo."
+                },
+                "multipart/form-data": {
+                  "description": "Sube directamente la imagen del avatar.",
+                  "multipartFields": {
+                    "image": {
+                      "description": "El propio archivo de imagen."
+                    },
+                    "caption": {
+                      "description": "Leyenda opcional que se muestra debajo del avatar."
+                    }
+                  }
+                }
+              },
+              "description": "El nuevo avatar — proporciónalo como una referencia URL o como un archivo subido; elige la alternativa que mejor encaje con tu cliente."
+            },
+            "title": "Actualizar el avatar",
+            "description": "Actualiza el avatar del cliente — bien apuntando a una imagen ya alojada (`application/json`), bien subiendo directamente el archivo de imagen (`multipart/form-data`).\n\n:::tip\nEsta operación existe sobre todo para mostrar un cuerpo de petición con más de una representación alternativa — abre las pestañas de **Request body** más abajo para compararlas.\n:::",
+            "responses": {
+              "200": {
+                "description": ""
+              }
+            }
+          }
+        },
+        "controllers": {
+          "Notes": {
+            "description": "Las notas de un cliente.\n\nCada operación aquí está acotada al **Customer** padre identificado por `customerId` en la ruta — el `_id` de una nota solo es único dentro de ese cliente, no en toda la API.",
+            "operations": {
+              "get": {
+                "title": "Obtener una nota",
+                "description": "Devuelve una única nota del cliente por su id.",
+                "parameters": {
+                  "projection": {
+                    "description": "Determina la proyección de campos"
+                  },
+                  "_id": {
+                    "description": "Id de la nota"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"payload\" que contiene el recurso solicitado."
+                  },
+                  "204": {
+                    "description": "La operación se ha realizado correctamente pero no se ha encontrado ningún recurso"
+                  },
+                  "422": {
+                    "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+                  }
+                }
+              },
+              "delete": {
+                "description": "Elimina una única nota del cliente por su id.",
+                "parameters": {
+                  "_id": {
+                    "description": "Id de la nota"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"affected\"."
+                  },
+                  "422": {
+                    "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+                  }
+                },
+                "title": "Eliminar una nota"
+              },
+              "update": {
+                "description": "Actualiza una única nota del cliente por su id.\n\nSolo cambian los campos presentes en el cuerpo de la petición.",
+                "parameters": {
+                  "projection": {
+                    "description": "Determina la proyección de campos"
+                  },
+                  "_id": {
+                    "description": "Id de la nota"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"payload\" que contiene el recurso actualizado."
+                  },
+                  "204": {
+                    "description": "La operación se ha realizado correctamente pero no se ha encontrado ningún recurso"
+                  },
+                  "422": {
+                    "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                },
+                "title": "Actualizar una nota"
+              },
+              "create": {
+                "title": "Crear una nota",
+                "description": "Crea una nueva nota para el cliente.\n\nAcepta un payload `Note` sin su `_id`, que asigna el servidor.",
+                "parameters": {
+                  "projection": {
+                    "description": "Determina la proyección de campos"
+                  }
+                },
+                "responses": {
+                  "201": {
+                    "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"payload\" que contiene el recurso creado."
+                  },
+                  "422": {
+                    "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                }
+              },
+              "findMany": {
+                "title": "Listar notas",
+                "description": "Devuelve las notas del cliente.\n\nFiltrable por `_id`, `title`, `text` y `rank`; ordenable por `_id` o `title` (por defecto `_id`).\n\n:::tip\nEnvía `count=true` para obtener también el número total de coincidencias — útil para construir la paginación.\n:::",
+                "parameters": {
+                  "limit": {
+                    "description": "Determina el número de instancias devueltas"
+                  },
+                  "skip": {
+                    "description": "Determina el número de instancias devueltas"
+                  },
+                  "count": {
+                    "description": "Si se activa, cuenta todas las instancias coincidentes"
+                  },
+                  "projection": {
+                    "description": "Determina la proyección de campos"
+                  },
+                  "sort": {
+                    "description": "Determina los campos de ordenación"
+                  },
+                  "filter": {
+                    "description": "Determina los campos de filtrado"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"payload\" que contiene la lista de recursos."
+                  },
+                  "422": {
+                    "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+                  }
+                }
+              },
+              "deleteMany": {
+                "description": "Elimina varias notas del cliente que coincidan con un filtro.\n\nFiltrable por `_id` o `rank`.",
+                "parameters": {
+                  "filter": {
+                    "description": "Determina los campos de filtrado"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"affected\"."
+                  },
+                  "422": {
+                    "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+                  }
+                },
+                "title": "Eliminar notas"
+              },
+              "updateMany": {
+                "description": "Actualiza varias notas del cliente que coincidan con un filtro.\n\nFiltrable por `_id` o `rank` — cada nota coincidente recibe el mismo payload de actualización.",
+                "parameters": {
+                  "filter": {
+                    "description": "Determina los campos de filtrado"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"affected\"."
+                  },
+                  "422": {
+                    "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                },
+                "title": "Actualizar notas"
+              }
+            }
+          }
+        },
+        "types": {
+          "AvatarUrlInput": {
+            "description": "Establece el avatar de un cliente apuntando a una imagen ya alojada, en lugar de subir un archivo",
+            "fields": {
+              "url": {
+                "description": "URL de acceso público de la imagen"
+              }
+            }
+          }
+        },
+        "parameters": {
+          "customerId": {
+            "description": "Id del cliente"
+          }
+        }
+      },
+      "Customers": {
+        "description": "La colección de clientes.\n\nEl punto de entrada para gestionar los clientes en conjunto — crea nuevos aquí, o lista/actualiza/elimina en bloque los existentes mediante un filtro. Las operaciones propias de un cliente concreto (incluidas sus **Notes**) están bajo **Customer**.",
+        "operations": {
+          "create": {
+            "title": "Crear un cliente",
+            "description": "Crea un nuevo cliente.\n\nAcepta un payload `CustomerCreateInput` — la misma forma que `Customer`, menos su `_id` asignado por el servidor.",
+            "parameters": {
+              "projection": {
+                "description": "Determina la proyección de campos"
+              }
+            },
+            "responses": {
+              "201": {
+                "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"payload\" que contiene el recurso creado."
+              },
+              "422": {
+                "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+              }
+            },
+            "requestBody": {
+              "description": ""
+            }
+          },
+          "findMany": {
+            "title": "Listar clientes",
+            "description": "Devuelve los clientes que coinciden con el filtro indicado.\n\nFiltrable por `_id`, `givenName`, `familyName`, `gender`, `uid`, `address.countryCode`, `deleted`, `active`, `birthDate` y `rate`; ordenable por `_id`, `givenName`, `familyName`, `gender` o `address.countryCode` (por defecto `givenName`).\n\n:::tip\nEnvía `count=true` para obtener también el número total de coincidencias — útil para construir la paginación.\n:::",
+            "parameters": {
+              "limit": {
+                "description": "Determina el número de instancias devueltas"
+              },
+              "skip": {
+                "description": "Determina el número de instancias devueltas"
+              },
+              "count": {
+                "description": "Si se activa, cuenta todas las instancias coincidentes"
+              },
+              "projection": {
+                "description": "Determina la proyección de campos"
+              },
+              "filter": {
+                "description": "Determina los campos de filtrado"
+              },
+              "sort": {
+                "description": "Determina los campos de ordenación"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"payload\" que contiene la lista de recursos."
+              },
+              "422": {
+                "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+              }
+            }
+          },
+          "deleteMany": {
+            "description": "Elimina varios clientes que coincidan con un filtro.\n\nFiltrable por `_id`. Para desactivar clientes sin borrar su registro, usa `setStatus` en cada uno.",
+            "parameters": {
+              "filter": {
+                "description": "Determina los campos de filtrado"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"affected\"."
+              },
+              "422": {
+                "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+              }
+            },
+            "title": "Eliminar clientes"
+          },
+          "updateMany": {
+            "description": "Actualiza varios clientes que coincidan con un filtro.\n\nFiltrable por `_id` — cada cliente coincidente recibe el mismo payload de actualización.",
+            "parameters": {
+              "filter": {
+                "description": "Determina los campos de filtrado"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "La operación se ha realizado correctamente. Devuelve un OperationResult con el campo \"affected\"."
+              },
+              "422": {
+                "description": "La solicitud estaba bien formada pero no se pudo procesar la operación debido a uno o varios errores."
+              }
+            },
+            "requestBody": {
+              "description": ""
+            },
+            "title": "Actualizar clientes"
+          }
+        }
+      }
+    },
+    "description": ""
+  },
+  "types": {
+    "Profile": {
+      "description": "El perfil propio del usuario que ha iniciado sesión"
+    },
+    "Customer": {
+      "description": "\nLa **entidad central** de esta API — todo lo demás (direcciones, notas,\nnúmeros de teléfono) cuelga de un `Customer`.\n\nUn registro de cliente es una *mezcla* de tres cosas:\n\n1. La contabilidad estándar de [Record](#/model/Record) — id, marcas de tiempo, borrado lógico.\n2. Datos personales, mediante la forma compartida [Person](#/model/Person) (nombre,\n   género, fecha de nacimiento).\n3. Campos declarados directamente aquí — estado de la cuenta, datos de contacto y\n   las colecciones de registros relacionados (direcciones, notas, teléfonos).\n\n:::info\nLos clientes **nunca se borran físicamente**. Asignar `deleted: true` (borrado\nlógico) es la única vía de eliminación admitida — así se mantienen intactos los\npedidos históricos, las notas y las trazas de auditoría.\n:::\n\nLa mayoría de los campos se explican por sí solos, pero algunos merecen mención:\n\n- `rate` gobierna los cálculos de precios/fidelidad en otras partes del sistema.\n- `country` es de **solo lectura** — se resuelve en el servidor a partir de `countryCode`,\n  no es algo que el cliente pueda establecer directamente.\n- `tags` es una lista de etiquetas libre, sin vocabulario fijo; úsala para\n  segmentaciones ad-hoc.\n"
+    },
+    "Note": {
+      "description": "Una nota adjunta a un cliente"
+    },
+    "CustomerCreateInput": {
+      "description": ""
+    }
+  },
+  "description": ""
+}

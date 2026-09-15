@@ -2,8 +2,10 @@ import { omitUndefined } from '@jsopen/objects';
 import type { Combine, ThunkAsync, Type } from 'ts-gems';
 import { asMutable } from 'ts-gems';
 import { OpraSchema } from '../../schema/index.js';
+import type { ApiDocument } from '../api-document.js';
 import { DataTypeMap } from '../common/data-type-map.js';
 import { DocumentElement } from '../common/document-element.js';
+import { applyTranslations } from '../common/translate-doc.js';
 import { CLASS_NAME_PATTERN, DECORATOR, kDataTypeMap } from '../constants.js';
 import { DataType } from '../data-type/data-type.js';
 import type { EnumType } from '../data-type/enum-type.js';
@@ -140,6 +142,10 @@ export const WSOperation = function (this: WSOperation, ...args: any[]) {
  * @class WSOperation
  */
 class WSOperationClass extends DocumentElement {
+  protected get docKeySegment(): string[] {
+    return ['operations', this.docKey || this.name];
+  }
+
   declare readonly owner: WSController;
   declare readonly name: string;
   declare description?: string;
@@ -152,15 +158,20 @@ class WSOperationClass extends DocumentElement {
   declare types: DataTypeMap;
   declare response?: DataType;
 
-  toJSON(): OpraSchema.WSOperation {
-    return omitUndefined<OpraSchema.WSOperation>({
-      kind: OpraSchema.WSOperation.Kind,
-      description: this.description,
-      event: this.event,
-      arguments: this.arguments?.map(arg =>
-        arg.type.name ? arg.type.name : arg.type.toJSON(),
-      ),
-    });
+  toJSON(options?: ApiDocument.ExportOptions): OpraSchema.WSOperation {
+    return applyTranslations(
+      this,
+      omitUndefined<OpraSchema.WSOperation>({
+        kind: OpraSchema.WSOperation.Kind,
+        description: this.description,
+        event: this.event,
+        arguments: this.arguments?.map(arg =>
+          arg.type.name ? arg.type.name : arg.type.toJSON(options),
+        ),
+      }),
+      options,
+      ['description'],
+    );
   }
 }
 

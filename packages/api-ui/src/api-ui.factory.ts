@@ -22,6 +22,7 @@ export namespace ApiUiFactory {
     const root = ApiUiSchemaBuilder.build(document, {
       scope: options?.scope,
       lang: options?.lang,
+      authoring: !!options?.authoring,
     });
     const refs: Record<string, object> = {};
     // `ResponsiveMap.entries()` yields its case-*normalized* internal key,
@@ -32,6 +33,9 @@ export namespace ApiUiFactory {
     const refDocuments = Array.from(document.references.values());
     namespaces.forEach((ns, i) => {
       if (ns === 'opra') return; // the framework's own builtin reference
+      // No `authoring` for a reference: the studio writes to one document's
+      // bundle, and a reference brings its own translation store. Its pages
+      // still render, they just carry no edit affordances.
       refs[ns] = ApiUiSchemaBuilder.build(refDocuments[i], {
         scope: options?.scope,
         lang: options?.lang,

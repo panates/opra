@@ -1,0 +1,541 @@
+/* ==========================================================================
+   Documentation studio
+   --------------------------------------------------------------------------
+   Loaded only when `oprimp docs:studio` renders the page (see
+   `ApiUiOptions.authoring`). Everything here is scoped under `.studio-on` or
+   a `studio-` class, so it can never affect a normally served page even if
+   the stylesheet were somehow included.
+   ========================================================================== */
+
+/* Every editable block carries its own boundary at rest, faint enough to read
+   past but strong enough to answer "what on this screen can I write?" without
+   sweeping the mouse over it. Hovering only deepens the same line, so it is
+   also obvious *which* block the pencil is about to open — a heading and the
+   description under it are two separate entries. Only the colour changes, so
+   nothing on the page moves as you point at it. */
+.studio-editable {
+  position: relative;
+  outline: 1px dashed color-mix(in srgb, var(--accent) 22%, transparent);
+  outline-offset: 5px;
+  transition: outline-color 0.12s;
+}
+
+.studio-editable:hover,
+.studio-editable:focus-within {
+  outline-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+/* `:hover` matches every ancestor too, so a block that happens to contain
+   another editable one would light up alongside it and leave you guessing
+   which pencil belongs to which outline. The innermost one wins; the outer
+   falls back to resting. */
+.studio-editable:has(.studio-editable:hover) {
+  outline-color: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+/* The block itself is the button — clicking the prose opens the editor on it,
+   which is one fewer thing to aim at than a 22px target in a corner. So the
+   pencil is a marker, not a control: it says what the click will do and
+   nothing more. It rides the outline's corner rather than sitting inside the
+   block, where it covered the first line of the very text it edits. */
+.studio-editable {
+  cursor: text;
+}
+
+.studio-pencil {
+  position: absolute;
+  top: -9px;
+  inset-inline-end: -9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0.45;
+  transition:
+    opacity 0.12s,
+    color 0.12s;
+  background: var(--code-bg);
+  color: var(--text-muted);
+  border-radius: 5px;
+  width: 18px;
+  height: 18px;
+}
+
+.studio-editable:hover .studio-pencil {
+  opacity: 1;
+  color: var(--accent);
+}
+
+/* A slot the document declares and nobody has written. It renders as nothing
+   at all on the published page (see `emptySlot` in app.js), so here it is the
+   invitation to write it — quiet enough not to shout over finished prose,
+   loud enough to be the thing you notice scanning the page. */
+.studio-empty {
+  color: var(--text-muted);
+  font-style: italic;
+  opacity: 0.75;
+}
+
+.studio-empty.studio-editable {
+  outline-style: dashed;
+  outline-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.studio-empty.studio-editable:hover {
+  opacity: 1;
+  outline-color: var(--accent);
+}
+
+/* Still on screen while its editor is open below it. */
+.studio-editing {
+  opacity: 0.5;
+}
+
+/* A node whose text lives in another document's bundle — readable here,
+   editable only where it is declared. */
+.studio-readonly {
+  outline: 1px dashed var(--border);
+  outline-offset: 4px;
+  opacity: 0.85;
+}
+
+/* Four stacked rows — breadcrumb, toolbar, text, actions — rather than one
+   crowded strip: the breadcrumb is as long as the document is deep, and
+   sharing a line with the buttons meant it was always the one that lost.
+   `container-type` lets the split view withdraw itself when the editor sits
+   in a narrow column (see the query at the end of this block). */
+.studio-editor {
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: var(--code-bg);
+  margin: 8px 0;
+  overflow: hidden;
+  container-type: inline-size;
+}
+
+.studio-head,
+.studio-bar,
+.studio-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.studio-head {
+  padding: 5px 8px;
+  gap: 10px;
+}
+
+.studio-bar {
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.studio-foot {
+  border-bottom: none;
+  border-top: 1px solid var(--border);
+}
+
+.studio-path {
+  display: flex;
+  align-items: baseline;
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  direction: ltr;
+  unicode-bidi: isolate;
+  white-space: nowrap;
+}
+
+/* Ellipsis at the *front*: `api › controllers` is the same on every key and
+   the segments next to the field are the ones that identify it, so a trail
+   too long to fit should lose its head, not its tail. `direction: rtl` is
+   what moves the ellipsis to the start; the inner span puts the text itself
+   back in reading order. */
+.studio-path-trail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+}
+
+.studio-path-trail > span {
+  direction: ltr;
+  unicode-bidi: embed;
+}
+
+/* The field being edited is the part worth reading at a glance; its
+   ancestors are only there to say which one of them it is. */
+.studio-path-leaf {
+  flex: none;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.studio-path-leaf::before {
+  content: '›';
+  margin: 0 5px;
+  color: var(--text-muted);
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+/* ---------- source / preview ---------- */
+
+.studio-views {
+  display: flex;
+  flex: none;
+  border: 1px solid var(--surface-border);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.studio-view {
+  background: none;
+  border: none;
+  border-inline-start: 1px solid var(--surface-border);
+  color: var(--text-muted);
+  padding: 3px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.studio-view:first-child {
+  border-inline-start: none;
+}
+
+.studio-view:hover {
+  color: var(--text);
+}
+
+.studio-view.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.studio-panes {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.studio-editor[data-view='write'] .studio-pane-preview,
+.studio-editor[data-view='preview'] .studio-pane-edit {
+  display: none;
+}
+
+/* Split stacks the preview under the text by default and only sets it
+   alongside once there is room for two readable columns — see the container
+   query at the end. Two 290px columns of prose is worse than one, but so is
+   having no split view at all on the narrow content column this editor
+   usually opens in. */
+.studio-editor[data-view='split'] .studio-pane-preview {
+  border-block-start: 1px solid var(--border);
+}
+
+.studio-pane-preview {
+  padding: 10px 12px;
+  min-height: 140px;
+  overflow: auto;
+}
+
+/* The preview is the page's own renderer (see `preview` on the studio host),
+   so it inherits `.markdown` wholesale; all that is left is to stop the first
+   and last block from pushing the pane open. */
+.studio-preview > :first-child {
+  margin-block-start: 0;
+}
+
+.studio-preview > :last-child {
+  margin-block-end: 0;
+}
+
+.studio-preview-empty {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* ---------- the formatting toolbar ---------- */
+
+.studio-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text-muted);
+  padding: 4px 5px;
+  cursor: pointer;
+  /* Markdown's own syntax is left-to-right whichever way the page reads, and
+     so is the order these buttons apply it in. */
+  direction: ltr;
+}
+
+.studio-tool:hover {
+  background: var(--code-bg);
+  border-color: var(--surface-border);
+  color: var(--text);
+}
+
+.studio-icon {
+  display: inline-flex;
+}
+
+.studio-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px 5px;
+  background: var(--surface-border);
+}
+
+/* ---------- the callout menu ---------- */
+
+.studio-menu-holder {
+  position: relative;
+  display: inline-flex;
+}
+
+.studio-menu {
+  display: none;
+  position: absolute;
+  inset-block-start: calc(100% + 4px);
+  inset-inline-start: 0;
+  min-width: 132px;
+  padding: 4px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: 30;
+}
+
+.studio-menu-holder.open .studio-menu {
+  display: block;
+}
+
+.studio-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  text-align: start;
+  text-transform: capitalize;
+  padding: 5px 7px;
+  cursor: pointer;
+}
+
+.studio-menu-item:hover {
+  background: var(--surface);
+}
+
+/* Each entry wears the colour of the callout it inserts: the `admonition-*`
+   class on the item is the same one the rendered callout carries, and all it
+   does is set `--adm-color` (see the admonition block in styles.css). */
+.studio-menu-icon {
+  display: inline-flex;
+  color: var(--adm-color, var(--text-muted));
+}
+
+.studio-save,
+.studio-cancel {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.studio-cancel:hover {
+  border-color: var(--text-muted);
+}
+
+/* Keyed to the editor's own width rather than the viewport's: the same
+   editor is narrower inside a nested controller than at the top of an
+   overview page, and it is the editor that has to fit two columns. */
+@container (min-width: 700px) {
+  .studio-editor[data-view='split'] .studio-panes {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .studio-editor[data-view='split'] .studio-pane-preview {
+    border-block-start: none;
+    border-inline-start: 1px solid var(--border);
+  }
+}
+
+.studio-save {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.studio-save:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.studio-status {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.studio-status.warn {
+  color: var(--method-delete, #d9534f);
+}
+
+/* CodeMirror ships its own light palette; these few rules are what make it
+   sit inside the page's own theme instead of punching a white hole in it. */
+.studio-editor .CodeMirror {
+  height: auto;
+  min-height: 140px;
+  background: var(--code-bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+  padding: 6px 4px;
+  direction: ltr;
+}
+
+.studio-editor .CodeMirror-cursor {
+  border-left-color: var(--text);
+}
+
+.studio-editor .CodeMirror-selected {
+  background: var(--surface-border);
+}
+
+.studio-editor .cm-header {
+  color: var(--accent);
+}
+
+.studio-editor .cm-comment {
+  color: var(--text-muted);
+}
+
+.studio-editor .cm-link,
+.studio-editor .cm-url {
+  color: var(--accent);
+}
+
+/* ---------- the "still undocumented" panel ---------- */
+
+/* Sized for the keys it actually holds: these run six or seven segments deep,
+   and a panel narrow enough to be unobtrusive is never wide enough for one on
+   a single line. So it is as wide as a corner panel can reasonably be, the
+   rows wrap, and the list scrolls (`.studio-todo-body`) rather than being
+   capped — the whole point is to see everything still unwritten. */
+.studio-todo {
+  position: fixed;
+  inset-block-end: 16px;
+  inset-inline-end: 16px;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  max-height: 62vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: 40;
+  font-size: 12px;
+}
+
+.studio-todo-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.studio-todo-count {
+  flex: 1;
+  font-weight: 400;
+  color: var(--text-muted);
+  text-align: end;
+}
+
+.studio-todo-toggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 2px;
+}
+
+.studio-todo-body {
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.studio-todo.collapsed .studio-todo-body,
+.studio-todo.collapsed {
+  max-height: none;
+}
+
+.studio-todo.collapsed .studio-todo-body {
+  display: none;
+}
+
+/* Wrapping makes each entry two or three lines tall, so without a rule
+   between them the list reads as one paragraph of slashes. */
+.studio-todo-item {
+  display: block;
+  width: 100%;
+  text-align: start;
+  background: none;
+  border: none;
+  border-block-end: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  padding: 6px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  direction: ltr;
+  unicode-bidi: isolate;
+  /* Segments are joined with spaces around the separator, so the line breaks
+     between segments on its own; `anywhere` is only the backstop for a single
+     segment longer than the panel (a regexp source, a media type). */
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.studio-todo-item:last-child {
+  border-block-end: none;
+}
+
+/* The field is what has to be written; everything before it is only there to
+   say which one of them it is. */
+.studio-todo-leaf {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.studio-todo-item:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.studio-todo-empty {
+  padding: 10px;
+  color: var(--text-muted);
+}

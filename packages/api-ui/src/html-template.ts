@@ -5,6 +5,27 @@ import { directionFor, loadUiMessages, resolveUiLanguage } from './ui-i18n.js';
 const STYLES = readAsset('styles.css');
 const VENDOR_MINISEARCH = readAsset('vendor/minisearch.js');
 const APP_SCRIPT = readAsset('app.js');
+
+/** The authoring layer, read only when a page actually asks for it — the
+ *  editor and its CodeMirror are a few hundred KB nobody reading the docs
+ *  should have to download. Lazily cached, since `docs:studio` renders the
+ *  page fresh on every request. */
+let studioAssets: { script: string; styles: string } | undefined;
+function getStudioAssets(): { script: string; styles: string } {
+  if (!studioAssets) {
+    studioAssets = {
+      script:
+        readAsset('vendor/codemirror.js') +
+        '\n' +
+        readAsset('vendor/codemirror-markdown.js') +
+        '\n' +
+        readAsset('studio.js'),
+      styles:
+        readAsset('vendor/codemirror.css') + '\n' + readAsset('studio.css'),
+    };
+  }
+  return studioAssets;
+}
 /** Base64 data URI so the default logo needs no extra request — the page
  *  stays a single self-contained file like the rest of this renderer. */
 const DEFAULT_LOGO_SRC = `data:image/svg+xml;base64,${Buffer.from(readAsset('logo.svg')).toString('base64')}`;
@@ -68,7 +89,8 @@ export function renderApiUiHtml(
   );
   const nonceAttr = nonceAttribute(nonce);
 
-  const styleTag = `<style${nonceAttr}>${STYLES}${customCss ? `\n${customCss}` : ''}</style>`;
+  const studio = options.authoring ? getStudioAssets() : undefined;
+  const styleTag = `<style${nonceAttr}>${STYLES}${studio ? `\n${studio.styles}` : ''}${customCss ? `\n${customCss}` : ''}</style>`;
 
   // `logo` is `undefined` (not given) vs. explicit `null` (given, meaning
   // "show none") are different outcomes — only the former falls back to
@@ -98,6 +120,7 @@ export function renderApiUiHtml(
     docLanguages,
     dir,
     basePath,
+    authoring: options.authoring,
   };
 
   return `<!doctype html>
@@ -114,7 +137,9 @@ export function renderApiUiHtml(
     <script${nonceAttr}>window.__OPRA_UI__ = ${serializeForScript(ui)};</script>
     <script${nonceAttr}>window.__OPRA_I18N__ = ${serializeForScript(loadUiMessages(uiLang))};</script>
     <script${nonceAttr}>${VENDOR_MINISEARCH}</script>
-    <script${nonceAttr}>${APP_SCRIPT}</script>
+    <script${nonceAttr}>${APP_SCRIPT}</script>${
+      studio ? `\n    <script${nonceAttr}>${studio.script}</script>` : ''
+    }
   </body>
 </html>`;
 }

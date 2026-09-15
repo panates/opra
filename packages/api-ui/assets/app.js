@@ -14,6 +14,13 @@
     docKey: 'root',
   };
 
+  /** True only when the page was rendered by `oprimp docs:studio` (see
+   *  `ApiUiOptions.authoring`). The renderer reads it in exactly one place —
+   *  `emptySlot` — because a text the document declares but has never been
+   *  given renders as nothing at all, which is fine for a reader and useless
+   *  for someone whose job is to write it. */
+  var authoring = !!(window.__OPRA_UI__ && window.__OPRA_UI__.authoring);
+
   // A user's explicit theme choice (via the header toggle) overrides
   // whatever the server rendered into `data-theme` — applied as early as
   // possible, before anything else runs, to avoid a flash of the
@@ -415,11 +422,47 @@
     return html;
   }
 
+  /** Marks `node` as the rendered form of one documentation text, so the
+   *  authoring layer (`studio.js`, loaded only by `oprimp docs:studio`) knows
+   *  which bundle entry an edit here belongs to. `owner` is the schema node
+   *  the text was read from; it carries `_docKey`/`_docFields` only when the
+   *  page was built in authoring mode, so outside the studio this is a no-op
+   *  and nothing about the markup changes. */
+  function markEditable(node, owner, field) {
+    if (!node || !owner || !owner._docKey) return node;
+    if (owner._docFields && owner._docFields.indexOf(field) === -1) return node;
+    node.setAttribute('data-doc-key', JSON.stringify(owner._docKey));
+    node.setAttribute('data-doc-field', field);
+    if (owner._docForeign) node.setAttribute('data-doc-foreign', '');
+    if (owner._docKeyUnstable) node.setAttribute('data-doc-unstable', '');
+    return node;
+  }
+
+  /** An empty stand-in for a text the document declares and nobody has
+   *  written yet, so the studio has something to put a cursor in. Only ever
+   *  a node in authoring mode — a reader still gets `null`, and the page
+   *  they see is unchanged. `studio.js` gives it its placeholder label. */
+  function emptySlot(owner, field, cls, tag) {
+    if (!authoring || !owner || !owner._docKey) return null;
+    if (owner._docFields && owner._docFields.indexOf(field) === -1) return null;
+    var node = el(tag || 'div', { class: cls || '' });
+    node.setAttribute('data-doc-empty', '');
+    return markEditable(node, owner, field);
+  }
+
   /** Renders a markdown description as a block-level element, or `null` when
-   *  empty. `doc` is needed to resolve `#/model/Name` links to their icon
-   *  and to power their hover tooltip. */
-  function mdBlock(doc, description, cls) {
-    if (!description) return null;
+   *  empty (an empty placeholder in the studio — see `emptySlot`). `doc` is
+   *  needed to resolve `#/model/Name` links to their icon and to power their
+   *  hover tooltip. `owner`/`field`, when given, make the block editable in
+   *  the studio (see `markEditable`). */
+  function mdBlock(doc, description, cls, owner, field) {
+    if (!description) {
+      return emptySlot(
+        owner,
+        field || 'description',
+        'markdown' + (cls ? ' ' + cls : ''),
+      );
+    }
     var node = el('div', {
       class: 'markdown' + (cls ? ' ' + cls : ''),
       // The API author's prose, not the interface's: let the browser infer
@@ -432,7 +475,7 @@
       var m = MODEL_LINK_RE.exec(chip.getAttribute('href') || '');
       if (m) attachTypeHover(chip, doc, decodeURIComponent(m[1]));
     });
-    return node;
+    return markEditable(node, owner, field || 'description');
   }
 
   // ---------- icons (inline SVG, no external dependency) ----------
@@ -1318,6 +1361,7 @@
         description: f.description,
         from: f.from,
         examples: f.examples,
+        source: f,
       });
     });
   }
@@ -1358,7 +1402,7 @@
     if (extra && extra.from) head.appendChild(fromFlag(extra.from));
     var row = el('div', { class: 'field-row' }, [head]);
     if (extra && extra.description) {
-      row.appendChild(mdBlock(doc, extra.description, 'field-description'));
+      row.appendChild(mdBlock(doc, extra.description, 'field-description', extra.source));
     }
     var arrayConstraintsNode = renderArrayConstraints(u.arrayConstraints);
     if (arrayConstraintsNode) row.appendChild(arrayConstraintsNode);
@@ -1433,7 +1477,9 @@
       var valueRow = el('div', { class: 'field-row' }, [
         el('span', { class: 'field-head' }, [el('span', { class: 'key' }, [val]), copyButton(val)]),
       ]);
-      if (meta.description) valueRow.appendChild(mdBlock(doc, meta.description, 'field-description'));
+      if (meta.description) {
+        valueRow.appendChild(mdBlock(doc, meta.description, 'field-description', meta));
+      }
       list.appendChild(valueRow);
     });
     return list;
@@ -1608,7 +1654,7 @@
         // at ~80 columns, which reads as ragged half-lines inside this
         // narrow column, and any emphasis in it (`*Example Inc*`) would
         // otherwise show up as literal asterisks.
-        var contentPre = mdBlock(doc, lic.content, 'license-content');
+        var contentPre = mdBlock(doc, lic.content, 'license-content', lic, 'content');
         contentPre.hidden = true;
         var toggleBtn = el('button', { class: 'text-toggle-btn', type: 'button' }, [t('overview.viewFullText')]);
         toggleBtn.addEventListener('click', function () {
@@ -1788,7 +1834,7 @@
     // What the API *is* comes first (description, then what it contains);
     // who owns/licenses it is a footnote, so the license/contact/terms
     // panel goes last, below everything else.
-    var descBlock = mdBlock(doc, info.description);
+    var descBlock = mdBlock(doc, info.description, null, info);
     if (descBlock) {
       main.appendChild(el('div', { class: 'section' }, [el('h2', {}, [t('overview.description')]), descBlock]));
     }
@@ -1837,6 +1883,7 @@
       params.forEach(function (p) {
         list.appendChild(
           renderFieldNode(doc, p.name, p.type, {
+            source: p,
             required: p.required,
             deprecated: p.deprecated,
             description: p.description,
@@ -1887,6 +1934,7 @@
   function renderMultipartFieldRow(doc, f) {
     var nameLabel = typeof f.fieldName === 'string' ? f.fieldName : '/' + f.fieldName + '/';
     var row = renderFieldNode(doc, nameLabel, f.type || 'any', {
+      source: f,
       required: f.required,
       description: f.description,
     });
@@ -1971,7 +2019,7 @@
     var panel = el('div', { class: 'media-type-panel' });
     panel.appendChild(renderMediaTypeProps(media));
 
-    var descBlock = mdBlock(doc, media.description);
+    var descBlock = mdBlock(doc, media.description, null, media);
     if (descBlock) panel.appendChild(descBlock);
 
     var hasContent = false;
@@ -3181,7 +3229,7 @@
     var section = el('div', { class: 'section' }, [el('h2', {}, [t('operation.requestBody')])]);
     var metaChildren = [];
     if (requestBody.required) metaChildren.push(flagBadge('required'));
-    var descBlock = mdBlock(doc, requestBody.description);
+    var descBlock = mdBlock(doc, requestBody.description, null, requestBody);
     if (descBlock) metaChildren.push(descBlock);
     if (metaChildren.length) section.appendChild(el('div', { class: 'request-body-meta' }, metaChildren));
 
@@ -3357,7 +3405,13 @@
       details.appendChild(
         el('summary', {}, [
           el('span', { class: 'mono response-status' }, [formatStatusCode(r.statusCode)]),
-          r.description ? el('span', { class: 'response-desc' }, [r.description]) : null,
+          // Plain text rather than `mdBlock`: this line shares a row with the
+          // status code, so a block-level markdown div would break it. It is
+          // still one of the document's own texts, so the studio gets to edit
+          // it here — and gets a placeholder when it has never been written.
+          r.description
+            ? markEditable(el('span', { class: 'response-desc' }, [r.description]), r, 'description')
+            : emptySlot(r, 'description', 'response-desc', 'span'),
         ]),
       );
       var body = el('div', { class: 'body' });
@@ -3377,7 +3431,7 @@
     var ctrl = found.ctrl;
     main.appendChild(el('h1', { class: 'mono' }, [found.name]));
     main.appendChild(el('p', { class: 'description path' }, [found.ctrlPath || '/']));
-    var ctrlDescBlock = mdBlock(doc, ctrl.description);
+    var ctrlDescBlock = mdBlock(doc, ctrl.description, null, ctrl);
     if (ctrlDescBlock) main.appendChild(ctrlDescBlock);
     renderParametersSections(main, doc, ctrl.parameters);
 
@@ -3448,7 +3502,7 @@
     // between an operation's `summary` and its `operationId`. Without a
     // `title`, this renders exactly as it always has.
     if (op.title) {
-      topMain.appendChild(el('h1', { dir: 'auto' }, [op.title]));
+      topMain.appendChild(markEditable(el('h1', { dir: 'auto' }, [op.title]), op, 'title'));
       topMain.appendChild(el('div', { class: 'op-id mono' }, [found.opKey + '()']));
     } else {
       topMain.appendChild(el('h1', { class: 'mono' }, [found.opKey + '()']));
@@ -3477,7 +3531,7 @@
       );
     }
     if (op.composition) topMain.appendChild(el('div', { class: 'badge' }, [t('operation.composition', { value: op.composition })]));
-    var opDescBlock = mdBlock(doc, op.description);
+    var opDescBlock = mdBlock(doc, op.description, null, op);
     if (opDescBlock) topMain.appendChild(opDescBlock);
 
     renderParametersSections(topMain, doc, op.parameters);
@@ -3675,7 +3729,7 @@
     var inheritsBlock = renderInherits(doc, def.inherits);
     if (inheritsBlock) main.appendChild(inheritsBlock);
 
-    var modelDescBlock = mdBlock(doc, def.description);
+    var modelDescBlock = mdBlock(doc, def.description, null, def);
     if (modelDescBlock) {
       main.appendChild(el('div', { class: 'section' }, [el('h2', {}, [t('overview.description')]), modelDescBlock]));
     }
@@ -4457,7 +4511,15 @@
         tocWrap.style.height = Math.max(tocHeight, headingOffset - tocGap) + 'px';
       }
     }
+    renderedHandlers.forEach(function (fn) {
+      fn();
+    });
   }
+
+  /** Callbacks run after every `render()` — the seam `assets/studio.js` uses
+   *  to re-attach its edit affordances to a freshly rebuilt page. Empty (and
+   *  therefore free) on a normal page, since nothing registers one. */
+  var renderedHandlers = [];
 
   var tocScrollHandler = null;
 
@@ -6055,7 +6117,59 @@
     });
     window.addEventListener('hashchange', render);
     main.addEventListener('scroll', hideTypeTooltipNow);
+
+    /* The whole surface `assets/studio.js` is allowed to touch. Exposed only
+     * when the server rendered the page in authoring mode, so a normal page
+     * puts nothing on `window` — and the editor never reaches into this
+     * file's internals, it asks for the schema, a re-render, or a
+     * navigation. */
+    if (ui.authoring) {
+      window.__OPRA_STUDIO_HOST__ = {
+        docs: docs,
+        render: render,
+        onRendered: function (fn) {
+          renderedHandlers.push(fn);
+        },
+        goTo: function (docKey) {
+          location.hash = '#/' + routeForDocKey(docKey);
+        },
+        /* The editor's preview has to *be* this renderer, not an
+         * approximation of it: the descriptions it edits are written in a
+         * dialect only this file knows — `:::tip` admonitions and
+         * `#/model/Name` type chips with their hover cards — so any other
+         * markdown preview would show the author something the published
+         * page never renders. Resolved against the document currently on
+         * screen, the same one the block being edited was rendered from. */
+        preview: function (text) {
+          return mdBlock(docs[state.docKey] || docs.root, text, 'studio-preview');
+        },
+        /* So the toolbar's callout menu can offer each admonition under the
+         * icon it will actually render with. */
+        admonitionIcons: ADMONITION_ICONS,
+      };
+    }
     render();
+  }
+
+  /** The page a documentation key belongs to. The key mirrors the document
+   *  model (`api.controllers.X.operations.y`, `types.T`), and so does this
+   *  app's own routing — the two line up segment for segment, which is what
+   *  lets the studio's "still undocumented" list jump straight to the thing
+   *  that needs writing. Anything else (a server, a section, `info`) belongs
+   *  to the overview page. */
+  function routeForDocKey(docKey) {
+    if (docKey[0] === 'types' && docKey[1]) {
+      return 'model/' + encodeURIComponent(docKey[1]);
+    }
+    if (docKey[0] === 'api' && docKey[1] === 'controllers') {
+      var parts = [];
+      for (var i = 1; i < docKey.length; i += 2) {
+        if (docKey[i] !== 'controllers' && docKey[i] !== 'operations') break;
+        parts.push(encodeURIComponent(docKey[i + 1]));
+      }
+      return parts.length ? 'ctl/' + parts.join('/') : '';
+    }
+    return '';
   }
 
   if (document.readyState === 'loading') {

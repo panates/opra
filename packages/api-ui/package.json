@@ -54,6 +54,7 @@
     "@opra/client": "^1.30.0",
     "@opra/openapi": "^1.30.0",
     "@types/express": "^5.0.6",
+    "codemirror": "^5.65.19",
     "esbuild": "^0.28.2",
     "expect": "^30.5.1",
     "express": "^5.1.0",

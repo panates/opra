@@ -56,6 +56,19 @@ export interface ApiUiOptions {
    *  selector can group them apart from the interface-only ones. Filled in
    *  automatically by `expressApiUi`. */
   docLanguages?: string[];
+  /** Turns the page into a documentation *writing* surface: every block of
+   *  prose becomes editable in place, with the page itself as the preview.
+   *
+   *  Set only by `oprimp docs:studio`. `expressApiUi` never passes it — a
+   *  page that can write to the filesystem has no business being mounted in
+   *  an application, and keeping this out of the served handler is what makes
+   *  that impossible rather than merely discouraged. */
+  authoring?: {
+    /** Where the client POSTs `{ key, field, value }`. */
+    saveUrl: string;
+    /** The bundle being edited, shown in the editor's header. */
+    lang: string;
+  };
   /** The full list of scope keys a reader can switch between (e.g.
    *  `['api', 'db']`) — the same OPRA document can expose different
    *  fields/types per scope (a field `readonly` in one, writable in

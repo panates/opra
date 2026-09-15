@@ -943,6 +943,15 @@ export abstract class HttpAdapter<
               operationResponse = filteredResponses.find(r =>
                 typeIs.is(contentType!, toArray(r.contentType)),
               );
+              /* A response that declares no content type at all constrains
+               * nothing, so it answers for whatever the operation actually
+               * returned - the same reading the `!hasBody` branch above
+               * already gives it. Without this, declaring
+               * `.Response(200, { type: OperationResult })` and returning an
+               * `OperationResult` is unsatisfiable: the body's type decides
+               * the content type is `opra.response+json` a few lines up,
+               * and nothing declared could ever match it. */
+              operationResponse ??= filteredResponses.find(r => !r.contentType);
               if (!operationResponse) {
                 throw new InternalServerError(
                   `Operation didn't configured to return "${contentType}" content`,

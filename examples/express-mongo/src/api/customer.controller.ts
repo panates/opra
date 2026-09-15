@@ -66,7 +66,13 @@ export class CustomerController {
     return this.service.for(context).update(key, data, options);
   }
 
-  @(HttpOperation.GET({ sections: ['Customers'] }).QueryParam('status', {
+  // Needs a path of its own: without one it registers on the controller's
+  // own route, where `get` above already answers GET — leaving this
+  // operation documented but unreachable.
+  @(HttpOperation.GET({
+    sections: ['Customers'],
+    path: 'setStatus',
+  }).QueryParam('status', {
     type: EnumType(['active', 'hidden']),
   }))
   async setStatus(context: HttpContext) {

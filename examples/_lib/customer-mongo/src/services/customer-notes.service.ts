@@ -4,13 +4,17 @@ import {
   MongoNestedService,
   MongoService,
 } from '@opra/mongodb';
-import { Note } from '../models/index.js';
+import { Customer, Note } from '../models/index.js';
 
 export class CustomerNotesService extends MongoNestedService<Note> {
   static idGen = 1000;
 
   constructor(options?: MongoCollectionService.Options) {
-    super(Note, 'notes', {
+    // The type here is the *document* that owns the array field, not the
+    // element type — `MongoNestedService` reads `Customer.notes` to work out
+    // what an element is (see its own `dataType` getter). The element type is
+    // the generic argument above.
+    super(Customer, 'notes', {
       collectionName: 'Customers',
       interceptor: (callback: () => any, info: MongoService.CommandInfo) => {
         if (info.crud === 'create')

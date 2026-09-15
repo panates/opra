@@ -67,5 +67,36 @@ program
     );
   });
 
+program
+  .command('docs:studio')
+  .description(
+    'Opens a local documentation editor for a local module exporting an ' +
+      'ApiDocument, writing edits back to the source-language bundle',
+  )
+  .argument(
+    '<module>',
+    'Module to import, optionally with the export to use (./api-document.js#CustomerApiDocument)',
+  )
+  .option(
+    '--docs <dir>',
+    'Directory holding the translation files (e.g. ./docs)',
+    './docs',
+  )
+  .option('--lang <lang>', "Bundle to edit (default: the document's own)")
+  .option('--port <port>', 'Port to listen on', '7300')
+  .option('--scope <scope>', 'Scope to render, for a multi-scope document')
+  .option('--no-color', 'Disables colors in logs messages')
+  .action(async (module, options) => {
+    if (!options.color) colors.enabled = false;
+    const { startDocsStudio } = await import('./docs-studio/studio-command.js');
+    await startDocsStudio(module, {
+      docsDir: options.docs,
+      lang: options.lang,
+      port: Number(options.port),
+      scope: options.scope,
+      logger: console,
+    }).catch(e => console.error(colors.red(e.message)));
+  });
+
 if (process.argv.length < 3) program.help();
 else program.parse(process.argv);

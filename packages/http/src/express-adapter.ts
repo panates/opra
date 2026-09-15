@@ -156,7 +156,15 @@ export class ExpressAdapter extends HttpAdapter {
       ) => {
         currentPath = nodePath.posix.join(currentPath, controller.path);
         for (const operation of controller.operations.values()) {
-          const routePath = currentPath + (operation.path || '');
+          /* `mergePath` operations continue the controller's own last path
+           * segment rather than starting a new one (`Customers` +
+           * `@:customerId`), which is why this can't always be a plain
+           * `join`; everything else is a child segment and needs the
+           * separator a bare concatenation doesn't add. Same rule as
+           * `HttpOperation#getFullUrl()` and the NestJS adapter. */
+          const routePath = operation.mergePath
+            ? currentPath + (operation.path || '')
+            : nodePath.posix.join(currentPath, operation.path || '');
           const controllerInstance = this._controllerInstances.get(controller);
           const operationHandler = controllerInstance[operation.name];
           if (!operationHandler) continue;

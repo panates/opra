@@ -253,7 +253,11 @@ export class MongoNestedService<
   /**
    * Constructs a new instance
    *
-   * @param dataType - The data type of the array elements.
+   * @param dataType - The data type of the *document* that owns the array
+   *   field — not the element type. This service reads `fieldName` off it to
+   *   determine the element type itself (see the `dataType` getter), so
+   *   passing the element type here leaves it looking for the field on the
+   *   wrong type and failing with "Field (...) does not exist".
    * @param fieldName - The name of the field in the document representing the array.
    * @param [options] - The options for the array service.
    * @constructor

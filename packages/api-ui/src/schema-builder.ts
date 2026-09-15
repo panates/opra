@@ -7,6 +7,7 @@ import {
   BUILTIN,
   ComplexType,
   DataType,
+  type DocumentElement,
   EnumType,
   type HttpApi,
   type HttpController,
@@ -19,6 +20,7 @@ import {
   MappedType,
   MixinType,
   SimpleType,
+  type TranslatableField,
   UnionType,
 } from '@opra/common';
 
@@ -57,10 +59,21 @@ export namespace ApiUiSchemaBuilder {
     /** Language documentation texts are resolved in, same rules as
      *  `ApiDocument#export({ lang })`. */
     lang?: string;
+    /** Annotates every node carrying documentation prose with the bundle key
+     *  that prose is read from (`_docKey`) and which of its fields are
+     *  translatable (`_docFields`), so `oprimp docs:studio` can write an edit
+     *  back to the right place. Adds nothing to the payload when off, which
+     *  is every normal page. */
+    authoring?: boolean;
   }
 
   export function build(document: ApiDocument, options?: Options): object {
-    const ctx = new BuildContext(options?.scope, options?.lang);
+    const ctx = new BuildContext(
+      document,
+      options?.scope,
+      options?.lang,
+      options?.authoring,
+    );
     const out: Record<string, unknown> = {
       spec: '1.0',
       id: document.id,
@@ -69,6 +82,19 @@ export namespace ApiUiSchemaBuilder {
       // it has to ask for it explicitly.
       info: document.exportInfo({ lang: ctx.lang }),
     };
+    // `info` is the one place translation doesn't go through
+    // `applyTranslations` (see `ApiDocument#exportInfo`), so its key is
+    // stamped by hand rather than by `ctx.translate`.
+    if (ctx.authoring) {
+      const info = out.info as Record<string, unknown>;
+      info._docKey = ['info'];
+      info._docFields = ['title', 'description', 'termsOfService'];
+      if (info.license) {
+        const license = info.license as Record<string, unknown>;
+        license._docKey = ['info', 'license'];
+        license._docFields = ['content'];
+      }
+    }
 
     const api = document.api as HttpApi | undefined;
     if (api && (api as { transport?: string }).transport === 'http') {
@@ -79,8 +105,8 @@ export namespace ApiUiSchemaBuilder {
       out.api = omitUndefined({
         transport: 'http',
         url: api.url,
-        servers: api.servers?.length ? api.servers : undefined,
-        sections: api.sections?.length ? api.sections : undefined,
+        servers: mapPlainList(api, api.servers, 'servers', s => s.url, ctx),
+        sections: mapPlainList(api, api.sections, 'sections', s => s.name, ctx),
         controllers,
       });
     }
@@ -111,15 +137,92 @@ export namespace ApiUiSchemaBuilder {
  * already-registered named types (reserved before recursing, so a type
  * that transitively references itself doesn't recurse forever). */
 class BuildContext {
+  readonly document: ApiDocument;
   readonly scope?: string;
   readonly lang?: string;
+  readonly authoring?: boolean;
   readonly types: Record<string, unknown> = {};
   private readonly _names = new Map<DataType, string>();
   private readonly _namesInUse = new Set<string>();
 
-  constructor(scope?: string, lang?: string) {
+  constructor(
+    document: ApiDocument,
+    scope?: string,
+    lang?: string,
+    authoring?: boolean,
+  ) {
+    this.document = document;
     this.scope = scope;
     this.lang = lang;
+    this.authoring = authoring;
+  }
+
+  /**
+   * Resolves `element`'s prose into `out` and, in authoring mode, records
+   * *where that prose lives* so the studio can write an edit back.
+   *
+   * Every mapper goes through this rather than calling `applyTranslations`
+   * directly: the documentation key is `docKeySegments` plus whatever extra
+   * segments the lookup used, so deriving it anywhere other than the line
+   * that performs the lookup is how the two drift apart. `docKey` itself is
+   * never exported (it is authoring-only), and the shipped tree's own shape
+   * doesn't mirror the bundle's — types are flattened into one top-level
+   * map, an operation's parameters are merged down from its ancestors,
+   * responses become an array — so there is no way to recover the key from
+   * the emitted JSON afterwards.
+   *
+   * Outside authoring mode this adds nothing at all to the payload.
+   */
+  translate<T extends Record<string, any>>(
+    element: DocumentElement,
+    out: T,
+    fields: TranslatableField[],
+    extraSegments?: string[],
+    extraUnstable?: boolean,
+  ): T {
+    applyTranslations(
+      element,
+      out,
+      { lang: this.lang },
+      fields,
+      extraSegments,
+      extraUnstable,
+    );
+    if (this.authoring) {
+      const segments = extraSegments
+        ? element.docKeySegments.concat(extraSegments)
+        : element.docKeySegments;
+      const target = out as Record<string, unknown>;
+      target._docKey = segments;
+      // The same rule `collectKeys` applies when it builds a skeleton: a
+      // bundle may reword an existing `deprecated` reason but never invent
+      // one, so a node that isn't deprecated has no slot to offer — listing
+      // one would send the studio hunting for text that can never exist.
+      target._docFields = fields.filter(
+        field => field !== 'deprecated' || typeof out.deprecated === 'string',
+      );
+      if (extraUnstable || element.docKeyUnstable)
+        target._docKeyUnstable = true;
+      // A key is only meaningful against the bundle of the document that
+      // *declares* the element (see `findTexts`), and a reference document
+      // brings its own translation store. The root page embeds those nodes —
+      // a type imported from `cm:` gets a page here like any other — so they
+      // have to be marked, or the studio would write their text into the root
+      // document's bundle where nothing will ever read it.
+      if (!this.owns(element)) target._docForeign = true;
+    }
+    return out;
+  }
+
+  /** Whether `element` belongs to the document being built, rather than one
+   *  of its references. Detached elements (an anonymous type built outside
+   *  any document) have nothing to look up either way. */
+  private owns(element: DocumentElement): boolean {
+    try {
+      return element.node.getDocument() === this.document;
+    } catch {
+      return false;
+    }
   }
 
   /** Returns the collision-safe name to register a named DataType under,
@@ -139,6 +242,38 @@ class BuildContext {
   hasType(name: string): boolean {
     return Object.prototype.hasOwnProperty.call(this.types, name);
   }
+}
+
+/**
+ * `servers`/`sections` are plain objects rather than document elements, so
+ * their texts hang off the api's own key plus one container level — the same
+ * keying `HttpApi#exportPlainList()` uses for `export()`. Doing it here too
+ * is what keeps a server's or section's description translated in the page
+ * (it was previously passed through raw, so it stayed in the source language
+ * no matter what `?lang=` asked for) and keeps `docKey` — an authoring aid,
+ * never part of what is published — out of the shipped tree.
+ */
+function mapPlainList<T extends { description?: string; docKey?: string }>(
+  api: HttpApi,
+  items: T[] | undefined,
+  container: string,
+  keyOf: (item: T) => string | undefined,
+  ctx: BuildContext,
+): T[] | undefined {
+  if (!items?.length) return undefined;
+  return items.map((item, i) => {
+    const { docKey, ...rest } = item;
+    return ctx.translate(
+      api,
+      rest as T,
+      ['description'],
+      [container, docKey || keyOf(item) || String(i)],
+      // A server's `url` is environment-dependent, so keying documentation
+      // by it is fragile unless a `docKey` says otherwise; a section's `name`
+      // is a real identifier.
+      container === 'servers' && !docKey,
+    );
+  });
 }
 
 function isFieldsBearing(
@@ -163,7 +298,7 @@ function mapField(
   // either way — an override never changes which type actually declared
   // the field.
   field = field.forScope(ctx.scope);
-  return applyTranslations(
+  return ctx.translate(
     field,
     omitUndefined({
       type: mapTypeRef(field.type, ctx),
@@ -183,7 +318,6 @@ function mapField(
           ? mapTypeRef(field.origin, ctx)
           : undefined,
     }),
-    { lang: ctx.lang },
     ['description', 'deprecated'],
   );
 }
@@ -246,10 +380,9 @@ function mapEnumType(dataType: EnumType, ctx: BuildContext) {
   // used by tooling like the CLI importer) is machine-only and not shipped.
   const values: Record<string, unknown> = {};
   for (const [key, meta] of Object.entries(dataType.attributes)) {
-    values[key] = applyTranslations(
+    values[key] = ctx.translate(
       dataType,
       meta?.description ? { description: meta.description } : {},
-      { lang: ctx.lang },
       ['description'],
       ['values', key],
     );
@@ -294,9 +427,27 @@ function mapSimpleTypeProperties(dataType: SimpleType) {
  * SimpleType's constraints are inherited from a builtin this way, so
  * this is rarely empty even for a type that declares no attributes of
  * its own. */
+/** Which type in the base chain actually declares `key` — `attributes` is
+ *  merged down from every base at construction, but the description is keyed
+ *  under the type that *declared* it (`SimpleType#toJSON` reads
+ *  `ownAttributes`), so translating against the wrong one silently finds
+ *  nothing. */
+function declaringTypeOfAttribute(
+  dataType: SimpleType,
+  key: string,
+): SimpleType | undefined {
+  let t: SimpleType | undefined = dataType;
+  while (t) {
+    if (t.ownAttributes?.[key]) return t;
+    t = t.base;
+  }
+  return undefined;
+}
+
 function mapSimpleTypePropertyDescriptions(
   dataType: SimpleType,
   properties: unknown,
+  ctx: BuildContext,
 ): Record<string, string> | undefined {
   if (!properties || typeof properties !== 'object') return undefined;
   const out: Record<string, string> = {};
@@ -312,7 +463,21 @@ function mapSimpleTypePropertyDescriptions(
     // would silently create description entries with no matching value).
     if (value === undefined) continue;
     const description = dataType.attributes?.[key]?.description;
-    if (description) out[key] = description;
+    if (!description) continue;
+    const declaring = declaringTypeOfAttribute(dataType, key);
+    // `applyTranslations` rather than `ctx.translate`: this map is
+    // `key -> string`, with nowhere to hang a `_docKey`, so these stay
+    // read-only in the studio. In practice they are almost always inherited
+    // from an OPRA builtin, which no application's bundle can reach anyway.
+    out[key] = declaring
+      ? applyTranslations(
+          declaring,
+          { description },
+          { lang: ctx.lang },
+          ['description'],
+          ['attributes', key],
+        ).description!
+      : description;
   }
   return Object.keys(out).length ? out : undefined;
 }
@@ -353,17 +518,13 @@ function mapDataType(dataType: DataType, ctx: BuildContext) {
     out = {
       kind: dataType.kind,
       name: dataType.name || namedBase?.name,
-      description: applyTranslations(
-        dataType,
-        { description: dataType.description || namedBase?.description },
-        { lang: ctx.lang },
-        ['description'],
-      ).description,
+      description: dataType.description || namedBase?.description,
       examples: dataType.examples || namedBase?.examples,
       properties,
       propertyDescriptions: mapSimpleTypePropertyDescriptions(
         dataType,
         properties,
+        ctx,
       ),
     };
   } else if (isFieldsBearing(dataType)) {
@@ -386,17 +547,25 @@ function mapDataType(dataType: DataType, ctx: BuildContext) {
   } else {
     out = { kind: dataType.kind };
   }
-  // Already resolved (with its own base-fallback) for SimpleType above;
-  // every other kind just takes its own description/examples as-is.
-  if (out.description === undefined) {
-    out.description = applyTranslations(
-      dataType,
-      { description: dataType.description },
-      { lang: ctx.lang },
-      ['description'],
-    ).description;
-  }
+  // The SimpleType branch above seeds `description`/`examples` from its
+  // nearest named base when the instance is anonymous; every other kind just
+  // takes its own. Either way the lookup happens here, once, so the key is
+  // stamped on the node the client actually renders.
+  if (out.description === undefined) out.description = dataType.description;
   if (out.examples === undefined) out.examples = dataType.examples;
+  ctx.translate(dataType, out, ['description']);
+  // Only an example's `description` is prose — its `value` is data and is
+  // copied through untouched, exactly as `DataType#toJSON` treats it.
+  if (Array.isArray(out.examples)) {
+    out.examples = (out.examples as Record<string, any>[]).map((ex, i) =>
+      ctx.translate(
+        dataType,
+        { ...ex },
+        ['description'],
+        ['examples', ex.docKey || String(i)],
+      ),
+    );
+  }
   // `dataType.name` here is the instance's *own* name — checked before any
   // SimpleType base-fallback above overwrote `out.name` with a borrowed
   // one. Anonymous either way: an embedded ComplexType/Mixin/Mapped type
@@ -437,7 +606,7 @@ function mapTypeRef(dataType: DataType, ctx: BuildContext): unknown {
 }
 
 function mapHttpParameter(p: HttpParameter, ctx: BuildContext) {
-  return applyTranslations(
+  return ctx.translate(
     p,
     omitUndefined({
       name: typeof p.name === 'string' ? p.name : String(p.name),
@@ -450,24 +619,28 @@ function mapHttpParameter(p: HttpParameter, ctx: BuildContext) {
       keyParam: p.keyParam || undefined,
       arraySeparator: p.arraySeparator,
     }),
-    { lang: ctx.lang },
     ['description', 'deprecated'],
   );
 }
 
-function mapHttpMediaType(m: HttpMediaType, ctx: BuildContext) {
-  return omitUndefined({
+/**
+ * @param ownsDescription - False when the enclosing request body keys this
+ *   media type's description to the very same bundle entry as its own (see
+ *   `mapHttpRequestBody`), in which case the body renders it and this is
+ *   left blank rather than repeating the sentence.
+ */
+function mapHttpMediaType(
+  m: HttpMediaType,
+  ctx: BuildContext,
+  ownsDescription = true,
+) {
+  const out = omitUndefined({
     contentType: Array.isArray(m.contentType)
       ? m.contentType.join(', ')
       : m.contentType,
     contentEncoding: m.contentEncoding,
     type: m.type ? mapTypeRef(m.type, ctx) : undefined,
-    description: applyTranslations(
-      m,
-      { description: m.description },
-      { lang: ctx.lang },
-      ['description'],
-    ).description,
+    description: ownsDescription ? m.description : undefined,
     example: m.example,
     examples: m.examples,
     multipartFields: m.multipartFields?.length
@@ -478,6 +651,7 @@ function mapHttpMediaType(m: HttpMediaType, ctx: BuildContext) {
     maxFieldSize: m.maxFieldSize,
     maxTotalSize: m.maxTotalSize,
   });
+  return ownsDescription ? ctx.translate(m, out, ['description']) : out;
 }
 
 /** One entry of a `multipart/form-data` body — itself a full `HttpMediaType`
@@ -494,23 +668,32 @@ function mapHttpMultipartField(f: HttpMultipartField, ctx: BuildContext) {
 }
 
 function mapHttpRequestBody(b: HttpRequestBody, ctx: BuildContext) {
-  return applyTranslations(
+  /* A body declaring exactly one content lets that media type share the
+   * body's own documentation key, so it adds no level to the bundle for the
+   * common case (see `HttpMediaType#docKeySegment`). The two both carry a
+   * `description`, though, so they then resolve the *same* bundle entry —
+   * printing one sentence twice on the page, and offering the studio two
+   * places to write a single text where the second save would quietly
+   * overwrite the first. The body owns it. */
+  const bodyKey = b.docKeySegments.join(' ');
+  return ctx.translate(
     b,
     omitUndefined({
       description: b.description,
       required: b.required || undefined,
       content: b.content.length
-        ? b.content.map(m => mapHttpMediaType(m, ctx))
+        ? b.content.map(m =>
+            mapHttpMediaType(m, ctx, m.docKeySegments.join(' ') !== bodyKey),
+          )
         : undefined,
     }),
-    { lang: ctx.lang },
     ['description'],
   );
 }
 
 function mapHttpResponse(r: HttpOperationResponse, ctx: BuildContext) {
   const statusCodes = r.statusCode.map(x => x.toJSON());
-  return applyTranslations(
+  return ctx.translate(
     r,
     omitUndefined({
       statusCode: statusCodes.length === 1 ? statusCodes[0] : statusCodes,
@@ -518,7 +701,6 @@ function mapHttpResponse(r: HttpOperationResponse, ctx: BuildContext) {
       type: r.type ? mapTypeRef(r.type, ctx) : undefined,
       partial: r.partial,
     }),
-    { lang: ctx.lang },
     ['description'],
   );
 }
@@ -542,12 +724,10 @@ function mapHttpOperation(
   return omitUndefined({
     kind: 'HttpOperation',
     method: op.method,
-    ...applyTranslations(
-      op,
-      { title: op.title, description: op.description },
-      { lang: ctx.lang },
-      ['title', 'description'],
-    ),
+    ...ctx.translate(op, { title: op.title, description: op.description }, [
+      'title',
+      'description',
+    ]),
     sections: op.sections?.length ? op.sections : undefined,
     path: op.path,
     mergePath: op.mergePath || undefined,
@@ -572,19 +752,18 @@ function mapHttpController(
   // Own parameters only (not `inheritedParams`) — a controller's page
   // documents what *it* adds to the path; the merged, effective set is
   // shown on each operation's own page instead (see `mapHttpOperation`).
-  const out: Record<string, unknown> = {
-    kind: 'HttpController',
-    description: applyTranslations(
-      ctrl,
-      { description: ctrl.description },
-      { lang: ctx.lang },
-      ['description'],
-    ).description,
-    path: ctrl.path,
-    parameters: ctrl.parameters.length
-      ? ctrl.parameters.map(p => mapHttpParameter(p, ctx))
-      : undefined,
-  };
+  const out: Record<string, unknown> = ctx.translate(
+    ctrl,
+    {
+      kind: 'HttpController',
+      description: ctrl.description,
+      path: ctrl.path,
+      parameters: ctrl.parameters.length
+        ? ctrl.parameters.map(p => mapHttpParameter(p, ctx))
+        : undefined,
+    } as Record<string, unknown>,
+    ['description'],
+  );
   const allParams =
     inheritedParams.length || ctrl.parameters.length
       ? [...inheritedParams, ...ctrl.parameters]

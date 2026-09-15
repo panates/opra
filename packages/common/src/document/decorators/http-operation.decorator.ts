@@ -4,6 +4,7 @@ import type { StrictOmit, Type, TypeThunkAsync } from 'ts-gems';
 import { MimeTypes } from '../../enums/index.js';
 import { OpraSchema } from '../../schema/index.js';
 import { HTTP_CONTROLLER_METADATA } from '../constants.js';
+import { OperationResult } from '../data-type/extended-types/operation-result.type.js';
 import type { HttpController } from '../http/http-controller.js';
 import { HttpMediaType } from '../http/http-media-type.js';
 import { HttpMultipartField } from '../http/http-multipart-field.js';
@@ -229,7 +230,22 @@ export function HttpOperationDecoratorFactory(
       statusCode,
     };
     if (responseMeta.type) {
-      responseMeta.contentType = responseMeta.contentType ?? MimeTypes.json;
+      /* An `OperationResult` body is always serialized as
+       * `opra.response+json` - the adapter decides that from the value's own
+       * type, not from what was declared here (see `HttpAdapter`'s
+       * content-type estimation). Defaulting it to plain `application/json`
+       * therefore declares a response the operation can never produce, and
+       * every such request fails with "didn't configured to return ...". The
+       * `Entity.*` decorators already state this content type outright; this
+       * makes a hand-written `.Response(200, { type: OperationResult })`
+       * agree with them. */
+      const type: any = responseMeta.type;
+      const isOperationResult =
+        typeof type === 'function' &&
+        (type === OperationResult || type.prototype instanceof OperationResult);
+      responseMeta.contentType =
+        responseMeta.contentType ??
+        (isOperationResult ? MimeTypes.opra_response_json : MimeTypes.json);
     }
     const contentTypes = responseMeta.contentType
       ? Array.isArray(responseMeta.contentType)

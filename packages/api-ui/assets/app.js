@@ -312,6 +312,12 @@
       '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8.6 3h6.8L21 8.6v6.8L15.4 21H8.6L3 15.4V8.6L8.6 3Z"/><path d="M12 8v5M12 16h.01" stroke-linecap="round"/></svg>',
   };
 
+  /** Opens one of Docusaurus's five callouts. Shared with the paragraph and
+   *  list-item scanners below, which have to stop at it: a `:::tip` written
+   *  on the line straight after a sentence is still a callout, and reading
+   *  it as more of that sentence puts the literal `:::tip` on the page. */
+  var ADMONITION_RE = /^:::(note|tip|info|warning|danger)\s*(.*)$/i;
+
   /** A small, safe subset of markdown: headings, paragraphs, blockquotes,
    *  ordered/unordered lists, admonitions (Docusaurus's `:::tip ... :::`
    *  fenced callouts), and the inline styles above. Good enough for
@@ -334,7 +340,7 @@
         i++;
         continue;
       }
-      var adm = /^:::(note|tip|info|warning|danger)\s*(.*)$/i.exec(line);
+      var adm = ADMONITION_RE.exec(line);
       if (adm) {
         var admType = adm[1].toLowerCase();
         var admTitle = adm[2] && adm[2].trim() ? adm[2].trim() : t('admonition.' + admType);
@@ -380,7 +386,8 @@
             !/^[-*]\s+/.test(lines[i]) &&
             !/^\d+\.\s+/.test(lines[i]) &&
             !/^(#{1,4})\s+/.test(lines[i]) &&
-            !/^>\s?/.test(lines[i])
+            !/^>\s?/.test(lines[i]) &&
+            !ADMONITION_RE.test(lines[i])
           ) {
             itemLines.push(lines[i].trim());
             i++;
@@ -397,7 +404,8 @@
         !/^(#{1,4})\s+/.test(lines[i]) &&
         !/^[-*]\s+/.test(lines[i]) &&
         !/^\d+\.\s+/.test(lines[i]) &&
-        !/^>\s?/.test(lines[i])
+        !/^>\s?/.test(lines[i]) &&
+        !ADMONITION_RE.test(lines[i])
       ) {
         para.push(lines[i]);
         i++;

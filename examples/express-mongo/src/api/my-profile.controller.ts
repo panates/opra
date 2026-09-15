@@ -2,16 +2,20 @@ import { HttpController, HttpOperation, OmitType } from '@opra/common';
 import { HttpContext } from '@opra/http';
 import { MongoAdapter } from '@opra/mongodb';
 import { MyProfileService, Profile } from 'example-customer-mongo';
-import { Db } from 'mongodb';
+import type { CustomerApplication } from '../customer-application.js';
 
 @(HttpController({}).Header('accessToken', {
   type: 'string',
 }))
 export class MyProfileController {
-  service: MyProfileService;
+  protected _service?: MyProfileService;
 
-  constructor(readonly db: Db) {
-    this.service = new MyProfileService({ db });
+  constructor(readonly app: CustomerApplication) {}
+
+  get service() {
+    if (!this._service)
+      this._service = new MyProfileService({ db: this.app.db });
+    return this._service;
   }
 
   @HttpOperation.Entity.Create(Profile, {

@@ -8,8 +8,8 @@ import {
 import { HttpContext } from '@opra/http';
 import { MongoAdapter } from '@opra/mongodb';
 import { Customer, CustomersService } from 'example-customer-mongo';
-import { Db } from 'mongodb';
 import { type PartialDTO } from 'ts-gems';
+import type { CustomerApplication } from '../customer-application.js';
 
 // `Customer` minus its server-generated `_id`, used as the create
 // operation's request body. Naming it (rather than passing
@@ -25,10 +25,14 @@ export class CustomerCreateInput extends OmitType(Customer, ['_id']) {}
   path: 'Customers',
 })
 export class CustomersController {
-  service: CustomersService;
+  protected _service?: CustomersService;
 
-  constructor(readonly db: Db) {
-    this.service = new CustomersService({ db });
+  constructor(readonly app: CustomerApplication) {}
+
+  get service() {
+    if (!this._service)
+      this._service = new CustomersService({ db: this.app.db });
+    return this._service;
   }
 
   @HttpOperation.Entity.Create(Customer, {

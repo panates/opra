@@ -9,8 +9,8 @@ import {
 import { HttpContext } from '@opra/http';
 import { MongoAdapter } from '@opra/mongodb';
 import { Customer, CustomersService } from 'example-customer-mongo';
-import { Db } from 'mongodb';
 import { type PartialDTO } from 'ts-gems';
+import type { CustomerApplication } from '../customer-application.js';
 import { CustomerNotesController } from './customer-notes.controller.js';
 
 @ComplexType({})
@@ -24,7 +24,7 @@ class AvatarUrlInput {
 @(HttpController({
   path: 'Customers',
   controllers: [
-    (parent: CustomerController) => new CustomerNotesController(parent.db),
+    (parent: CustomerController) => new CustomerNotesController(parent.app),
   ],
 })
   .KeyParam('customerId', {
@@ -32,10 +32,14 @@ class AvatarUrlInput {
   })
   .UseType(AvatarUrlInput))
 export class CustomerController {
-  service: CustomersService;
+  protected _service?: CustomersService;
 
-  constructor(readonly db: Db) {
-    this.service = new CustomersService({ db });
+  constructor(readonly app: CustomerApplication) {}
+
+  get service() {
+    if (!this._service)
+      this._service = new CustomersService({ db: this.app.db });
+    return this._service;
   }
 
   @(HttpOperation.Entity.Get(Customer, {

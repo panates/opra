@@ -7,18 +7,22 @@ import {
 import { HttpContext } from '@opra/http';
 import { MongoAdapter } from '@opra/mongodb';
 import { CustomerNotesService, Note } from 'example-customer-mongo';
-import { Db } from 'mongodb';
 import { type PartialDTO } from 'ts-gems';
+import type { CustomerApplication } from '../customer-application.js';
 
 @HttpController({
   path: 'Notes',
   name: 'Notes',
 })
 export class CustomerNotesController {
-  service: CustomerNotesService;
+  protected _service?: CustomerNotesService;
 
-  constructor(readonly db: Db) {
-    this.service = new CustomerNotesService({ db });
+  constructor(readonly app: CustomerApplication) {}
+
+  get service() {
+    if (!this._service)
+      this._service = new CustomerNotesService({ db: this.app.db });
+    return this._service;
   }
 
   @(HttpOperation.Entity.Get(Note, {

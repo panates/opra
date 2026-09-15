@@ -25,7 +25,7 @@ export class CustomerApplication {
       await app.close();
       throw e;
     }
-    app.document = await CustomerApiDocument.create(app.db);
+    app.document = await CustomerApiDocument.create(app);
     app.express = express();
     // `$openapi`/`apiUi` are published by the adapter itself now (see
     // `ExpressAdapter._initRouter`) — no more manually mounting

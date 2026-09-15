@@ -5,16 +5,16 @@ import {
   TranslationFileStore,
 } from '@opra/common';
 import { CustomerModelsDocument } from 'example-customer-mongo';
-import { Db } from 'mongodb';
 import { AuthController } from './api/auth.controller.js';
 import { CustomerController } from './api/customer.controller.js';
 import {
   CustomerCreateInput,
   CustomersController,
 } from './api/customers-controller.js';
+import type { CustomerApplication } from './customer-application.js';
 
 export namespace CustomerApiDocument {
-  export async function create(db: Db): Promise<ApiDocument> {
+  export async function create(app: CustomerApplication): Promise<ApiDocument> {
     const doc = await ApiDocumentFactory.createDocument({
       info: {
         title: 'Customer Application',
@@ -63,9 +63,9 @@ export namespace CustomerApiDocument {
           { name: 'Notes', icon: '📝' },
         ],
         controllers: [
-          new AuthController(db),
-          new CustomerController(db),
-          new CustomersController(db),
+          new AuthController(app),
+          new CustomerController(app),
+          new CustomersController(app),
         ],
       },
     });

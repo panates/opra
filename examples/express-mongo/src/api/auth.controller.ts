@@ -1,13 +1,15 @@
 import { HttpController, HttpOperation, OperationResult } from '@opra/common';
-import { Db } from 'mongodb';
+import type { CustomerApplication } from '../customer-application.js';
 import { MyProfileController } from './my-profile.controller.js';
 
 @HttpController({
-  controllers: [(parent: AuthController) => new MyProfileController(parent.db)],
+  controllers: [
+    (parent: AuthController) => new MyProfileController(parent.app),
+  ],
   path: 'auth',
 })
 export class AuthController {
-  constructor(readonly db: Db) {}
+  constructor(readonly app: CustomerApplication) {}
 
   @(HttpOperation({
     sections: ['Account'],

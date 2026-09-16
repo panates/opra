@@ -703,10 +703,6 @@ button.studio-lang:hover {
   font-weight: 600;
 }
 
-.studio-todo-trail {
-  color: var(--text-muted);
-}
-
 .studio-todo-empty {
   padding: 10px;
   color: var(--text-muted);

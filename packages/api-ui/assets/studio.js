@@ -782,44 +782,23 @@
     return root;
   }
 
-  /** Collapses a run of only-children into one row: nothing is learned from
-   *  `api` and `controllers` on lines of their own when neither ever
-   *  branches, and the keys here are six to nine segments deep — a strict
-   *  level per segment would be all indentation and no information. */
-  function flatten(node) {
-    var labels = [node.name];
-    while (node.order.length === 1 && !node.fields.length) {
-      node = node.children[node.order[0]];
-      labels.push(node.name);
-    }
-    return { node: node, label: labels.join(' › ') };
-  }
-
+  /** One row per segment, all the way down — no run of only-children folded
+   *  into a breadcrumb. Folding kept the panel shorter but made the same
+   *  segment a level in one place and part of a label in another, so the
+   *  tree's shape depended on how much happened to be missing rather than on
+   *  the document. Depth is what collapsing is for. */
   function renderBranch(parent, container, depth) {
     parent.order.forEach(function (name) {
-      var flat = flatten(parent.children[name]);
-      var node = flat.node;
-      /* A path with one text left at the end of it is a row, not a heading
-       * with a single item under it — except at the top, where `info`, `api`
-       * and `types` are the document's own divisions and each stays a branch
-       * of its own. Otherwise the panel's whole shape would depend on how
-       * much happened to be missing: one undocumented type reads as a stray
-       * line next to `api`'s tree, as though `types` had been forgotten. */
-      if (depth && !node.order.length && node.fields.length === 1) {
-        container.appendChild(
-          todoLeaf(node.key, node.fields[0], flat.label, depth),
-        );
-        return;
-      }
+      var node = parent.children[name];
       var row = document.createElement('div');
       row.className = 'studio-todo-group';
-      row.style.paddingInlineStart = 6 + depth * 12 + 'px';
+      row.style.paddingInlineStart = 6 + depth * 11 + 'px';
       var chevron = icon('caret', 11);
       chevron.classList.add('studio-todo-chevron');
       row.appendChild(chevron);
       var label = document.createElement('span');
       label.className = 'studio-todo-label';
-      label.textContent = flat.label;
+      label.textContent = node.name;
       row.appendChild(label);
       var badge = document.createElement('span');
       badge.className = 'studio-todo-badge';
@@ -833,24 +812,20 @@
       container.appendChild(row);
       container.appendChild(branch);
       node.fields.forEach(function (field) {
-        branch.appendChild(todoLeaf(node.key, field, field, depth + 1));
+        branch.appendChild(todoLeaf(node.key, field, depth + 1));
       });
       renderBranch(node, branch, depth + 1);
     });
   }
 
-  function todoLeaf(key, field, label, depth) {
+  function todoLeaf(key, field, depth) {
     var row = document.createElement('button');
     row.type = 'button';
     row.className = 'studio-todo-item';
-    row.style.paddingInlineStart = 6 + depth * 12 + 'px';
+    row.style.paddingInlineStart = 6 + depth * 11 + 'px';
+    // The whole path, for the one question a leaf on its own can't answer:
+    // which of the identical `description` rows is this?
     row.title = key.concat(field).join(' › ');
-    if (label !== field) {
-      var trail = document.createElement('span');
-      trail.className = 'studio-todo-trail';
-      trail.textContent = label + ' › ';
-      row.appendChild(trail);
-    }
     var leaf = document.createElement('span');
     leaf.className = 'studio-todo-leaf';
     leaf.textContent = field;

@@ -664,8 +664,37 @@ button.studio-lang:hover {
   color: var(--text);
 }
 
-.studio-todo-label {
+.studio-todo-label,
+.studio-todo-leaf {
   flex: 1;
+}
+
+/* The row goes to the page; this goes to the page and opens the editor on the
+   way in. Quiet until the row is under the pointer, so a long list stays a
+   list rather than a column of buttons. */
+.studio-todo-edit {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.12s;
+  padding: 1px 3px;
+  cursor: pointer;
+}
+
+.studio-todo-item:hover .studio-todo-edit,
+.studio-todo-edit:focus-visible {
+  opacity: 1;
+}
+
+.studio-todo-edit:hover {
+  background: var(--code-bg);
+  color: var(--accent);
 }
 
 .studio-todo-chevron {

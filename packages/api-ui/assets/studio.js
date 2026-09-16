@@ -819,8 +819,7 @@
   }
 
   function todoLeaf(key, field, depth) {
-    var row = document.createElement('button');
-    row.type = 'button';
+    var row = document.createElement('div');
     row.className = 'studio-todo-item';
     row.style.paddingInlineStart = 6 + depth * 11 + 'px';
     // The whole path, for the one question a leaf on its own can't answer:
@@ -833,7 +832,59 @@
     row.addEventListener('click', function () {
       api.goTo(key);
     });
+    /* The row takes you to the page; the pencil takes you there *and* opens
+     * the editor. Without it, the shortest path from "this one is missing" to
+     * typing was: click, find the block again on a page you just arrived at,
+     * click that. */
+    var pencil = document.createElement('button');
+    pencil.type = 'button';
+    pencil.className = 'studio-todo-edit';
+    pencil.title = msg('edit');
+    pencil.setAttribute('aria-label', msg('edit'));
+    pencil.appendChild(icon('pencil', 11));
+    pencil.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      revealSlot(key, field);
+    });
+    row.appendChild(pencil);
     return row;
+  }
+
+  /* Set while a navigation is on its way to the page that holds it, and
+   * consumed by the render that lands there. */
+  var pendingOpen = null;
+
+  function revealSlot(key, field) {
+    var before = location.hash;
+    pendingOpen = { key: key, field: field };
+    api.goTo(key);
+    /* Already on that page: the hash didn't change, so nothing re-renders and
+     * nothing would ever consume it. The block is right here. */
+    if (location.hash === before) openPendingSlot();
+  }
+
+  /** Opens the editor on whatever `revealSlot` asked for, if this page turned
+   *  out to hold it. Runs after every render and clears the request either
+   *  way — a key that isn't on the page it routes to is a dead end, not
+   *  something to keep waiting for. */
+  function openPendingSlot() {
+    if (!pendingOpen) return;
+    var wanted = JSON.stringify(pendingOpen.key);
+    var field = pendingOpen.field;
+    pendingOpen = null;
+    var blocks = document.querySelectorAll('[data-doc-key]');
+    for (var i = 0; i < blocks.length; i++) {
+      var block = blocks[i];
+      if (
+        block.getAttribute('data-doc-key') === wanted &&
+        block.getAttribute('data-doc-field') === field &&
+        !block.hasAttribute('data-doc-foreign')
+      ) {
+        block.scrollIntoView({ block: 'center' });
+        openFor(block);
+        return;
+      }
+    }
   }
 
   function buildTodoPanel() {
@@ -1121,6 +1172,8 @@
     badgeLanguage();
     api.onRendered(badgeLanguage);
     api.onRendered(decorate);
+    // After `decorate`, so the block it opens is already an editable one.
+    api.onRendered(openPendingSlot);
     decorate();
     buildTodoPanel();
   }

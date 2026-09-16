@@ -799,9 +799,13 @@
     parent.order.forEach(function (name) {
       var flat = flatten(parent.children[name]);
       var node = flat.node;
-      // A path with one text left at the end of it is a row, not a heading
-      // with a single item under it.
-      if (!node.order.length && node.fields.length === 1) {
+      /* A path with one text left at the end of it is a row, not a heading
+       * with a single item under it — except at the top, where `info`, `api`
+       * and `types` are the document's own divisions and each stays a branch
+       * of its own. Otherwise the panel's whole shape would depend on how
+       * much happened to be missing: one undocumented type reads as a stray
+       * line next to `api`'s tree, as though `types` had been forgotten. */
+      if (depth && !node.order.length && node.fields.length === 1) {
         container.appendChild(
           todoLeaf(node.key, node.fields[0], flat.label, depth),
         );

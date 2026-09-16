@@ -670,10 +670,12 @@ button.studio-lang:hover {
 }
 
 /* The row goes to the page; this goes to the page and opens the editor on the
-   way in. Quiet until the row is under the pointer, so a long list stays a
-   list rather than a column of buttons. */
+   way in. It sits ahead of the text, in the slot a branch puts its chevron
+   in — dimmed at rest so a long list still reads as a list, but present, so
+   the gap before each leaf is obviously a control and not an indent. */
 .studio-todo-edit {
   flex: none;
+  align-self: center;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -681,9 +683,11 @@ button.studio-lang:hover {
   border: none;
   border-radius: 5px;
   color: var(--text-muted);
-  opacity: 0;
-  transition: opacity 0.12s;
-  padding: 1px 3px;
+  opacity: 0.4;
+  transition:
+    opacity 0.12s,
+    color 0.12s;
+  padding: 0;
   cursor: pointer;
 }
 
@@ -693,7 +697,6 @@ button.studio-lang:hover {
 }
 
 .studio-todo-edit:hover {
-  background: var(--code-bg);
   color: var(--accent);
 }
 

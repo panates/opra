@@ -825,28 +825,31 @@
     // The whole path, for the one question a leaf on its own can't answer:
     // which of the identical `description` rows is this?
     row.title = key.concat(field).join(' › ');
-    var leaf = document.createElement('span');
-    leaf.className = 'studio-todo-leaf';
-    leaf.textContent = field;
-    row.appendChild(leaf);
     row.addEventListener('click', function () {
       api.goTo(key);
     });
     /* The row takes you to the page; the pencil takes you there *and* opens
      * the editor. Without it, the shortest path from "this one is missing" to
      * typing was: click, find the block again on a page you just arrived at,
-     * click that. */
+     * click that.
+     *
+     * Ahead of the text, in the slot a branch puts its chevron in: the first
+     * thing on every row is what that row does. */
     var pencil = document.createElement('button');
     pencil.type = 'button';
     pencil.className = 'studio-todo-edit';
     pencil.title = msg('edit');
     pencil.setAttribute('aria-label', msg('edit'));
-    pencil.appendChild(icon('pencil', 11));
+    pencil.appendChild(icon('pencil', 13));
     pencil.addEventListener('click', function (ev) {
       ev.stopPropagation();
       revealSlot(key, field);
     });
     row.appendChild(pencil);
+    var leaf = document.createElement('span');
+    leaf.className = 'studio-todo-leaf';
+    leaf.textContent = field;
+    row.appendChild(leaf);
     return row;
   }
 

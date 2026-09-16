@@ -119,8 +119,9 @@ export async function startDocsStudio(
    * import here would close a package-level cycle. Same seam `api-ui` itself
    * uses, and the one `dpdm`'s circular check skips. */
   let ApiUiFactory: typeof import('@opra/api-ui').ApiUiFactory;
+  let UI_LANGUAGES: readonly string[];
   try {
-    ({ ApiUiFactory } = await import('@opra/api-ui'));
+    ({ ApiUiFactory, UI_LANGUAGES } = await import('@opra/api-ui'));
   } catch {
     throw new Error(
       'docs:studio requires the optional "@opra/api-ui" package. ' +
@@ -159,6 +160,18 @@ export async function startDocsStudio(
         file: path.relative(process.cwd(), file.filename),
         languages: availableLanguages(),
         addLanguageUrl: ADD_LANGUAGE_ROUTE,
+        /* Suggestions, not a closed list — a document can be translated into
+         * anything BCP 47 names, and the field still takes a typed tag. These
+         * are the ones whose interface is translated too, so picking one gets
+         * you a studio in that language rather than an English frame around
+         * it. Named for the reader by `Intl.DisplayNames`, so nobody has to
+         * know that Deutsch is `de`. */
+        addLanguageOptions: UI_LANGUAGES.filter(
+          tag =>
+            !availableLanguages().some(
+              l => l.toLowerCase() === tag.toLowerCase(),
+            ),
+        ),
       },
     });
     const script =

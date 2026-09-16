@@ -46,8 +46,7 @@
     editingFile: 'Editing {file}',
     editingLanguage: 'Edit language',
     bundleFile: '{lang}.json',
-    addLanguage: 'Add a language — de, pt-BR…',
-    add: 'Add',
+    addLanguage: 'Add a language…',
   };
 
   function fmt(template, vars) {
@@ -848,23 +847,78 @@
    *  Re-checked after every render: the document picker beside it is rebuilt
    *  each time, which takes the badge with it. Anchored to the picker's
    *  wrapper rather than the picker for the same reason. */
+  /* The server validates authoritatively before this ever becomes a
+   * filename; this copy only decides whether to offer a typed tag at all. */
+  var LANGUAGE_TAG = /^[A-Za-z]{2,8}(-[A-Za-z0-9]{2,8})*$/;
+
+  var displayNames;
+  /* Same thing, but silent about tags it doesn't recognize — which is how
+   * "is this actually a language?" gets answered without shipping a list of
+   * every tag in existence. */
+  var strictNames;
+  var displayNamesTried = false;
+
+  function initDisplayNames() {
+    displayNamesTried = true;
+    try {
+      var locale = [document.documentElement.lang || 'en'];
+      displayNames = new Intl.DisplayNames(locale, { type: 'language' });
+      strictNames = new Intl.DisplayNames(locale, {
+        type: 'language',
+        fallback: 'none',
+      });
+    } catch (e) {
+      displayNames = null;
+    }
+  }
+
+  /** "de" → "German", in whatever language the page is already in. Nobody
+   *  should have to know the codes to add a language; `Intl.DisplayNames`
+   *  knows them all, including tags that aren't in the suggested list, so
+   *  even a typed one gets named back for confirmation. */
+  function languageName(tag) {
+    if (!displayNamesTried) initDisplayNames();
+    if (!displayNames) return tag;
+    try {
+      return displayNames.of(tag) || tag;
+    } catch (e) {
+      return tag;
+    }
+  }
+
+  /** Whether a typed tag is worth offering as a language of its own. Shape
+   *  alone isn't enough: half of "German" typed into a filter box is `germ`,
+   *  which is a perfectly well-formed tag and no language at all. Where the
+   *  platform can't tell us, shape is all we have. */
+  function knownLanguage(tag) {
+    if (!displayNamesTried) initDisplayNames();
+    if (!displayNames) return LANGUAGE_TAG.test(tag);
+    try {
+      return !!strictNames.of(tag);
+    } catch (e) {
+      return false;
+    }
+  }
+
   /** Starting a language the project has no bundle for. Asks the server to
    *  write the empty file first and only then navigates: `?lang=` is
    *  deliberately not allowed to create anything, so that a mistyped tag in
    *  the address bar can't leave a stray bundle behind. */
   function addLanguageRow(holder) {
+    var options = authoring.addLanguageOptions || [];
     var row = document.createElement('div');
     row.className = 'studio-lang-add';
     var input = document.createElement('input');
     input.type = 'text';
     input.placeholder = messages.addLanguage;
     input.spellcheck = false;
+    var list = document.createElement('div');
+    list.className = 'studio-lang-options';
     var status = document.createElement('div');
     status.className = 'studio-lang-add-error';
     status.hidden = true;
 
-    function submit() {
-      var tag = input.value.trim();
+    function submit(tag) {
       if (!tag) return;
       input.disabled = true;
       status.hidden = true;
@@ -892,22 +946,66 @@
         });
     }
 
-    input.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Enter') {
-        ev.preventDefault();
-        submit();
+    function option(tag) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'studio-lang-option';
+      var code = document.createElement('span');
+      code.className = 'studio-lang-code';
+      code.textContent = tag;
+      item.appendChild(code);
+      item.appendChild(document.createTextNode(languageName(tag)));
+      item.addEventListener('click', function () {
+        submit(tag);
+      });
+      return item;
+    }
+
+    /** Matches on either half — someone who knows `pt` types that, someone
+     *  who doesn't types "Portug". */
+    function matches() {
+      var q = input.value.trim().toLowerCase();
+      if (!q) return options;
+      return options.filter(function (tag) {
+        return (
+          tag.toLowerCase().indexOf(q) === 0 ||
+          languageName(tag).toLowerCase().indexOf(q) >= 0
+        );
+      });
+    }
+
+    function renderOptions() {
+      var found = matches();
+      list.innerHTML = '';
+      found.forEach(function (tag) {
+        list.appendChild(option(tag));
+      });
+      var typed = input.value.trim();
+      // Anything BCP 47 can name is a legitimate documentation language, so a
+      // tag the suggestions don't carry is still offered — named, so you can
+      // see whether you typed the one you meant.
+      if (
+        typed &&
+        LANGUAGE_TAG.test(typed) &&
+        knownLanguage(typed) &&
+        !found.some(function (tag) {
+          return tag.toLowerCase() === typed.toLowerCase();
+        })
+      ) {
+        list.appendChild(option(typed));
       }
+    }
+
+    input.addEventListener('input', renderOptions);
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      var first = list.querySelector('.studio-lang-option');
+      if (first) first.click();
     });
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'studio-lang-add-btn';
-    btn.textContent = messages.add;
-    btn.addEventListener('click', submit);
-    var field = document.createElement('div');
-    field.className = 'studio-lang-add-field';
-    field.appendChild(input);
-    field.appendChild(btn);
-    row.appendChild(field);
+    renderOptions();
+    row.appendChild(input);
+    row.appendChild(list);
     row.appendChild(status);
     return row;
   }

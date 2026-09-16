@@ -80,31 +80,25 @@ button.studio-lang:hover {
   font-weight: 700;
 }
 
-/* Starting a language the project doesn't have yet. A free-text tag rather
-   than a list to pick from: a document can be translated into anything BCP 47
-   can name, and the interface's own 35 dictionaries are a different set. */
+/* Starting a language the project doesn't have yet: a filter box over a named
+   list, because the codes are exactly what somebody adding a language is least
+   likely to know. The list is a suggestion, not a menu — a typed tag the
+   suggestions don't carry is offered too, named the same way. */
 .studio-lang-add {
   margin-block-start: 4px;
-  padding: 7px 7px 3px;
+  padding: 7px 7px 4px;
   border-block-start: 1px solid var(--border);
 }
 
-.studio-lang-add-field {
-  display: flex;
-  gap: 5px;
-}
-
 .studio-lang-add input {
-  flex: 1;
-  min-width: 0;
+  display: block;
+  width: 100%;
   background: var(--surface);
   border: 1px solid var(--surface-border);
   border-radius: 6px;
   color: var(--text);
-  font-family: var(--font-mono);
   font-size: 11.5px;
-  padding: 3px 7px;
-  direction: ltr;
+  padding: 4px 8px;
 }
 
 .studio-lang-add input:focus {
@@ -112,15 +106,35 @@ button.studio-lang:hover {
   border-color: var(--accent);
 }
 
-.studio-lang-add-btn {
-  flex: none;
-  background: var(--accent);
-  border: 1px solid var(--accent);
+.studio-lang-options {
+  max-height: 190px;
+  overflow-y: auto;
+  margin-block-start: 4px;
+}
+
+.studio-lang-option {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  width: 100%;
+  background: none;
+  border: none;
   border-radius: 6px;
-  color: #fff;
-  font-size: 11.5px;
-  padding: 3px 9px;
+  color: var(--text);
+  font-size: 12px;
+  text-align: start;
+  padding: 4px 7px;
   cursor: pointer;
+}
+
+.studio-lang-option:hover {
+  background: var(--surface);
+}
+
+.studio-lang-option .studio-lang-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  direction: ltr;
 }
 
 .studio-lang-add-error {

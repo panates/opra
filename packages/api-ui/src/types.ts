@@ -80,6 +80,9 @@ export interface ApiUiOptions {
     /** Where the client POSTs `{ lang }` to start a language the project
      *  doesn't have a bundle for yet. */
     addLanguageUrl?: string;
+    /** Tags to suggest there, already filtered to ones without a bundle. Not
+     *  a closed list: the field still accepts any valid tag. */
+    addLanguageOptions?: string[];
   };
   /** The full list of scope keys a reader can switch between (e.g.
    *  `['api', 'db']`) — the same OPRA document can expose different

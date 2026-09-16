@@ -46,6 +46,8 @@
     editingFile: 'Editing {file}',
     editingLanguage: 'Edit language',
     bundleFile: '{lang}.json',
+    addLanguage: 'Add a language — de, pt-BR…',
+    add: 'Add',
   };
 
   function fmt(template, vars) {
@@ -846,6 +848,70 @@
    *  Re-checked after every render: the document picker beside it is rebuilt
    *  each time, which takes the badge with it. Anchored to the picker's
    *  wrapper rather than the picker for the same reason. */
+  /** Starting a language the project has no bundle for. Asks the server to
+   *  write the empty file first and only then navigates: `?lang=` is
+   *  deliberately not allowed to create anything, so that a mistyped tag in
+   *  the address bar can't leave a stray bundle behind. */
+  function addLanguageRow(holder) {
+    var row = document.createElement('div');
+    row.className = 'studio-lang-add';
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = messages.addLanguage;
+    input.spellcheck = false;
+    var status = document.createElement('div');
+    status.className = 'studio-lang-add-error';
+    status.hidden = true;
+
+    function submit() {
+      var tag = input.value.trim();
+      if (!tag) return;
+      input.disabled = true;
+      status.hidden = true;
+      fetch(authoring.addLanguageUrl, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ lang: tag }),
+      })
+        .then(function (res) {
+          return res.json().then(function (body) {
+            if (!res.ok) throw new Error(body.error || res.statusText);
+            return body;
+          });
+        })
+        .then(function (body) {
+          holder.classList.remove('open');
+          location.href =
+            '?lang=' + encodeURIComponent(body.lang || tag) + location.hash;
+        })
+        .catch(function (e) {
+          input.disabled = false;
+          status.textContent = e.message;
+          status.hidden = false;
+          input.focus();
+        });
+    }
+
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        submit();
+      }
+    });
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'studio-lang-add-btn';
+    btn.textContent = messages.add;
+    btn.addEventListener('click', submit);
+    var field = document.createElement('div');
+    field.className = 'studio-lang-add-field';
+    field.appendChild(input);
+    field.appendChild(btn);
+    row.appendChild(field);
+    row.appendChild(status);
+    return row;
+  }
+
   function badgeLanguage() {
     var anchor = document.querySelector('.header .picker-wrap');
     if (!anchor || !authoring.lang) return;
@@ -905,6 +971,7 @@
       });
       menu.appendChild(item);
     });
+    if (authoring.addLanguageUrl) menu.appendChild(addLanguageRow(holder));
     badge.addEventListener('click', function (ev) {
       ev.preventDefault();
       holder.classList.toggle('open');

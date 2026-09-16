@@ -20,6 +20,13 @@ export interface DocsStudioOptions {
 }
 
 const SAVE_ROUTE = '/_studio/save';
+const ADD_LANGUAGE_ROUTE = '/_studio/language';
+
+/** A language tag, as BCP 47 shapes one — and, just as importantly, as a
+ *  filename: this becomes `<tag>.json` under `--docs`, so anything that could
+ *  climb out of that directory or name something else entirely is refused
+ *  before it reaches the filesystem. */
+const LANGUAGE_TAG = /^[A-Za-z]{2,8}(-[A-Za-z0-9]{2,8})*$/;
 
 /** Every text slot in a bundle, as `"key.segments.field"` — the shape the
  *  client compares against, joined only because it is used as a set member
@@ -63,18 +70,22 @@ export async function startDocsStudio(
     const key = lang.toLowerCase();
     let file = files.get(key);
     if (!file) {
-      file = BundleFile.open(docsDir, lang, document);
+      file = BundleFile.open(docsDir, lang, document, {
+        /* Only the document's own language starts from what the source
+         * declares; a new translation starts empty, or every entry in it
+         * would arrive already looking written. */
+        blank: key !== document.defaultLanguage.toLowerCase(),
+      });
       files.set(key, file);
     }
     return file;
   }
   bundleFor(initialLang);
 
-  /** Every language that has a bundle in `--docs`, which is exactly the set
-   *  the studio can write to. A tag nobody has a file for isn't offered:
-   *  creating one from the document would fill it with the source language's
-   *  own prose (see `BundleFile.open`), which reads as "already translated"
-   *  in every screen that follows. `--lang` is how a new one is started. */
+  /** Every language that has a bundle in `--docs` — the set the picker
+   *  offers, and the only tags a request is allowed to name. Adding to it is
+   *  a deliberate act (see `ADD_LANGUAGE_ROUTE`), not something a mistyped
+   *  `?lang=` can do by accident. */
   function availableLanguages(): string[] {
     const found = fs.existsSync(docsDir)
       ? fs
@@ -147,6 +158,7 @@ export async function startDocsStudio(
         lang,
         file: path.relative(process.cwd(), file.filename),
         languages: availableLanguages(),
+        addLanguageUrl: ADD_LANGUAGE_ROUTE,
       },
     });
     const script =
@@ -172,7 +184,11 @@ export async function startDocsStudio(
 
   const server = http.createServer((req, res) => {
     if (req.method === 'POST' && req.url === SAVE_ROUTE) {
-      handleSave(req, res);
+      readBody(req, res, handleSave);
+      return;
+    }
+    if (req.method === 'POST' && req.url === ADD_LANGUAGE_ROUTE) {
+      readBody(req, res, handleAddLanguage);
       return;
     }
     res.writeHead(200, {
@@ -185,47 +201,74 @@ export async function startDocsStudio(
     res.end(renderPage(langFor(req.url)));
   });
 
-  function handleSave(
+  /** Collects a JSON body and turns whatever `handle` throws into the one
+   *  shape the client knows how to show. */
+  function readBody(
     req: http.IncomingMessage,
     res: http.ServerResponse,
+    handle: (body: any) => unknown,
   ): void {
     const chunks: Buffer[] = [];
     req.on('data', c => chunks.push(c as Buffer));
     req.on('end', () => {
       try {
-        const body = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
-        const key: string[] = body.key;
-        const field: string = body.field;
-        const value: string = body.value ?? '';
-        if (!Array.isArray(key) || typeof field !== 'string') {
-          throw new TypeError('Expected { key: string[], field, value }');
-        }
-        /* The page says which language it was written in, rather than the
-         * server remembering a "current" one: two tabs open on two languages
-         * is a perfectly reasonable way to translate, and a server-side
-         * current would send one tab's edit into the other's file. */
-        const lang = availableLanguages().find(
-          l => l.toLowerCase() === String(body.lang || '').toLowerCase(),
-        );
-        if (!lang) throw new TypeError(`No bundle for language "${body.lang}"`);
-        const file = bundleFor(lang);
-        file.set(key, field, value);
-        file.write();
-        /* Bundles are materialized once, while the document is built, so the
-         * in-memory document would otherwise keep serving the old text on the
-         * next full page load. */
-        document.translations.set(lang.toLowerCase(), file.bundle);
-        logger?.log?.(
-          colors.greenBright(`saved ${[...key, field].join('.')} (${lang})`),
-        );
+        const result = handle(JSON.parse(Buffer.concat(chunks).toString()));
         res.writeHead(200, { 'content-type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
+        res.end(JSON.stringify({ ok: true, ...(result as object) }));
       } catch (e: any) {
         logger?.error?.(colors.red(e.message));
         res.writeHead(400, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ error: e.message }));
       }
     });
+  }
+
+  function handleSave(body: any): void {
+    const key: string[] = body.key;
+    const field: string = body.field;
+    const value: string = body.value ?? '';
+    if (!Array.isArray(key) || typeof field !== 'string') {
+      throw new TypeError('Expected { key: string[], field, value }');
+    }
+    /* The page says which language it was written in, rather than the server
+     * remembering a "current" one: two tabs open on two languages is a
+     * perfectly reasonable way to translate, and a server-side current would
+     * send one tab's edit into the other's file. */
+    const lang = availableLanguages().find(
+      l => l.toLowerCase() === String(body.lang || '').toLowerCase(),
+    );
+    if (!lang) throw new TypeError(`No bundle for language "${body.lang}"`);
+    const file = bundleFor(lang);
+    file.set(key, field, value);
+    file.write();
+    /* Bundles are materialized once, while the document is built, so the
+     * in-memory document would otherwise keep serving the old text on the
+     * next full page load. */
+    document.translations.set(lang.toLowerCase(), file.bundle);
+    logger?.log?.(
+      colors.greenBright(`saved ${[...key, field].join('.')} (${lang})`),
+    );
+  }
+
+  /** Starts a language the project doesn't have yet, by writing its empty
+   *  bundle. Its own route rather than a side effect of `?lang=`, so that
+   *  creating a file is always something someone asked for — a mistyped tag
+   *  in the address bar must not leave `tt.json` behind. */
+  function handleAddLanguage(body: any): { lang: string } {
+    const lang = String(body.lang || '').trim();
+    if (!LANGUAGE_TAG.test(lang)) {
+      throw new TypeError(
+        `"${lang}" is not a language tag — expected something like "de" or "pt-BR".`,
+      );
+    }
+    const existing = availableLanguages().find(
+      l => l.toLowerCase() === lang.toLowerCase(),
+    );
+    if (existing) return { lang: existing };
+    const file = bundleFor(lang);
+    document.translations.set(lang.toLowerCase(), file.bundle);
+    logger?.log?.(colors.greenBright(`created ${file.filename}`));
+    return { lang };
   }
 
   const wantedPort = options.port ?? 7300;

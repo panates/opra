@@ -111,6 +111,33 @@ describe('cli:BundleFile', () => {
     ).toStrictEqual('Notes');
   });
 
+  it('Should create a new translation empty, not full of the source language', () => {
+    // A fresh `de.json` holding English is not a translation, but it counts
+    // as written everywhere that asks — so nothing would ever list it as
+    // outstanding and the studio's checklist would open at 100%.
+    const file = BundleFile.open(dir, 'de', document, { blank: true });
+    expect(file.get(['types', 'Note'], 'description')).toStrictEqual('');
+    expect(
+      file.get(
+        ['api', 'controllers', 'Notes', 'operations', 'findMany'],
+        'title',
+      ),
+    ).toStrictEqual('');
+    // Same shape as the source bundle, so a later docs:extract merges onto it
+    // rather than rewriting it.
+    const shape = (bundle: any): any =>
+      typeof bundle === 'string'
+        ? ''
+        : Object.fromEntries(
+            Object.entries(bundle).map(([k, v]) => [k, shape(v)]),
+          );
+    BundleFile.open(dir, 'en', document);
+    const source = JSON.parse(
+      fs.readFileSync(path.join(dir, 'en.json'), 'utf-8'),
+    );
+    expect(shape(file.bundle)).toStrictEqual(shape(source));
+  });
+
   it('Should reuse an existing file rather than renaming it by case', () => {
     // A document keys its bundles lower-case in memory, but `zh-Hant.json` on
     // disk should stay `zh-Hant.json`.

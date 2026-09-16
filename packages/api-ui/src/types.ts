@@ -77,6 +77,9 @@ export interface ApiUiOptions {
      *  prose, the interface language and the bundle all change together, and
      *  the server is what knows how. */
     languages?: string[];
+    /** Where the client POSTs `{ lang }` to start a language the project
+     *  doesn't have a bundle for yet. */
+    addLanguageUrl?: string;
   };
   /** The full list of scope keys a reader can switch between (e.g.
    *  `['api', 'db']`) — the same OPRA document can expose different

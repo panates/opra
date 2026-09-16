@@ -6,6 +6,16 @@ import {
   type TranslationBundle,
 } from '@opra/common';
 
+/** Empties every text in place, keeping the skeleton's shape and key order —
+ *  which is what makes the emptied file still identical to what a later
+ *  `docs:extract` merges onto. */
+function blankTexts(node: TranslationBundle): void {
+  for (const [key, value] of Object.entries(node)) {
+    if (typeof value === 'string') node[key] = '';
+    else if (value) blankTexts(value);
+  }
+}
+
 /**
  * The one documentation bundle `docs:studio` reads and writes.
  *
@@ -36,8 +46,19 @@ export class BundleFile {
    * An existing file's name is reused verbatim rather than lower-cased: a
    * document's bundles are keyed lower-case in memory, but `zh-Hant.json` on
    * disk should stay `zh-Hant.json`.
+   *
+   * @param options.blank - Create the skeleton with every text empty instead
+   *   of holding what the source declares. That pre-fill is right for the
+   *   document's own language and wrong for every other one: a fresh `de.json`
+   *   full of English is not a translation, but it counts as written
+   *   everywhere that asks, so nothing would ever list it as outstanding.
    */
-  static open(dir: string, lang: string, document: ApiDocument): BundleFile {
+  static open(
+    dir: string,
+    lang: string,
+    document: ApiDocument,
+    options?: { blank?: boolean },
+  ): BundleFile {
     const existing = fs.existsSync(dir)
       ? fs
           .readdirSync(dir)
@@ -54,7 +75,9 @@ export class BundleFile {
         JSON.parse(fs.readFileSync(filename, 'utf-8')) as TranslationBundle,
       );
     }
-    const file = new BundleFile(filename, extractTranslations(document).bundle);
+    const bundle = extractTranslations(document).bundle;
+    if (options?.blank) blankTexts(bundle);
+    const file = new BundleFile(filename, bundle);
     file.write();
     return file;
   }

@@ -80,6 +80,56 @@ button.studio-lang:hover {
   font-weight: 700;
 }
 
+/* Starting a language the project doesn't have yet. A free-text tag rather
+   than a list to pick from: a document can be translated into anything BCP 47
+   can name, and the interface's own 35 dictionaries are a different set. */
+.studio-lang-add {
+  margin-block-start: 4px;
+  padding: 7px 7px 3px;
+  border-block-start: 1px solid var(--border);
+}
+
+.studio-lang-add-field {
+  display: flex;
+  gap: 5px;
+}
+
+.studio-lang-add input {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  padding: 3px 7px;
+  direction: ltr;
+}
+
+.studio-lang-add input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.studio-lang-add-btn {
+  flex: none;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 11.5px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+
+.studio-lang-add-error {
+  padding: 5px 1px 2px;
+  color: var(--method-delete, #d9534f);
+  font-size: 11px;
+  white-space: normal;
+}
+
 /* Every editable block carries its own boundary at rest, faint enough to read
    past but strong enough to answer "what on this screen can I write?" without
    sweeping the mouse over it. Hovering only deepens the same line, so it is

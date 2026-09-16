@@ -751,29 +751,110 @@
       body.appendChild(done);
       return;
     }
+    renderBranch(treeOf(missing), body, 0);
+  }
+
+  /** The outstanding keys as a tree, which is what they always were — each
+   *  one is a path through the same document, and printed flat every row
+   *  repeated the ancestry of the row above it. */
+  function treeOf(missing) {
+    var root = { key: [], children: {}, order: [], fields: [], count: 0 };
     missing.forEach(function (slot) {
-      var row = document.createElement('button');
-      row.type = 'button';
-      row.className = 'studio-todo-item';
-      /* Wrapped, not truncated — every one of these keys is longer than any
-       * panel worth putting in a corner, and cutting them off left every row
-       * reading `api › controllers › Auth › operations › log…`, which is the
-       * half that is the same in all of them. The two halves are separate
-       * elements so the field itself can carry the weight. */
-      var segments = slot.key.concat(slot.field);
+      var node = root;
+      root.count++;
+      slot.key.forEach(function (segment) {
+        if (!node.children[segment]) {
+          node.children[segment] = {
+            name: segment,
+            key: node.key.concat(segment),
+            children: {},
+            order: [],
+            fields: [],
+            count: 0,
+          };
+          node.order.push(segment);
+        }
+        node = node.children[segment];
+        node.count++;
+      });
+      node.fields.push(slot.field);
+    });
+    return root;
+  }
+
+  /** Collapses a run of only-children into one row: nothing is learned from
+   *  `api` and `controllers` on lines of their own when neither ever
+   *  branches, and the keys here are six to nine segments deep — a strict
+   *  level per segment would be all indentation and no information. */
+  function flatten(node) {
+    var labels = [node.name];
+    while (node.order.length === 1 && !node.fields.length) {
+      node = node.children[node.order[0]];
+      labels.push(node.name);
+    }
+    return { node: node, label: labels.join(' › ') };
+  }
+
+  function renderBranch(parent, container, depth) {
+    parent.order.forEach(function (name) {
+      var flat = flatten(parent.children[name]);
+      var node = flat.node;
+      // A path with one text left at the end of it is a row, not a heading
+      // with a single item under it.
+      if (!node.order.length && node.fields.length === 1) {
+        container.appendChild(
+          todoLeaf(node.key, node.fields[0], flat.label, depth),
+        );
+        return;
+      }
+      var row = document.createElement('div');
+      row.className = 'studio-todo-group';
+      row.style.paddingInlineStart = 6 + depth * 12 + 'px';
+      var chevron = icon('caret', 11);
+      chevron.classList.add('studio-todo-chevron');
+      row.appendChild(chevron);
+      var label = document.createElement('span');
+      label.className = 'studio-todo-label';
+      label.textContent = flat.label;
+      row.appendChild(label);
+      var badge = document.createElement('span');
+      badge.className = 'studio-todo-badge';
+      badge.textContent = node.count;
+      row.appendChild(badge);
+      var branch = document.createElement('div');
+      row.addEventListener('click', function () {
+        row.classList.toggle('collapsed');
+        branch.hidden = row.classList.contains('collapsed');
+      });
+      container.appendChild(row);
+      container.appendChild(branch);
+      node.fields.forEach(function (field) {
+        branch.appendChild(todoLeaf(node.key, field, field, depth + 1));
+      });
+      renderBranch(node, branch, depth + 1);
+    });
+  }
+
+  function todoLeaf(key, field, label, depth) {
+    var row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'studio-todo-item';
+    row.style.paddingInlineStart = 6 + depth * 12 + 'px';
+    row.title = key.concat(field).join(' › ');
+    if (label !== field) {
       var trail = document.createElement('span');
       trail.className = 'studio-todo-trail';
-      trail.textContent = segments.slice(0, -1).join(' › ') + ' › ';
-      var leaf = document.createElement('span');
-      leaf.className = 'studio-todo-leaf';
-      leaf.textContent = segments[segments.length - 1];
+      trail.textContent = label + ' › ';
       row.appendChild(trail);
-      row.appendChild(leaf);
-      row.addEventListener('click', function () {
-        api.goTo(slot.key);
-      });
-      body.appendChild(row);
+    }
+    var leaf = document.createElement('span');
+    leaf.className = 'studio-todo-leaf';
+    leaf.textContent = field;
+    row.appendChild(leaf);
+    row.addEventListener('click', function () {
+      api.goTo(key);
     });
+    return row;
   }
 
   function buildTodoPanel() {

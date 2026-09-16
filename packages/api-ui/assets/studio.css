@@ -627,33 +627,73 @@ button.studio-lang:hover {
   display: none;
 }
 
-/* Wrapping makes each entry two or three lines tall, so without a rule
-   between them the list reads as one paragraph of slashes. */
+/* A tree, because that is what the keys are: every entry is a path through
+   the same document, and a flat list made each row repeat the ancestry of the
+   row above it. Indentation is set per row from the depth, so a run of
+   only-children can be folded into one row (see `flatten`) without the
+   stylesheet having to know how deep anything went. */
+.studio-todo-group,
 .studio-todo-item {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
   width: 100%;
   text-align: start;
   background: none;
   border: none;
-  border-block-end: 1px solid var(--border);
   color: var(--text-muted);
   font-family: var(--font-mono);
   font-size: 11.5px;
-  line-height: 1.55;
-  padding: 6px 7px;
+  line-height: 1.5;
+  padding: 4px 7px;
   border-radius: 6px;
   cursor: pointer;
   direction: ltr;
   unicode-bidi: isolate;
-  /* Segments are joined with spaces around the separator, so the line breaks
-     between segments on its own; `anywhere` is only the backstop for a single
-     segment longer than the panel (a regexp source, a media type). */
+  /* Segments are joined with spaces around the separator, so a label too long
+     for the panel breaks between segments on its own; `anywhere` is only the
+     backstop for a single segment longer than the panel (a regexp source, a
+     media type). */
   white-space: normal;
   overflow-wrap: anywhere;
 }
 
-.studio-todo-item:last-child {
-  border-block-end: none;
+.studio-todo-group:hover,
+.studio-todo-item:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.studio-todo-label {
+  flex: 1;
+}
+
+.studio-todo-chevron {
+  flex: none;
+  align-self: center;
+  transition: transform 0.15s ease;
+}
+
+.studio-todo-group.collapsed .studio-todo-chevron {
+  transform: rotate(-90deg);
+}
+
+[dir='rtl'] .studio-todo-group.collapsed .studio-todo-chevron {
+  transform: rotate(90deg);
+}
+
+/* How much is still unwritten under this branch — the reason to open it. */
+.studio-todo-badge {
+  flex: none;
+  align-self: center;
+  min-width: 16px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--surface-border);
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 15px;
+  text-align: center;
 }
 
 /* The field is what has to be written; everything before it is only there to
@@ -663,9 +703,8 @@ button.studio-lang:hover {
   font-weight: 600;
 }
 
-.studio-todo-item:hover {
-  background: var(--surface);
-  color: var(--text);
+.studio-todo-trail {
+  color: var(--text-muted);
 }
 
 .studio-todo-empty {

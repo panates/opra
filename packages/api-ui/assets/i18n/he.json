@@ -240,5 +240,45 @@
     "info": "מידע",
     "warning": "אזהרה",
     "danger": "סכנה"
+  },
+  "studio": {
+    "edit": "עריכה",
+    "empty": "הוספת תיאור",
+    "save": "שמירה",
+    "cancel": "ביטול",
+    "saving": "שומר…",
+    "failed": "השמירה נכשלה: {error}",
+    "foreign": "מוגדר במסמך אחר — ערכו אותו שם.",
+    "unstable": "לרשומה זו אין מזהה יציב; הגדירו docKey, אחרת הטקסט יתנתק ברגע שההגדרה תזוז.",
+    "todoTitle": "ללא תיעוד",
+    "todoEmpty": "הכול מתועד.",
+    "todoCount": "{done} מתוך {total} מתועדים",
+    "viewWrite": "מקור",
+    "viewSplit": "מפוצל",
+    "viewPreview": "תצוגה מקדימה",
+    "previewEmpty": "אין עדיין מה להציג.",
+    "callout": "תיבת הדגשה",
+    "editing": "השפה הנערכת",
+    "editingFile": "עורך את {file}",
+    "editingLanguage": "שפת העריכה",
+    "addLanguage": "הוספת שפה…",
+    "tool": {
+      "bold": "מודגש",
+      "italic": "נטוי",
+      "code": "קוד בתוך שורה",
+      "heading": "כותרת",
+      "quote": "ציטוט",
+      "ul": "רשימת תבליטים",
+      "ol": "רשימה ממוספרת",
+      "link": "קישור (לטיפוס השתמשו ב-‎#/model/שם_הטיפוס‎)",
+      "codeblock": "מקטע קוד"
+    },
+    "sample": {
+      "boldText": "טקסט מודגש",
+      "text": "טקסט",
+      "code": "קוד",
+      "link": "תווית",
+      "callout": "משהו שראוי להדגיש."
+    }
   }
 }

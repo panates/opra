@@ -218,5 +218,45 @@
     "info": "THÔNG TIN",
     "warning": "CẢNH BÁO",
     "danger": "NGUY HIỂM"
+  },
+  "studio": {
+    "edit": "Sửa",
+    "empty": "Thêm mô tả",
+    "save": "Lưu",
+    "cancel": "Huỷ",
+    "saving": "Đang lưu…",
+    "failed": "Không lưu được: {error}",
+    "foreign": "Được khai báo trong tài liệu khác — hãy sửa ở đó.",
+    "unstable": "Mục này không có định danh ổn định; hãy khai báo docKey, nếu không văn bản sẽ rời ra ngay khi khai báo được di chuyển.",
+    "todoTitle": "Chưa có tài liệu",
+    "todoEmpty": "Mọi thứ đều đã có tài liệu.",
+    "todoCount": "Đã viết {done}/{total}",
+    "viewWrite": "Nguồn",
+    "viewSplit": "Chia đôi",
+    "viewPreview": "Xem trước",
+    "previewEmpty": "Chưa có gì để xem trước.",
+    "callout": "Khung lưu ý",
+    "editing": "Ngôn ngữ đang được sửa",
+    "editingFile": "Đang sửa {file}",
+    "editingLanguage": "Ngôn ngữ đang sửa",
+    "addLanguage": "Thêm một ngôn ngữ…",
+    "tool": {
+      "bold": "Đậm",
+      "italic": "Nghiêng",
+      "code": "Mã trong dòng",
+      "heading": "Tiêu đề",
+      "quote": "Trích dẫn",
+      "ul": "Danh sách gạch đầu dòng",
+      "ol": "Danh sách đánh số",
+      "link": "Liên kết (dùng #/model/TênKiểu cho một kiểu)",
+      "codeblock": "Khối mã"
+    },
+    "sample": {
+      "boldText": "văn bản đậm",
+      "text": "văn bản",
+      "code": "mã",
+      "link": "nhãn",
+      "callout": "Điều đáng lưu ý."
+    }
   }
 }

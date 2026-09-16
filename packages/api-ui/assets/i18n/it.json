@@ -229,5 +229,45 @@
     "info": "INFO",
     "warning": "AVVISO",
     "danger": "PERICOLO"
+  },
+  "studio": {
+    "edit": "Modifica",
+    "empty": "Aggiungi una descrizione",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "saving": "Salvataggio…",
+    "failed": "Impossibile salvare: {error}",
+    "foreign": "Dichiarato in un altro documento — modificalo lì.",
+    "unstable": "Questa voce non ha un identificatore stabile; dichiara un docKey, altrimenti il testo si staccherà quando la dichiarazione verrà spostata.",
+    "todoTitle": "Non documentato",
+    "todoEmpty": "È tutto documentato.",
+    "todoCount": "{done} di {total} documentati",
+    "viewWrite": "Sorgente",
+    "viewSplit": "Diviso",
+    "viewPreview": "Anteprima",
+    "previewEmpty": "Non c'è ancora nulla da visualizzare.",
+    "callout": "Riquadro",
+    "editing": "La lingua in modifica",
+    "editingFile": "Modifica di {file}",
+    "editingLanguage": "Lingua modificata",
+    "addLanguage": "Aggiungi una lingua…",
+    "tool": {
+      "bold": "Grassetto",
+      "italic": "Corsivo",
+      "code": "Codice in linea",
+      "heading": "Titolo",
+      "quote": "Citazione",
+      "ul": "Elenco puntato",
+      "ol": "Elenco numerato",
+      "link": "Collegamento (usa #/model/NomeTipo per un tipo)",
+      "codeblock": "Blocco di codice"
+    },
+    "sample": {
+      "boldText": "testo in grassetto",
+      "text": "testo",
+      "code": "codice",
+      "link": "etichetta",
+      "callout": "Qualcosa che merita attenzione."
+    }
   }
 }

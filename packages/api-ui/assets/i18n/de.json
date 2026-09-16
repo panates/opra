@@ -229,5 +229,45 @@
     "info": "INFO",
     "warning": "WARNUNG",
     "danger": "GEFAHR"
+  },
+  "studio": {
+    "edit": "Bearbeiten",
+    "empty": "Beschreibung hinzufügen",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "saving": "Wird gespeichert…",
+    "failed": "Speichern fehlgeschlagen: {error}",
+    "foreign": "In einem anderen Dokument deklariert — dort bearbeiten.",
+    "unstable": "Dieser Eintrag hat keine stabile Kennung; deklarieren Sie einen docKey, sonst löst sich der Text, sobald die Deklaration verschoben wird.",
+    "todoTitle": "Nicht dokumentiert",
+    "todoEmpty": "Alles ist dokumentiert.",
+    "todoCount": "{done} von {total} dokumentiert",
+    "viewWrite": "Quelltext",
+    "viewSplit": "Geteilt",
+    "viewPreview": "Vorschau",
+    "previewEmpty": "Noch nichts zur Vorschau.",
+    "callout": "Hinweisblock",
+    "editing": "Die bearbeitete Sprache",
+    "editingFile": "{file} wird bearbeitet",
+    "editingLanguage": "Sprache bearbeiten",
+    "addLanguage": "Sprache hinzufügen…",
+    "tool": {
+      "bold": "Fett",
+      "italic": "Kursiv",
+      "code": "Inline-Code",
+      "heading": "Überschrift",
+      "quote": "Zitat",
+      "ul": "Aufzählung",
+      "ol": "Nummerierte Liste",
+      "link": "Link (für einen Typ #/model/TypName verwenden)",
+      "codeblock": "Codeblock"
+    },
+    "sample": {
+      "boldText": "fetter Text",
+      "text": "Text",
+      "code": "Code",
+      "link": "Beschriftung",
+      "callout": "Etwas, das Beachtung verdient."
+    }
   }
 }

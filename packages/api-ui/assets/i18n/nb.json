@@ -229,5 +229,45 @@
     "info": "INFO",
     "warning": "ADVARSEL",
     "danger": "FARE"
+  },
+  "studio": {
+    "edit": "Rediger",
+    "empty": "Legg til en beskrivelse",
+    "save": "Lagre",
+    "cancel": "Avbryt",
+    "saving": "Lagrer…",
+    "failed": "Kunne ikke lagre: {error}",
+    "foreign": "Deklarert i et annet dokument — rediger det der.",
+    "unstable": "Denne oppføringen har ingen stabil identifikator; deklarer en docKey, ellers løsner teksten så snart deklarasjonen flyttes.",
+    "todoTitle": "Udokumentert",
+    "todoEmpty": "Alt er dokumentert.",
+    "todoCount": "{done} av {total} dokumentert",
+    "viewWrite": "Kilde",
+    "viewSplit": "Delt",
+    "viewPreview": "Forhåndsvisning",
+    "previewEmpty": "Ingenting å forhåndsvise ennå.",
+    "callout": "Merknadsboks",
+    "editing": "Språket som redigeres",
+    "editingFile": "Redigerer {file}",
+    "editingLanguage": "Språk som redigeres",
+    "addLanguage": "Legg til et språk…",
+    "tool": {
+      "bold": "Fet",
+      "italic": "Kursiv",
+      "code": "Kode i tekst",
+      "heading": "Overskrift",
+      "quote": "Sitat",
+      "ul": "Punktliste",
+      "ol": "Nummerert liste",
+      "link": "Lenke (bruk #/model/TypeNavn for en type)",
+      "codeblock": "Kodeblokk"
+    },
+    "sample": {
+      "boldText": "fet tekst",
+      "text": "tekst",
+      "code": "kode",
+      "link": "etikett",
+      "callout": "Noe som er verdt å framheve."
+    }
   }
 }

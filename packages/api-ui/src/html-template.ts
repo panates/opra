@@ -92,6 +92,15 @@ export function renderApiUiHtml(
   const studio = options.authoring ? getStudioAssets() : undefined;
   const styleTag = `<style${nonceAttr}>${STYLES}${studio ? `\n${studio.styles}` : ''}${customCss ? `\n${customCss}` : ''}</style>`;
 
+  /* The editor's own vocabulary travels in the same per-language dictionary
+   * as the rest of the interface, so that choosing a language in the studio
+   * translates the editor along with the page. A reader never loads the
+   * editor, so a reader never carries its words either — shallow-copied
+   * rather than deleted in place, since `loadUiMessages` hands back a cached
+   * object shared with every other request. */
+  const messages = { ...loadUiMessages(uiLang) } as Record<string, unknown>;
+  if (!studio) delete messages.studio;
+
   // `logo` is `undefined` (not given) vs. explicit `null` (given, meaning
   // "show none") are different outcomes — only the former falls back to
   // OPRA's own logo, so this can't collapse to a single `options.logo ||
@@ -135,7 +144,7 @@ export function renderApiUiHtml(
     <div id="app"></div>
     <script${nonceAttr}>window.__OPRA_DOCS__ = ${serializeForScript(docs)};</script>
     <script${nonceAttr}>window.__OPRA_UI__ = ${serializeForScript(ui)};</script>
-    <script${nonceAttr}>window.__OPRA_I18N__ = ${serializeForScript(loadUiMessages(uiLang))};</script>
+    <script${nonceAttr}>window.__OPRA_I18N__ = ${serializeForScript(messages)};</script>
     <script${nonceAttr}>${VENDOR_MINISEARCH}</script>
     <script${nonceAttr}>${APP_SCRIPT}</script>${
       studio ? `\n    <script${nonceAttr}>${studio.script}</script>` : ''

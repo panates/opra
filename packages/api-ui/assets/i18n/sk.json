@@ -233,5 +233,45 @@
     "info": "INFORMÁCIA",
     "warning": "VAROVANIE",
     "danger": "NEBEZPEČENSTVO"
+  },
+  "studio": {
+    "edit": "Upraviť",
+    "empty": "Pridať popis",
+    "save": "Uložiť",
+    "cancel": "Zrušiť",
+    "saving": "Ukladanie…",
+    "failed": "Nepodarilo sa uložiť: {error}",
+    "foreign": "Deklarované v inom dokumente — upravte ho tam.",
+    "unstable": "Táto položka nemá stabilný identifikátor; deklarujte docKey, inak sa text odpojí, len čo sa deklarácia presunie.",
+    "todoTitle": "Nezdokumentované",
+    "todoEmpty": "Všetko je zdokumentované.",
+    "todoCount": "Zdokumentovaných {done} z {total}",
+    "viewWrite": "Zdroj",
+    "viewSplit": "Rozdelené",
+    "viewPreview": "Náhľad",
+    "previewEmpty": "Zatiaľ nie je čo zobraziť.",
+    "callout": "Rámček",
+    "editing": "Upravovaný jazyk",
+    "editingFile": "Upravuje sa {file}",
+    "editingLanguage": "Upravovaný jazyk",
+    "addLanguage": "Pridať jazyk…",
+    "tool": {
+      "bold": "Tučné",
+      "italic": "Kurzíva",
+      "code": "Kód v texte",
+      "heading": "Nadpis",
+      "quote": "Citácia",
+      "ul": "Zoznam s odrážkami",
+      "ol": "Číslovaný zoznam",
+      "link": "Odkaz (pre typ použite #/model/NázovTypu)",
+      "codeblock": "Blok kódu"
+    },
+    "sample": {
+      "boldText": "tučný text",
+      "text": "text",
+      "code": "kód",
+      "link": "popis",
+      "callout": "Niečo, čo si zaslúži pozornosť."
+    }
   }
 }

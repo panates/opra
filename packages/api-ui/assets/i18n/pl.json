@@ -233,5 +233,45 @@
     "info": "INFORMACJA",
     "warning": "OSTRZEŻENIE",
     "danger": "NIEBEZPIECZEŃSTWO"
+  },
+  "studio": {
+    "edit": "Edytuj",
+    "empty": "Dodaj opis",
+    "save": "Zapisz",
+    "cancel": "Anuluj",
+    "saving": "Zapisywanie…",
+    "failed": "Nie udało się zapisać: {error}",
+    "foreign": "Zadeklarowane w innym dokumencie — edytuj je tam.",
+    "unstable": "Ten wpis nie ma stabilnego identyfikatora; zadeklaruj docKey, inaczej tekst odłączy się po przeniesieniu deklaracji.",
+    "todoTitle": "Nieudokumentowane",
+    "todoEmpty": "Wszystko jest udokumentowane.",
+    "todoCount": "Udokumentowano {done} z {total}",
+    "viewWrite": "Źródło",
+    "viewSplit": "Podzielony",
+    "viewPreview": "Podgląd",
+    "previewEmpty": "Nie ma jeszcze czego podejrzeć.",
+    "callout": "Ramka informacyjna",
+    "editing": "Edytowany język",
+    "editingFile": "Edytowanie {file}",
+    "editingLanguage": "Edytowany język",
+    "addLanguage": "Dodaj język…",
+    "tool": {
+      "bold": "Pogrubienie",
+      "italic": "Kursywa",
+      "code": "Kod w tekście",
+      "heading": "Nagłówek",
+      "quote": "Cytat",
+      "ul": "Lista punktowana",
+      "ol": "Lista numerowana",
+      "link": "Odnośnik (dla typu użyj #/model/NazwaTypu)",
+      "codeblock": "Blok kodu"
+    },
+    "sample": {
+      "boldText": "pogrubiony tekst",
+      "text": "tekst",
+      "code": "kod",
+      "link": "etykieta",
+      "callout": "Coś, na co warto zwrócić uwagę."
+    }
   }
 }

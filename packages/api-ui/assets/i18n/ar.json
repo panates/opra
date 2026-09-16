@@ -255,5 +255,45 @@
     "info": "معلومة",
     "warning": "تحذير",
     "danger": "خطر"
+  },
+  "studio": {
+    "edit": "تحرير",
+    "empty": "أضف وصفًا",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "saving": "جارٍ الحفظ…",
+    "failed": "تعذّر الحفظ: {error}",
+    "foreign": "معرَّف في مستند آخر — حرّره هناك.",
+    "unstable": "لا يملك هذا المدخل معرّفًا ثابتًا؛ أعلِن docKey وإلا انفصل النص فور انتقال التعريف.",
+    "todoTitle": "غير موثّق",
+    "todoEmpty": "كل شيء موثّق.",
+    "todoCount": "{done} من {total} موثّقة",
+    "viewWrite": "المصدر",
+    "viewSplit": "مقسَّم",
+    "viewPreview": "معاينة",
+    "previewEmpty": "لا شيء للمعاينة بعد.",
+    "callout": "مربّع تنبيه",
+    "editing": "اللغة قيد التحرير",
+    "editingFile": "تحرير {file}",
+    "editingLanguage": "لغة التحرير",
+    "addLanguage": "أضف لغة…",
+    "tool": {
+      "bold": "عريض",
+      "italic": "مائل",
+      "code": "شفرة داخل السطر",
+      "heading": "عنوان",
+      "quote": "اقتباس",
+      "ul": "قائمة نقطية",
+      "ol": "قائمة مرقّمة",
+      "link": "رابط (استخدم ‎#/model/اسم_النوع‎ للنوع)",
+      "codeblock": "كتلة شفرة"
+    },
+    "sample": {
+      "boldText": "نص عريض",
+      "text": "نص",
+      "code": "شفرة",
+      "link": "تسمية",
+      "callout": "أمر يستحق التنويه."
+    }
   }
 }

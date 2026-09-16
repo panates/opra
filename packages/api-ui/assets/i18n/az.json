@@ -229,5 +229,45 @@
     "info": "MƏLUMAT",
     "warning": "XƏBƏRDARLIQ",
     "danger": "TƏHLÜKƏ"
+  },
+  "studio": {
+    "edit": "Redaktə et",
+    "empty": "Təsvir əlavə et",
+    "save": "Yadda saxla",
+    "cancel": "Ləğv et",
+    "saving": "Yadda saxlanılır…",
+    "failed": "Yadda saxlanmadı: {error}",
+    "foreign": "Başqa sənəddə elan edilib — oradan redaktə edin.",
+    "unstable": "Bu yazının sabit identifikatoru yoxdur; docKey elan edin, əks halda elan yerini dəyişdikdə mətn qopacaq.",
+    "todoTitle": "Sənədləşdirilməyib",
+    "todoEmpty": "Hər şey sənədləşdirilib.",
+    "todoCount": "{total} yazıdan {done} sənədləşdirilib",
+    "viewWrite": "Mənbə",
+    "viewSplit": "Bölünmüş",
+    "viewPreview": "Önbaxış",
+    "previewEmpty": "Hələ göstəriləcək bir şey yoxdur.",
+    "callout": "Qeyd qutusu",
+    "editing": "Redaktə olunan dil",
+    "editingFile": "{file} redaktə olunur",
+    "editingLanguage": "Redaktə dili",
+    "addLanguage": "Dil əlavə et…",
+    "tool": {
+      "bold": "Qalın",
+      "italic": "Kursiv",
+      "code": "Sətirdaxili kod",
+      "heading": "Başlıq",
+      "quote": "Sitat",
+      "ul": "Markerli siyahı",
+      "ol": "Nömrələnmiş siyahı",
+      "link": "Keçid (tip üçün #/model/TipAdı yazın)",
+      "codeblock": "Kod bloku"
+    },
+    "sample": {
+      "boldText": "qalın mətn",
+      "text": "mətn",
+      "code": "kod",
+      "link": "etiket",
+      "callout": "Diqqətə layiq bir şey."
+    }
   }
 }

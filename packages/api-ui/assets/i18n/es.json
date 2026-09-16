@@ -229,5 +229,45 @@
     "info": "INFORMACIÓN",
     "warning": "ADVERTENCIA",
     "danger": "PELIGRO"
+  },
+  "studio": {
+    "edit": "Editar",
+    "empty": "Añadir una descripción",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "saving": "Guardando…",
+    "failed": "No se pudo guardar: {error}",
+    "foreign": "Declarado en otro documento — edítalo allí.",
+    "unstable": "Esta entrada no tiene un identificador estable; declara un docKey o el texto se desprenderá cuando la declaración cambie de sitio.",
+    "todoTitle": "Sin documentar",
+    "todoEmpty": "Todo está documentado.",
+    "todoCount": "{done} de {total} documentados",
+    "viewWrite": "Fuente",
+    "viewSplit": "Dividido",
+    "viewPreview": "Vista previa",
+    "previewEmpty": "Todavía no hay nada que previsualizar.",
+    "callout": "Aviso",
+    "editing": "El idioma que se está editando",
+    "editingFile": "Editando {file}",
+    "editingLanguage": "Idioma editado",
+    "addLanguage": "Añadir un idioma…",
+    "tool": {
+      "bold": "Negrita",
+      "italic": "Cursiva",
+      "code": "Código en línea",
+      "heading": "Encabezado",
+      "quote": "Cita",
+      "ul": "Lista con viñetas",
+      "ol": "Lista numerada",
+      "link": "Enlace (usa #/model/NombreDeTipo para un tipo)",
+      "codeblock": "Bloque de código"
+    },
+    "sample": {
+      "boldText": "texto en negrita",
+      "text": "texto",
+      "code": "código",
+      "link": "etiqueta",
+      "callout": "Algo que merece destacarse."
+    }
   }
 }

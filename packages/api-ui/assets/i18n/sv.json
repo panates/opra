@@ -229,5 +229,45 @@
     "info": "INFO",
     "warning": "VARNING",
     "danger": "FARA"
+  },
+  "studio": {
+    "edit": "Redigera",
+    "empty": "Lägg till en beskrivning",
+    "save": "Spara",
+    "cancel": "Avbryt",
+    "saving": "Sparar…",
+    "failed": "Kunde inte spara: {error}",
+    "foreign": "Deklarerad i ett annat dokument — redigera den där.",
+    "unstable": "Den här posten saknar stabil identifierare; deklarera en docKey, annars lossnar texten så snart deklarationen flyttas.",
+    "todoTitle": "Odokumenterat",
+    "todoEmpty": "Allt är dokumenterat.",
+    "todoCount": "{done} av {total} dokumenterade",
+    "viewWrite": "Källa",
+    "viewSplit": "Delad",
+    "viewPreview": "Förhandsgranskning",
+    "previewEmpty": "Inget att förhandsgranska ännu.",
+    "callout": "Notisruta",
+    "editing": "Språket som redigeras",
+    "editingFile": "Redigerar {file}",
+    "editingLanguage": "Språk som redigeras",
+    "addLanguage": "Lägg till ett språk…",
+    "tool": {
+      "bold": "Fet",
+      "italic": "Kursiv",
+      "code": "Kod i text",
+      "heading": "Rubrik",
+      "quote": "Citat",
+      "ul": "Punktlista",
+      "ol": "Numrerad lista",
+      "link": "Länk (använd #/model/TypNamn för en typ)",
+      "codeblock": "Kodblock"
+    },
+    "sample": {
+      "boldText": "fet text",
+      "text": "text",
+      "code": "kod",
+      "link": "etikett",
+      "callout": "Något som är värt att lyfta fram."
+    }
   }
 }

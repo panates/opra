@@ -229,5 +229,45 @@
     "info": "INFÓ",
     "warning": "FIGYELMEZTETÉS",
     "danger": "VESZÉLY"
+  },
+  "studio": {
+    "edit": "Szerkesztés",
+    "empty": "Leírás hozzáadása",
+    "save": "Mentés",
+    "cancel": "Mégse",
+    "saving": "Mentés…",
+    "failed": "Nem sikerült menteni: {error}",
+    "foreign": "Egy másik dokumentumban van deklarálva — ott szerkessze.",
+    "unstable": "Ennek a bejegyzésnek nincs állandó azonosítója; adjon meg egy docKey-t, különben a szöveg leválik, amint a deklaráció elmozdul.",
+    "todoTitle": "Dokumentálatlan",
+    "todoEmpty": "Minden dokumentálva van.",
+    "todoCount": "{total} elemből {done} dokumentálva",
+    "viewWrite": "Forrás",
+    "viewSplit": "Osztott",
+    "viewPreview": "Előnézet",
+    "previewEmpty": "Még nincs mit megjeleníteni.",
+    "callout": "Kiemelt doboz",
+    "editing": "A szerkesztett nyelv",
+    "editingFile": "{file} szerkesztése",
+    "editingLanguage": "Szerkesztett nyelv",
+    "addLanguage": "Nyelv hozzáadása…",
+    "tool": {
+      "bold": "Félkövér",
+      "italic": "Dőlt",
+      "code": "Soron belüli kód",
+      "heading": "Címsor",
+      "quote": "Idézet",
+      "ul": "Felsorolás",
+      "ol": "Számozott lista",
+      "link": "Hivatkozás (típushoz használja: #/model/TípusNév)",
+      "codeblock": "Kódblokk"
+    },
+    "sample": {
+      "boldText": "félkövér szöveg",
+      "text": "szöveg",
+      "code": "kód",
+      "link": "felirat",
+      "callout": "Valami, ami figyelmet érdemel."
+    }
   }
 }

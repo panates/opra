@@ -22,39 +22,17 @@
 
   var api;
   var docs;
-  var messages = {
-    edit: 'Edit',
-    empty: 'Add a description',
-    save: 'Save',
-    cancel: 'Cancel',
-    saving: 'Saving…',
-    failed: 'Could not save: ',
-    foreign: 'Declared in another document — edit it there.',
-    inherited:
-      'Inherited from {type}. Saving here documents it for this type only.',
-    unstable:
-      'This entry has no stable identifier; declare a docKey or the text will detach when the declaration moves.',
-    todoTitle: 'Undocumented',
-    todoEmpty: 'Everything is documented.',
-    todoCount: '{done} of {total} documented',
-    viewWrite: 'Source',
-    viewSplit: 'Split',
-    viewPreview: 'Preview',
-    previewEmpty: 'Nothing to preview yet.',
-    callout: 'Callout',
-    editing: 'The language being edited',
-    editingFile: 'Editing {file}',
-    editingLanguage: 'Edit language',
-    bundleFile: '{lang}.json',
-    addLanguage: 'Add a language…',
-  };
 
-  function fmt(template, vars) {
-    return template.replace(/\{(\w+)\}/g, function (whole, name) {
-      return Object.prototype.hasOwnProperty.call(vars, name)
-        ? String(vars[name])
-        : whole;
-    });
+  /** The editor's own strings, from the same per-language dictionary as the
+   *  rest of the interface — so choosing a language in the badge translates
+   *  the editor with it. Everything here is under `studio.*`, which the
+   *  server leaves out of a normally served page entirely: a reader should
+   *  not carry the vocabulary of a tool they never load.
+   *
+   *  Resolved through the host rather than re-reading `window.__OPRA_I18N__`
+   *  so there is one lookup with one fallback rule, in `app.js`. */
+  function msg(key, vars) {
+    return api.t('studio.' + key, vars);
   }
 
   // ---------- reaching the schema node a key addresses ----------
@@ -270,13 +248,12 @@
   /* `separator` entries are rendered as a hairline; everything else is a
    * button. `key` is both the shortcut and what the tooltip advertises. */
   var TOOLS = [
-    { id: 'bold', title: 'Bold', key: 'B', run: w('**', '**', 'bold text') },
-    { id: 'italic', title: 'Italic', key: 'I', run: w('_', '_', 'text') },
-    { id: 'code', title: 'Inline code', run: w('`', '`', 'code') },
+    { id: 'bold', key: 'B', run: w('**', '**', 'boldText') },
+    { id: 'italic', key: 'I', run: w('_', '_', 'text') },
+    { id: 'code', run: w('`', '`', 'code') },
     { separator: true },
     {
       id: 'heading',
-      title: 'Heading',
       run: function (cm) {
         applyLine(cm, /^#{1,4}\s+/, function () {
           return '### ';
@@ -285,7 +262,6 @@
     },
     {
       id: 'quote',
-      title: 'Quote',
       run: function (cm) {
         applyLine(cm, /^>\s?/, function () {
           return '> ';
@@ -294,7 +270,6 @@
     },
     {
       id: 'ul',
-      title: 'Bulleted list',
       run: function (cm) {
         applyLine(cm, /^[-*]\s+/, function () {
           return '- ';
@@ -303,7 +278,6 @@
     },
     {
       id: 'ol',
-      title: 'Numbered list',
       run: function (cm) {
         applyLine(cm, /^\d+\.\s+/, function (i) {
           return i + 1 + '. ';
@@ -313,23 +287,24 @@
     { separator: true },
     {
       id: 'link',
-      title: 'Link (use #/model/TypeName for a type)',
       key: 'K',
       run: w('[', '](#/model/TypeName)', 'label'),
     },
     {
       id: 'codeblock',
-      title: 'Code block',
       run: function (cm) {
-        applyBlock(cm, '```', '```', 'code');
+        applyBlock(cm, '```', '```', msg('sample.code'));
       },
     },
     { id: 'callout', menu: ADMONITIONS },
   ];
 
-  function w(before, after, placeholder) {
+  /** `sample` names a placeholder in the dictionary, resolved when the
+   *  button is pressed rather than when this table is built — the text goes
+   *  into the author's prose, so it belongs in their language. */
+  function w(before, after, sample) {
     return function (cm) {
-      applyWrap(cm, before, after, placeholder);
+      applyWrap(cm, before, after, msg('sample.' + sample));
     };
   }
 
@@ -389,9 +364,9 @@
     views.className = 'studio-views';
     var viewButtons = {};
     [
-      ['write', messages.viewWrite],
-      ['split', messages.viewSplit],
-      ['preview', messages.viewPreview],
+      ['write', msg('viewWrite')],
+      ['split', msg('viewSplit')],
+      ['preview', msg('viewPreview')],
     ].forEach(function (entry) {
       var btn = document.createElement('button');
       btn.type = 'button';
@@ -424,8 +399,9 @@
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'studio-tool';
-      btn.title = tool.key ? tool.title + ' (⌘' + tool.key + ')' : tool.title;
-      btn.setAttribute('aria-label', tool.title);
+      var label = msg('tool.' + tool.id);
+      btn.title = tool.key ? label + ' (⌘' + tool.key + ')' : label;
+      btn.setAttribute('aria-label', label);
       btn.appendChild(icon(tool.id));
       btn.addEventListener('mousedown', function (ev) {
         // Keep the caret where it is: a toolbar button must never be what
@@ -448,8 +424,8 @@
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'studio-tool';
-      btn.title = messages.callout;
-      btn.setAttribute('aria-label', messages.callout);
+      btn.title = msg('callout');
+      btn.setAttribute('aria-label', msg('callout'));
       btn.appendChild(icon('callout'));
       btn.appendChild(icon('caret', 11));
       var menu = document.createElement('div');
@@ -462,18 +438,16 @@
         glyph.className = 'studio-menu-icon';
         glyph.innerHTML = (api.admonitionIcons || {})[kind] || '';
         item.appendChild(glyph);
-        item.appendChild(document.createTextNode(kind));
+        // The heading the callout will actually carry, from the page's own
+        // dictionary — so the menu reads "İPUCU" next to the tip icon rather
+        // than naming the syntax.
+        item.appendChild(document.createTextNode(api.t('admonition.' + kind)));
         item.addEventListener('mousedown', function (ev) {
           ev.preventDefault();
         });
         item.addEventListener('click', function () {
           holder.classList.remove('open');
-          applyBlock(
-            editor,
-            ':::' + kind,
-            ':::',
-            'Something worth calling out.',
-          );
+          applyBlock(editor, ':::' + kind, ':::', msg('sample.callout'));
         });
         menu.appendChild(item);
       });
@@ -515,17 +489,17 @@
     var status = document.createElement('span');
     status.className = 'studio-status';
     if (target.hasAttribute('data-doc-unstable')) {
-      status.textContent = messages.unstable;
+      status.textContent = msg('unstable');
       status.className += ' warn';
     }
     var saveBtn = document.createElement('button');
     saveBtn.type = 'button';
     saveBtn.className = 'studio-save';
-    saveBtn.textContent = messages.save;
+    saveBtn.textContent = msg('save');
     var cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.className = 'studio-cancel';
-    cancelBtn.textContent = messages.cancel;
+    cancelBtn.textContent = msg('cancel');
     foot.appendChild(status);
     foot.appendChild(cancelBtn);
     foot.appendChild(saveBtn);
@@ -592,7 +566,7 @@
       }
       var empty = document.createElement('div');
       empty.className = 'studio-preview-empty';
-      empty.textContent = messages.previewEmpty;
+      empty.textContent = msg('previewEmpty');
       previewPane.appendChild(empty);
     }
 
@@ -626,7 +600,7 @@
 
     function commit() {
       var value = editor.getValue();
-      status.textContent = messages.saving;
+      status.textContent = msg('saving');
       status.className = 'studio-status';
       saveBtn.disabled = true;
       save(key, field, value).then(
@@ -648,7 +622,7 @@
         },
         function (e) {
           saveBtn.disabled = false;
-          status.textContent = messages.failed + e.message;
+          status.textContent = msg('failed', { error: e.message });
           status.className = 'studio-status warn';
         },
       );
@@ -672,15 +646,15 @@
       block.classList.add('studio-marked');
       if (block.hasAttribute('data-doc-empty')) {
         block.classList.add('studio-empty');
-        block.textContent = messages.empty;
+        block.textContent = msg('empty');
       }
       if (block.hasAttribute('data-doc-foreign')) {
         block.classList.add('studio-readonly');
-        block.title = messages.foreign;
+        block.title = msg('foreign');
         return;
       }
       block.classList.add('studio-editable');
-      block.title = messages.edit;
+      block.title = msg('edit');
       var pencil = document.createElement('span');
       pencil.className = 'studio-pencil';
       pencil.appendChild(icon('pencil', 12));
@@ -765,7 +739,7 @@
     });
     var body = todoPanel.querySelector('.studio-todo-body');
     var count = todoPanel.querySelector('.studio-todo-count');
-    count.textContent = fmt(messages.todoCount, {
+    count.textContent = msg('todoCount', {
       done: slots.length - missing.length,
       total: slots.length,
     });
@@ -773,7 +747,7 @@
     if (!missing.length) {
       var done = document.createElement('div');
       done.className = 'studio-todo-empty';
-      done.textContent = messages.todoEmpty;
+      done.textContent = msg('todoEmpty');
       body.appendChild(done);
       return;
     }
@@ -808,7 +782,7 @@
     var head = document.createElement('div');
     head.className = 'studio-todo-head';
     var title = document.createElement('span');
-    title.textContent = messages.todoTitle;
+    title.textContent = msg('todoTitle');
     var count = document.createElement('span');
     count.className = 'studio-todo-count';
     head.appendChild(title);
@@ -910,7 +884,7 @@
     row.className = 'studio-lang-add';
     var input = document.createElement('input');
     input.type = 'text';
-    input.placeholder = messages.addLanguage;
+    input.placeholder = msg('addLanguage');
     input.spellcheck = false;
     var list = document.createElement('div');
     list.className = 'studio-lang-options';
@@ -1029,8 +1003,8 @@
     badge.className = 'studio-lang';
     if (badge.tagName === 'BUTTON') badge.type = 'button';
     badge.title = authoring.file
-      ? fmt(messages.editingFile, { file: authoring.file })
-      : messages.editing;
+      ? msg('editingFile', { file: authoring.file })
+      : msg('editing');
     badge.appendChild(icon('pencil', 11));
     var code = document.createElement('span');
     code.textContent = authoring.lang.toUpperCase();
@@ -1044,7 +1018,7 @@
     menu.className = 'studio-menu studio-lang-menu';
     var label = document.createElement('div');
     label.className = 'studio-menu-label';
-    label.textContent = messages.editingLanguage;
+    label.textContent = msg('editingLanguage');
     menu.appendChild(label);
     languages.forEach(function (tag) {
       var item = document.createElement('button');
@@ -1057,9 +1031,7 @@
       itemCode.className = 'studio-lang-code';
       itemCode.textContent = tag.toUpperCase();
       item.appendChild(itemCode);
-      item.appendChild(
-        document.createTextNode(fmt(messages.bundleFile, { lang: tag })),
-      );
+      item.appendChild(document.createTextNode(tag + '.json'));
       item.addEventListener('click', function () {
         /* A full load, not a swap: the prose, the interface language and the
          * bundle the editor writes to all change together, and the server is

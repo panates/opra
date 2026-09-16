@@ -218,5 +218,45 @@
     "info": "情報",
     "warning": "警告",
     "danger": "危険"
+  },
+  "studio": {
+    "edit": "編集",
+    "empty": "説明を追加",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "saving": "保存中…",
+    "failed": "保存できませんでした: {error}",
+    "foreign": "別のドキュメントで宣言されています — そちらで編集してください。",
+    "unstable": "この項目には安定した識別子がありません。docKey を宣言してください。宣言が移動すると文章が切り離されます。",
+    "todoTitle": "未記載",
+    "todoEmpty": "すべて記載済みです。",
+    "todoCount": "{total} 件中 {done} 件を記載",
+    "viewWrite": "ソース",
+    "viewSplit": "分割",
+    "viewPreview": "プレビュー",
+    "previewEmpty": "プレビューするものがまだありません。",
+    "callout": "補足ボックス",
+    "editing": "編集中の言語",
+    "editingFile": "{file} を編集中",
+    "editingLanguage": "編集する言語",
+    "addLanguage": "言語を追加…",
+    "tool": {
+      "bold": "太字",
+      "italic": "斜体",
+      "code": "インラインコード",
+      "heading": "見出し",
+      "quote": "引用",
+      "ul": "箇条書き",
+      "ol": "番号付きリスト",
+      "link": "リンク（型には #/model/型名 を使います）",
+      "codeblock": "コードブロック"
+    },
+    "sample": {
+      "boldText": "太字のテキスト",
+      "text": "テキスト",
+      "code": "コード",
+      "link": "ラベル",
+      "callout": "注目に値することがら。"
+    }
   }
 }

@@ -218,5 +218,45 @@
     "info": "INFO",
     "warning": "PERINGATAN",
     "danger": "BAHAYA"
+  },
+  "studio": {
+    "edit": "Edit",
+    "empty": "Tambahkan deskripsi",
+    "save": "Simpan",
+    "cancel": "Batal",
+    "saving": "Menyimpan…",
+    "failed": "Gagal menyimpan: {error}",
+    "foreign": "Dideklarasikan di dokumen lain — edit di sana.",
+    "unstable": "Entri ini tidak punya pengenal tetap; deklarasikan docKey, kalau tidak teksnya akan terlepas begitu deklarasinya berpindah.",
+    "todoTitle": "Belum didokumentasikan",
+    "todoEmpty": "Semuanya sudah didokumentasikan.",
+    "todoCount": "{done} dari {total} terdokumentasi",
+    "viewWrite": "Sumber",
+    "viewSplit": "Terbagi",
+    "viewPreview": "Pratinjau",
+    "previewEmpty": "Belum ada yang bisa dipratinjau.",
+    "callout": "Kotak sorotan",
+    "editing": "Bahasa yang sedang diedit",
+    "editingFile": "Mengedit {file}",
+    "editingLanguage": "Bahasa yang diedit",
+    "addLanguage": "Tambahkan bahasa…",
+    "tool": {
+      "bold": "Tebal",
+      "italic": "Miring",
+      "code": "Kode sebaris",
+      "heading": "Judul",
+      "quote": "Kutipan",
+      "ul": "Daftar berpoin",
+      "ol": "Daftar bernomor",
+      "link": "Tautan (gunakan #/model/NamaTipe untuk sebuah tipe)",
+      "codeblock": "Blok kode"
+    },
+    "sample": {
+      "boldText": "teks tebal",
+      "text": "teks",
+      "code": "kode",
+      "link": "label",
+      "callout": "Sesuatu yang layak disorot."
+    }
   }
 }

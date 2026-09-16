@@ -229,5 +229,45 @@
     "info": "INFO",
     "warning": "AVERTISSEMENT",
     "danger": "DANGER"
+  },
+  "studio": {
+    "edit": "Modifier",
+    "empty": "Ajouter une description",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "saving": "Enregistrement…",
+    "failed": "Échec de l'enregistrement : {error}",
+    "foreign": "Déclaré dans un autre document — modifiez-le là-bas.",
+    "unstable": "Cette entrée n'a pas d'identifiant stable ; déclarez un docKey, sinon le texte se détachera dès que la déclaration sera déplacée.",
+    "todoTitle": "Non documenté",
+    "todoEmpty": "Tout est documenté.",
+    "todoCount": "{done} sur {total} documentés",
+    "viewWrite": "Source",
+    "viewSplit": "Partagé",
+    "viewPreview": "Aperçu",
+    "previewEmpty": "Rien à prévisualiser pour l'instant.",
+    "callout": "Encadré",
+    "editing": "La langue en cours de modification",
+    "editingFile": "Modification de {file}",
+    "editingLanguage": "Langue modifiée",
+    "addLanguage": "Ajouter une langue…",
+    "tool": {
+      "bold": "Gras",
+      "italic": "Italique",
+      "code": "Code en ligne",
+      "heading": "Titre",
+      "quote": "Citation",
+      "ul": "Liste à puces",
+      "ol": "Liste numérotée",
+      "link": "Lien (utilisez #/model/NomDuType pour un type)",
+      "codeblock": "Bloc de code"
+    },
+    "sample": {
+      "boldText": "texte en gras",
+      "text": "texte",
+      "code": "code",
+      "link": "libellé",
+      "callout": "Quelque chose qui mérite d'être signalé."
+    }
   }
 }

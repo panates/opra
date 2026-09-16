@@ -218,5 +218,45 @@
     "info": "說明",
     "warning": "警告",
     "danger": "危險"
+  },
+  "studio": {
+    "edit": "編輯",
+    "empty": "新增描述",
+    "save": "儲存",
+    "cancel": "取消",
+    "saving": "正在儲存…",
+    "failed": "儲存失敗：{error}",
+    "foreign": "在另一份文件中宣告 — 請到那裡編輯。",
+    "unstable": "此項目沒有穩定識別碼；請宣告 docKey，否則宣告一移動，文字就會脫落。",
+    "todoTitle": "未撰寫",
+    "todoEmpty": "全部都已撰寫。",
+    "todoCount": "已撰寫 {done}/{total}",
+    "viewWrite": "原始碼",
+    "viewSplit": "分割",
+    "viewPreview": "預覽",
+    "previewEmpty": "目前沒有可預覽的內容。",
+    "callout": "提示框",
+    "editing": "正在編輯的語言",
+    "editingFile": "正在編輯 {file}",
+    "editingLanguage": "編輯語言",
+    "addLanguage": "新增語言…",
+    "tool": {
+      "bold": "粗體",
+      "italic": "斜體",
+      "code": "行內程式碼",
+      "heading": "標題",
+      "quote": "引用",
+      "ul": "項目符號清單",
+      "ol": "編號清單",
+      "link": "連結（型別請用 #/model/型別名稱）",
+      "codeblock": "程式碼區塊"
+    },
+    "sample": {
+      "boldText": "粗體文字",
+      "text": "文字",
+      "code": "程式碼",
+      "link": "標籤",
+      "callout": "值得特別說明的內容。"
+    }
   }
 }

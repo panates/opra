@@ -218,5 +218,45 @@
     "info": "정보",
     "warning": "경고",
     "danger": "위험"
+  },
+  "studio": {
+    "edit": "편집",
+    "empty": "설명 추가",
+    "save": "저장",
+    "cancel": "취소",
+    "saving": "저장 중…",
+    "failed": "저장하지 못했습니다: {error}",
+    "foreign": "다른 문서에서 선언되었습니다 — 그쪽에서 편집하세요.",
+    "unstable": "이 항목에는 안정적인 식별자가 없습니다. docKey를 선언하지 않으면 선언이 옮겨질 때 텍스트가 떨어져 나갑니다.",
+    "todoTitle": "설명 없음",
+    "todoEmpty": "모두 작성되었습니다.",
+    "todoCount": "{total}개 중 {done}개 작성됨",
+    "viewWrite": "원본",
+    "viewSplit": "분할",
+    "viewPreview": "미리보기",
+    "previewEmpty": "아직 미리 볼 내용이 없습니다.",
+    "callout": "강조 상자",
+    "editing": "편집 중인 언어",
+    "editingFile": "{file} 편집 중",
+    "editingLanguage": "편집 언어",
+    "addLanguage": "언어 추가…",
+    "tool": {
+      "bold": "굵게",
+      "italic": "기울임",
+      "code": "인라인 코드",
+      "heading": "제목",
+      "quote": "인용",
+      "ul": "글머리 기호 목록",
+      "ol": "번호 매기기 목록",
+      "link": "링크 (타입은 #/model/타입이름 사용)",
+      "codeblock": "코드 블록"
+    },
+    "sample": {
+      "boldText": "굵은 텍스트",
+      "text": "텍스트",
+      "code": "코드",
+      "link": "레이블",
+      "callout": "짚고 넘어갈 만한 내용."
+    }
   }
 }

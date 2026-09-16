@@ -218,5 +218,45 @@
     "info": "MAKLUMAT",
     "warning": "AMARAN",
     "danger": "BAHAYA"
+  },
+  "studio": {
+    "edit": "Sunting",
+    "empty": "Tambah penerangan",
+    "save": "Simpan",
+    "cancel": "Batal",
+    "saving": "Menyimpan…",
+    "failed": "Gagal menyimpan: {error}",
+    "foreign": "Diisytiharkan dalam dokumen lain — sunting di sana.",
+    "unstable": "Entri ini tiada pengecam tetap; isytiharkan docKey, jika tidak teksnya akan terlerai sebaik sahaja pengisytiharan berpindah.",
+    "todoTitle": "Tidak didokumentasikan",
+    "todoEmpty": "Semuanya telah didokumentasikan.",
+    "todoCount": "{done} daripada {total} didokumentasikan",
+    "viewWrite": "Sumber",
+    "viewSplit": "Terbahagi",
+    "viewPreview": "Pratonton",
+    "previewEmpty": "Belum ada apa-apa untuk dipratonton.",
+    "callout": "Kotak perhatian",
+    "editing": "Bahasa yang sedang disunting",
+    "editingFile": "Menyunting {file}",
+    "editingLanguage": "Bahasa suntingan",
+    "addLanguage": "Tambah bahasa…",
+    "tool": {
+      "bold": "Tebal",
+      "italic": "Condong",
+      "code": "Kod sebaris",
+      "heading": "Tajuk",
+      "quote": "Petikan",
+      "ul": "Senarai berbulet",
+      "ol": "Senarai bernombor",
+      "link": "Pautan (guna #/model/NamaJenis untuk sesuatu jenis)",
+      "codeblock": "Blok kod"
+    },
+    "sample": {
+      "boldText": "teks tebal",
+      "text": "teks",
+      "code": "kod",
+      "link": "label",
+      "callout": "Sesuatu yang wajar ditonjolkan."
+    }
   }
 }

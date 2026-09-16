@@ -218,5 +218,45 @@
     "info": "说明",
     "warning": "警告",
     "danger": "危险"
+  },
+  "studio": {
+    "edit": "编辑",
+    "empty": "添加描述",
+    "save": "保存",
+    "cancel": "取消",
+    "saving": "正在保存…",
+    "failed": "保存失败：{error}",
+    "foreign": "在另一个文档中声明 — 请到那里编辑。",
+    "unstable": "此条目没有稳定标识；请声明 docKey，否则声明位置一变，文本就会脱落。",
+    "todoTitle": "未编写",
+    "todoEmpty": "全部已编写。",
+    "todoCount": "已编写 {done}/{total}",
+    "viewWrite": "源码",
+    "viewSplit": "分栏",
+    "viewPreview": "预览",
+    "previewEmpty": "暂无可预览的内容。",
+    "callout": "提示框",
+    "editing": "正在编辑的语言",
+    "editingFile": "正在编辑 {file}",
+    "editingLanguage": "编辑语言",
+    "addLanguage": "添加语言…",
+    "tool": {
+      "bold": "粗体",
+      "italic": "斜体",
+      "code": "行内代码",
+      "heading": "标题",
+      "quote": "引用",
+      "ul": "无序列表",
+      "ol": "有序列表",
+      "link": "链接（类型请用 #/model/类型名）",
+      "codeblock": "代码块"
+    },
+    "sample": {
+      "boldText": "粗体文字",
+      "text": "文字",
+      "code": "代码",
+      "link": "标签",
+      "callout": "值得特别说明的内容。"
+    }
   }
 }

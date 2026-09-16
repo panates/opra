@@ -231,5 +231,45 @@
     "info": "INFO",
     "warning": "AVERTISMENT",
     "danger": "PERICOL"
+  },
+  "studio": {
+    "edit": "Editează",
+    "empty": "Adaugă o descriere",
+    "save": "Salvează",
+    "cancel": "Anulează",
+    "saving": "Se salvează…",
+    "failed": "Nu s-a putut salva: {error}",
+    "foreign": "Declarat în alt document — editează-l acolo.",
+    "unstable": "Această intrare nu are un identificator stabil; declară un docKey, altfel textul se va desprinde când declarația se mută.",
+    "todoTitle": "Nedocumentat",
+    "todoEmpty": "Totul este documentat.",
+    "todoCount": "{done} din {total} documentate",
+    "viewWrite": "Sursă",
+    "viewSplit": "Împărțit",
+    "viewPreview": "Previzualizare",
+    "previewEmpty": "Încă nu este nimic de previzualizat.",
+    "callout": "Casetă de atenționare",
+    "editing": "Limba editată",
+    "editingFile": "Se editează {file}",
+    "editingLanguage": "Limba editată",
+    "addLanguage": "Adaugă o limbă…",
+    "tool": {
+      "bold": "Aldin",
+      "italic": "Cursiv",
+      "code": "Cod în text",
+      "heading": "Titlu",
+      "quote": "Citat",
+      "ul": "Listă cu marcatori",
+      "ol": "Listă numerotată",
+      "link": "Legătură (pentru un tip folosește #/model/NumeTip)",
+      "codeblock": "Bloc de cod"
+    },
+    "sample": {
+      "boldText": "text aldin",
+      "text": "text",
+      "code": "cod",
+      "link": "etichetă",
+      "callout": "Ceva ce merită semnalat."
+    }
   }
 }

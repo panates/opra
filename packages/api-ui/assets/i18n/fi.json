@@ -229,5 +229,45 @@
     "info": "TIETOA",
     "warning": "VAROITUS",
     "danger": "VAARA"
+  },
+  "studio": {
+    "edit": "Muokkaa",
+    "empty": "Lisää kuvaus",
+    "save": "Tallenna",
+    "cancel": "Peruuta",
+    "saving": "Tallennetaan…",
+    "failed": "Tallennus epäonnistui: {error}",
+    "foreign": "Määritelty toisessa dokumentissa — muokkaa sitä siellä.",
+    "unstable": "Tällä merkinnällä ei ole pysyvää tunnistetta; määrittele docKey, tai teksti irtoaa heti kun määrittely siirtyy.",
+    "todoTitle": "Dokumentoimatta",
+    "todoEmpty": "Kaikki on dokumentoitu.",
+    "todoCount": "{done} / {total} dokumentoitu",
+    "viewWrite": "Lähde",
+    "viewSplit": "Jaettu",
+    "viewPreview": "Esikatselu",
+    "previewEmpty": "Ei vielä esikatseltavaa.",
+    "callout": "Huomiolaatikko",
+    "editing": "Muokattava kieli",
+    "editingFile": "Muokataan tiedostoa {file}",
+    "editingLanguage": "Muokattava kieli",
+    "addLanguage": "Lisää kieli…",
+    "tool": {
+      "bold": "Lihavointi",
+      "italic": "Kursivointi",
+      "code": "Tekstinsisäinen koodi",
+      "heading": "Otsikko",
+      "quote": "Lainaus",
+      "ul": "Luettelo",
+      "ol": "Numeroitu luettelo",
+      "link": "Linkki (tyypille käytä #/model/TyypinNimi)",
+      "codeblock": "Koodilohko"
+    },
+    "sample": {
+      "boldText": "lihavoitu teksti",
+      "text": "teksti",
+      "code": "koodi",
+      "link": "nimike",
+      "callout": "Jotain huomionarvoista."
+    }
   }
 }

@@ -229,5 +229,45 @@
     "info": "INFO",
     "warning": "ADVARSEL",
     "danger": "FARE"
+  },
+  "studio": {
+    "edit": "Rediger",
+    "empty": "Tilføj en beskrivelse",
+    "save": "Gem",
+    "cancel": "Annuller",
+    "saving": "Gemmer…",
+    "failed": "Kunne ikke gemme: {error}",
+    "foreign": "Erklæret i et andet dokument — rediger det der.",
+    "unstable": "Denne post har ingen stabil identifikator; erklær en docKey, ellers løsner teksten sig, så snart erklæringen flyttes.",
+    "todoTitle": "Udokumenteret",
+    "todoEmpty": "Alt er dokumenteret.",
+    "todoCount": "{done} af {total} dokumenteret",
+    "viewWrite": "Kilde",
+    "viewSplit": "Delt",
+    "viewPreview": "Forhåndsvisning",
+    "previewEmpty": "Der er endnu ikke noget at vise.",
+    "callout": "Infoboks",
+    "editing": "Sproget der redigeres",
+    "editingFile": "Redigerer {file}",
+    "editingLanguage": "Sprog der redigeres",
+    "addLanguage": "Tilføj et sprog…",
+    "tool": {
+      "bold": "Fed",
+      "italic": "Kursiv",
+      "code": "Kode i tekst",
+      "heading": "Overskrift",
+      "quote": "Citat",
+      "ul": "Punktliste",
+      "ol": "Nummereret liste",
+      "link": "Link (brug #/model/TypeNavn til en type)",
+      "codeblock": "Kodeblok"
+    },
+    "sample": {
+      "boldText": "fed tekst",
+      "text": "tekst",
+      "code": "kode",
+      "link": "etiket",
+      "callout": "Noget der er værd at fremhæve."
+    }
   }
 }

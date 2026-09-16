@@ -229,5 +229,45 @@
     "info": "INFO",
     "warning": "WAARSCHUWING",
     "danger": "GEVAAR"
+  },
+  "studio": {
+    "edit": "Bewerken",
+    "empty": "Een beschrijving toevoegen",
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "saving": "Bezig met opslaan…",
+    "failed": "Opslaan mislukt: {error}",
+    "foreign": "Gedeclareerd in een ander document — bewerk het daar.",
+    "unstable": "Dit item heeft geen stabiele identificatie; declareer een docKey, anders raakt de tekst los zodra de declaratie verplaatst wordt.",
+    "todoTitle": "Niet gedocumenteerd",
+    "todoEmpty": "Alles is gedocumenteerd.",
+    "todoCount": "{done} van {total} gedocumenteerd",
+    "viewWrite": "Bron",
+    "viewSplit": "Gesplitst",
+    "viewPreview": "Voorbeeld",
+    "previewEmpty": "Nog niets om te tonen.",
+    "callout": "Aandachtsblok",
+    "editing": "De taal die bewerkt wordt",
+    "editingFile": "{file} bewerken",
+    "editingLanguage": "Bewerkte taal",
+    "addLanguage": "Een taal toevoegen…",
+    "tool": {
+      "bold": "Vet",
+      "italic": "Cursief",
+      "code": "Inline-code",
+      "heading": "Kop",
+      "quote": "Citaat",
+      "ul": "Opsomming",
+      "ol": "Genummerde lijst",
+      "link": "Link (gebruik #/model/TypeNaam voor een type)",
+      "codeblock": "Codeblok"
+    },
+    "sample": {
+      "boldText": "vetgedrukte tekst",
+      "text": "tekst",
+      "code": "code",
+      "link": "label",
+      "callout": "Iets dat de aandacht verdient."
+    }
   }
 }

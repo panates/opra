@@ -229,5 +229,45 @@
     "info": "INFO",
     "warning": "WARNING",
     "danger": "DANGER"
+  },
+  "studio": {
+    "edit": "Edit",
+    "empty": "Add a description",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "failed": "Could not save: {error}",
+    "foreign": "Declared in another document — edit it there.",
+    "unstable": "This entry has no stable identifier; declare a docKey or the text will detach when the declaration moves.",
+    "todoTitle": "Undocumented",
+    "todoEmpty": "Everything is documented.",
+    "todoCount": "{done} of {total} documented",
+    "viewWrite": "Source",
+    "viewSplit": "Split",
+    "viewPreview": "Preview",
+    "previewEmpty": "Nothing to preview yet.",
+    "callout": "Callout",
+    "editing": "The language being edited",
+    "editingFile": "Editing {file}",
+    "editingLanguage": "Edit language",
+    "addLanguage": "Add a language…",
+    "tool": {
+      "bold": "Bold",
+      "italic": "Italic",
+      "code": "Inline code",
+      "heading": "Heading",
+      "quote": "Quote",
+      "ul": "Bulleted list",
+      "ol": "Numbered list",
+      "link": "Link (use #/model/TypeName for a type)",
+      "codeblock": "Code block"
+    },
+    "sample": {
+      "boldText": "bold text",
+      "text": "text",
+      "code": "code",
+      "link": "label",
+      "callout": "Something worth calling out."
+    }
   }
 }

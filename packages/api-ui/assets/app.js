@@ -6169,6 +6169,11 @@
         /* So the toolbar's callout menu can offer each admonition under the
          * icon it will actually render with. */
         admonitionIcons: ADMONITION_ICONS,
+        /* The studio's own strings live in the same per-language dictionary
+         * as the rest of the interface (under `studio.*`, which the server
+         * omits entirely unless the page is in authoring mode), so picking a
+         * language translates the editor along with everything else. */
+        t: t,
       };
     }
     render();

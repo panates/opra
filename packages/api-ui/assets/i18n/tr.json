@@ -229,5 +229,45 @@
     "info": "BİLGİ",
     "warning": "UYARI",
     "danger": "TEHLİKE"
+  },
+  "studio": {
+    "edit": "Düzenle",
+    "empty": "Bir açıklama ekle",
+    "save": "Kaydet",
+    "cancel": "Vazgeç",
+    "saving": "Kaydediliyor…",
+    "failed": "Kaydedilemedi: {error}",
+    "foreign": "Başka bir dokümanda tanımlı — oradan düzenleyin.",
+    "unstable": "Bu girdinin kalıcı bir kimliği yok; bir docKey tanımlayın, yoksa tanım yer değiştirdiğinde metin kopar.",
+    "todoTitle": "Belgelenmemiş",
+    "todoEmpty": "Her şey belgelenmiş.",
+    "todoCount": "{total} girdinin {done} tanesi belgelenmiş",
+    "viewWrite": "Kaynak",
+    "viewSplit": "Bölünmüş",
+    "viewPreview": "Önizleme",
+    "previewEmpty": "Henüz önizlenecek bir şey yok.",
+    "callout": "Bilgi kutusu",
+    "editing": "Düzenlenen dil",
+    "editingFile": "{file} düzenleniyor",
+    "editingLanguage": "Düzenlenen dil",
+    "addLanguage": "Dil ekle…",
+    "tool": {
+      "bold": "Kalın",
+      "italic": "İtalik",
+      "code": "Satır içi kod",
+      "heading": "Başlık",
+      "quote": "Alıntı",
+      "ul": "Madde işaretli liste",
+      "ol": "Numaralı liste",
+      "link": "Bağlantı (tip için #/model/TipAdı kullanın)",
+      "codeblock": "Kod bloğu"
+    },
+    "sample": {
+      "boldText": "kalın metin",
+      "text": "metin",
+      "code": "kod",
+      "link": "etiket",
+      "callout": "Dikkat çekmeye değer bir şey."
+    }
   }
 }

@@ -229,5 +229,45 @@
     "info": "INFORMAÇÃO",
     "warning": "AVISO",
     "danger": "PERIGO"
+  },
+  "studio": {
+    "edit": "Editar",
+    "empty": "Adicionar uma descrição",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "saving": "A guardar…",
+    "failed": "Não foi possível guardar: {error}",
+    "foreign": "Declarado noutro documento — edite-o lá.",
+    "unstable": "Esta entrada não tem um identificador estável; declare um docKey ou o texto soltar-se-á quando a declaração mudar de sítio.",
+    "todoTitle": "Sem documentação",
+    "todoEmpty": "Está tudo documentado.",
+    "todoCount": "{done} de {total} documentados",
+    "viewWrite": "Fonte",
+    "viewSplit": "Dividido",
+    "viewPreview": "Pré-visualização",
+    "previewEmpty": "Ainda não há nada para pré-visualizar.",
+    "callout": "Caixa de destaque",
+    "editing": "O idioma a ser editado",
+    "editingFile": "A editar {file}",
+    "editingLanguage": "Idioma editado",
+    "addLanguage": "Adicionar um idioma…",
+    "tool": {
+      "bold": "Negrito",
+      "italic": "Itálico",
+      "code": "Código em linha",
+      "heading": "Título",
+      "quote": "Citação",
+      "ul": "Lista com marcadores",
+      "ol": "Lista numerada",
+      "link": "Ligação (use #/model/NomeDoTipo para um tipo)",
+      "codeblock": "Bloco de código"
+    },
+    "sample": {
+      "boldText": "texto a negrito",
+      "text": "texto",
+      "code": "código",
+      "link": "rótulo",
+      "callout": "Algo que merece destaque."
+    }
   }
 }

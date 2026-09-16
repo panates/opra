@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import process from 'node:process';
@@ -51,9 +52,56 @@ export async function startDocsStudio(
 ): Promise<http.Server> {
   const logger = options.logger;
   const document = await loadDocument(moduleRef);
-  const lang = options.lang || document.defaultLanguage;
+  const initialLang = options.lang || document.defaultLanguage;
   const docsDir = path.resolve(process.cwd(), options.docsDir);
-  const file = BundleFile.open(docsDir, lang, document);
+
+  /* One open bundle per language, kept because it holds the parsed object
+   * whose key order a save must not disturb — reopening the file on every
+   * request would be correct but would also drop the reason for holding it. */
+  const files = new Map<string, BundleFile>();
+  function bundleFor(lang: string): BundleFile {
+    const key = lang.toLowerCase();
+    let file = files.get(key);
+    if (!file) {
+      file = BundleFile.open(docsDir, lang, document);
+      files.set(key, file);
+    }
+    return file;
+  }
+  bundleFor(initialLang);
+
+  /** Every language that has a bundle in `--docs`, which is exactly the set
+   *  the studio can write to. A tag nobody has a file for isn't offered:
+   *  creating one from the document would fill it with the source language's
+   *  own prose (see `BundleFile.open`), which reads as "already translated"
+   *  in every screen that follows. `--lang` is how a new one is started. */
+  function availableLanguages(): string[] {
+    const found = fs.existsSync(docsDir)
+      ? fs
+          .readdirSync(docsDir)
+          .filter(f => f.endsWith('.json'))
+          .map(f => path.basename(f, '.json'))
+      : [];
+    if (!found.some(l => l.toLowerCase() === initialLang.toLowerCase())) {
+      found.push(initialLang);
+    }
+    return found.sort((a, b) => a.localeCompare(b));
+  }
+
+  /** The language a request is for. Falls back to the one the command was
+   *  started with rather than trusting the query: quietly editing a file the
+   *  caller didn't name is the one mistake this tool must not make, and the
+   *  header badge only tells the truth if this does. */
+  function langFor(url: string | undefined): string {
+    const asked = new URL(url || '/', 'http://localhost').searchParams.get(
+      'lang',
+    );
+    if (!asked) return initialLang;
+    return (
+      availableLanguages().find(l => l.toLowerCase() === asked.toLowerCase()) ||
+      initialLang
+    );
+  }
 
   /* `@opra/api-ui` is reached dynamically: it already carries `@opra/cli` as
    * an optional peer (for the browser-side client generator), so a static
@@ -78,21 +126,48 @@ export async function startDocsStudio(
    * scoped to what extraction agrees exists. */
   const declaredSlots = leafPaths(extractTranslations(document).bundle);
 
+  /** `</script>` inside an inline script would end it early, so the one
+   *  character that can do that never survives serialization. */
+  function embed(name: string, value: unknown): string {
+    return `window.${name} = ${JSON.stringify(value).replace(/</g, '\\u003c')};`;
+  }
+
   /** Rendered per request, never cached: the point of the tool is seeing an
-   *  edit immediately. */
-  function renderPage(): string {
+   *  edit immediately. Switching the language being edited is a fresh request
+   *  for the same reason — the prose, the interface and the bundle all change
+   *  together, and re-deriving them here is what keeps them from disagreeing. */
+  function renderPage(lang: string): string {
+    const file = bundleFor(lang);
     const html = ApiUiFactory.render(document, {
       scope: options.scope,
       lang,
       uiLang: lang,
-      authoring: { saveUrl: SAVE_ROUTE, lang },
+      authoring: {
+        saveUrl: SAVE_ROUTE,
+        lang,
+        file: path.relative(process.cwd(), file.filename),
+        languages: availableLanguages(),
+      },
     });
-    return html.replace(
-      '</body>',
-      `  <script>window.__OPRA_STUDIO_SLOTS__ = ${JSON.stringify(
-        declaredSlots,
-      ).replace(/</g, '\\u003c')};</script>\n  </body>`,
-    );
+    const script =
+      '  <script>' +
+      embed('__OPRA_STUDIO_SLOTS__', declaredSlots) +
+      /* The bundle as it is on disk, which is not what the page shows: a
+       * text this file doesn't carry is rendered from the source instead, so
+       * judging "already written" by what is on screen would call every
+       * untranslated entry done — and open its editor pre-filled with the
+       * source language. The editor edits the file, so it reads the file. */
+      embed('__OPRA_STUDIO_BUNDLE__', file.bundle) +
+      '</script>\n';
+    /* Spliced at the *last* `</body>` and by index, not with `replace()`:
+     * the page has the whole of `app.js` and `studio.js` inlined into it, and
+     * the first `</body>` in it is one written inside a comment in that
+     * source — replacing that one injects the script into the middle of a
+     * function. (Indexing also sidesteps `replace()`'s `$` patterns, which a
+     * bundle of arbitrary prose could otherwise trigger.) */
+    const at = html.lastIndexOf('</body>');
+    if (at < 0) return html + script;
+    return html.slice(0, at) + script + html.slice(at);
   }
 
   const server = http.createServer((req, res) => {
@@ -107,7 +182,7 @@ export async function startDocsStudio(
        * would undo that. */
       'cache-control': 'no-store',
     });
-    res.end(renderPage());
+    res.end(renderPage(langFor(req.url)));
   });
 
   function handleSave(
@@ -125,13 +200,24 @@ export async function startDocsStudio(
         if (!Array.isArray(key) || typeof field !== 'string') {
           throw new TypeError('Expected { key: string[], field, value }');
         }
+        /* The page says which language it was written in, rather than the
+         * server remembering a "current" one: two tabs open on two languages
+         * is a perfectly reasonable way to translate, and a server-side
+         * current would send one tab's edit into the other's file. */
+        const lang = availableLanguages().find(
+          l => l.toLowerCase() === String(body.lang || '').toLowerCase(),
+        );
+        if (!lang) throw new TypeError(`No bundle for language "${body.lang}"`);
+        const file = bundleFor(lang);
         file.set(key, field, value);
         file.write();
         /* Bundles are materialized once, while the document is built, so the
          * in-memory document would otherwise keep serving the old text on the
          * next full page load. */
         document.translations.set(lang.toLowerCase(), file.bundle);
-        logger?.log?.(colors.greenBright(`saved ${[...key, field].join('.')}`));
+        logger?.log?.(
+          colors.greenBright(`saved ${[...key, field].join('.')} (${lang})`),
+        );
         res.writeHead(200, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
       } catch (e: any) {
@@ -165,7 +251,13 @@ export async function startDocsStudio(
       `Documentation studio for "${document.info.title || moduleRef}"`,
     ),
   );
-  logger?.log?.(`  editing  ${file.filename} (${lang})`);
+  logger?.log?.(
+    `  editing  ${bundleFor(initialLang).filename} (${initialLang})`,
+  );
+  const others = availableLanguages().filter(
+    l => l.toLowerCase() !== initialLang.toLowerCase(),
+  );
+  if (others.length) logger?.log?.(`  also     ${others.join(', ')}`);
   logger?.log?.(`  open     http://127.0.0.1:${port}`);
   return server;
 }

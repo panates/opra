@@ -7,6 +7,79 @@
    the stylesheet were somehow included.
    ========================================================================== */
 
+/* The language every edit on this page lands in, beside the document's title.
+   Accent-tinted rather than neutral: it is the one piece of header chrome that
+   isn't part of the published page, and it is worth noticing — the prose
+   simply *is* whatever language it is, so nothing else on screen says which
+   file a save will land in. */
+.studio-lang-wrap {
+  flex-shrink: 0;
+  margin-inline-start: 8px;
+}
+
+.studio-lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  /* A language tag reads left-to-right in any page direction. */
+  direction: ltr;
+  unicode-bidi: isolate;
+  cursor: default;
+}
+
+button.studio-lang {
+  cursor: pointer;
+}
+
+button.studio-lang:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+/* Anchored under the badge rather than the page's own language picker: this
+   one switches the file being written, not the one being read. */
+.studio-lang-menu {
+  min-width: 170px;
+}
+
+.studio-menu-label {
+  padding: 4px 7px 6px;
+  color: var(--text-muted);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Both classes, because `.studio-menu-item` capitalizes (it was written for
+   the callout menu, where "note"/"tip" are words) and a filename must not be
+   retitled into `En.Json`. */
+.studio-menu-item.studio-lang-item {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  text-transform: none;
+  color: var(--text-muted);
+}
+
+.studio-lang-item.active {
+  color: var(--text);
+}
+
+.studio-lang-code {
+  min-width: 34px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
 /* Every editable block carries its own boundary at rest, faint enough to read
    past but strong enough to answer "what on this screen can I write?" without
    sweeping the mouse over it. Hovering only deepens the same line, so it is

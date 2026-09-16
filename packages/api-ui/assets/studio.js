@@ -42,6 +42,10 @@
     viewPreview: 'Preview',
     previewEmpty: 'Nothing to preview yet.',
     callout: 'Callout',
+    editing: 'The language being edited',
+    editingFile: 'Editing {file}',
+    editingLanguage: 'Edit language',
+    bundleFile: '{lang}.json',
   };
 
   function fmt(template, vars) {
@@ -78,13 +82,52 @@
     return found;
   }
 
+  // ---------- the bundle being edited ----------
+
+  /* The file on disk, as the server last wrote it. Deliberately consulted
+   * instead of the rendered page for anything about *this* language: a text
+   * the bundle doesn't carry still renders, from the source, so the page
+   * cannot tell "translated" from "not translated yet".
+   *
+   * Filled in by `start()`, not here: the server appends it in a script tag
+   * just before `</body>`, which runs after this file does. Null when the
+   * page wasn't served by the studio at all. */
+  var bundle = null;
+
+  function bundleValue(key, field) {
+    var node = bundle;
+    for (var i = 0; i < key.length && node; i++) {
+      node = typeof node[key[i]] === 'object' ? node[key[i]] : null;
+    }
+    var value = node && node[field];
+    return typeof value === 'string' ? value : '';
+  }
+
+  function setBundleValue(key, field, value) {
+    if (!bundle) return;
+    var node = bundle;
+    for (var i = 0; i < key.length; i++) {
+      if (!node[key[i]] || typeof node[key[i]] !== 'object') node[key[i]] = {};
+      node = node[key[i]];
+    }
+    node[field] = value;
+  }
+
   // ---------- saving ----------
 
   function save(key, field, value) {
     return fetch(authoring.saveUrl, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ key: key, field: field, value: value }),
+      // The language travels with every save rather than the server holding a
+      // "current" one: two tabs on two languages is how translating actually
+      // goes, and a server-side current would cross them.
+      body: JSON.stringify({
+        key: key,
+        field: field,
+        value: value,
+        lang: authoring.lang,
+      }),
     }).then(function (res) {
       if (res.ok) return;
       return res
@@ -302,7 +345,12 @@
     var key = JSON.parse(target.getAttribute('data-doc-key'));
     var field = target.getAttribute('data-doc-field');
     var node = findNode(docs, key);
-    var current = (node && node[field]) || '';
+    // The bundle's own text, not the page's: editing `tr` on an entry that
+    // file has never carried should open empty, not pre-filled with the
+    // English the renderer fell back to.
+    var current = bundle
+      ? bundleValue(key, field)
+      : (node && node[field]) || '';
 
     var wrap = document.createElement('div');
     wrap.className = 'studio-editor';
@@ -583,8 +631,10 @@
       save(key, field, value).then(
         function () {
           // The node the renderer reads *is* the node we just persisted to,
-          // so re-rendering shows exactly what a fresh page load would.
+          // so re-rendering shows exactly what a fresh page load would; the
+          // bundle mirror keeps the checklist and the next editor honest.
           if (node) node[field] = value;
+          setBundleValue(key, field, value);
           clearTimeout(previewTimer);
           teardown.forEach(function (fn) {
             fn();
@@ -693,7 +743,9 @@
           slots.push({
             key: value._docKey,
             field: field,
-            filled: !!(value[field] && String(value[field]).trim()),
+            filled: bundle
+              ? !!bundleValue(value._docKey, field).trim()
+              : !!(value[field] && String(value[field]).trim()),
           });
         });
       }
@@ -786,11 +838,91 @@
    *  this point there is usually nothing to attach to yet. Registering a
    *  listener of our own runs after `app.js`'s (listeners fire in
    *  registration order), which is exactly when the host exists. */
+  /** Which language an edit lands in, badged next to the document's title.
+   *  Nothing else on the page says it — the prose simply *is* that language,
+   *  and reading Turkish while writing into `en.json` is a mistake you only
+   *  find out about later, in a diff.
+   *
+   *  Re-checked after every render: the document picker beside it is rebuilt
+   *  each time, which takes the badge with it. Anchored to the picker's
+   *  wrapper rather than the picker for the same reason. */
+  function badgeLanguage() {
+    var anchor = document.querySelector('.header .picker-wrap');
+    if (!anchor || !authoring.lang) return;
+    if (
+      anchor.nextElementSibling &&
+      anchor.nextElementSibling.classList.contains('studio-lang-wrap')
+    ) {
+      return;
+    }
+    var languages = authoring.languages || [];
+    var holder = document.createElement('span');
+    holder.className = 'studio-menu-holder studio-lang-wrap';
+
+    var badge = document.createElement(
+      languages.length > 1 ? 'button' : 'span',
+    );
+    badge.className = 'studio-lang';
+    if (badge.tagName === 'BUTTON') badge.type = 'button';
+    badge.title = authoring.file
+      ? fmt(messages.editingFile, { file: authoring.file })
+      : messages.editing;
+    badge.appendChild(icon('pencil', 11));
+    var code = document.createElement('span');
+    code.textContent = authoring.lang.toUpperCase();
+    badge.appendChild(code);
+    holder.appendChild(badge);
+    anchor.insertAdjacentElement('afterend', holder);
+    if (languages.length < 2) return;
+
+    badge.appendChild(icon('caret', 11));
+    var menu = document.createElement('div');
+    menu.className = 'studio-menu studio-lang-menu';
+    var label = document.createElement('div');
+    label.className = 'studio-menu-label';
+    label.textContent = messages.editingLanguage;
+    menu.appendChild(label);
+    languages.forEach(function (tag) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'studio-menu-item studio-lang-item';
+      if (tag.toLowerCase() === authoring.lang.toLowerCase()) {
+        item.classList.add('active');
+      }
+      var itemCode = document.createElement('span');
+      itemCode.className = 'studio-lang-code';
+      itemCode.textContent = tag.toUpperCase();
+      item.appendChild(itemCode);
+      item.appendChild(
+        document.createTextNode(fmt(messages.bundleFile, { lang: tag })),
+      );
+      item.addEventListener('click', function () {
+        /* A full load, not a swap: the prose, the interface language and the
+         * bundle the editor writes to all change together, and the server is
+         * the only thing that knows how. The hash comes along so you land on
+         * the page you were reading, in the other language. */
+        location.href = '?lang=' + encodeURIComponent(tag) + location.hash;
+      });
+      menu.appendChild(item);
+    });
+    badge.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      holder.classList.toggle('open');
+    });
+    document.addEventListener('mousedown', function (ev) {
+      if (!holder.contains(ev.target)) holder.classList.remove('open');
+    });
+    holder.appendChild(menu);
+  }
+
   function start() {
     api = window.__OPRA_STUDIO_HOST__;
     if (!api) return;
     docs = api.docs;
+    bundle = window.__OPRA_STUDIO_BUNDLE__ || null;
     document.documentElement.classList.add('studio-on');
+    badgeLanguage();
+    api.onRendered(badgeLanguage);
     api.onRendered(decorate);
     decorate();
     buildTodoPanel();

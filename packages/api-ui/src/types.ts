@@ -66,8 +66,17 @@ export interface ApiUiOptions {
   authoring?: {
     /** Where the client POSTs `{ key, field, value }`. */
     saveUrl: string;
-    /** The bundle being edited, shown in the editor's header. */
+    /** Language tag of the bundle being edited — badged in the page header,
+     *  because which language an edit lands in is not otherwise visible and
+     *  guessing wrong writes one language's prose into another's file. */
     lang: string;
+    /** The bundle's path, for that badge's tooltip. */
+    file?: string;
+    /** Every language with a bundle the tool can write to, which turns the
+     *  badge into a picker. Switching reloads the page under `?lang=`: the
+     *  prose, the interface language and the bundle all change together, and
+     *  the server is what knows how. */
+    languages?: string[];
   };
   /** The full list of scope keys a reader can switch between (e.g.
    *  `['api', 'db']`) — the same OPRA document can expose different

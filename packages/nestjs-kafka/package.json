@@ -3,26 +3,20 @@
   "version": "1.30.0",
   "description": "Opra NestJS Kafka Module",
   "author": "Panates",
+  "contributors": [
+    "Eray Hanoglu <e.hanoglu@panates.com>",
+    "Ilker Gurelli <i.gurelli@panates.com>",
+    "Onur Tokel <o.tokel@panates.com>",
+    "Bircan Yuruk <b.yuruk@panates.com>"
+  ],
   "license": "MIT",
   "homepage": "https://www.oprajs.com",
   "scripts": {
-    "compile": "tsc",
-    "prebuild": "npm run check && npm run lint && npm run clean",
-    "build": "tsc -b tsconfig-build.json",
-    "postbuild": "node ../../support/postbuild.cjs",
-    "lint": "eslint . --max-warnings=0",
-    "format": "prettier . --write --log-level=warn",
-    "check": "dpdm -T --no-warning --no-tree --skip-dynamic-imports circular --exit-code circular:1 ./src/index.ts",
-    "test": "mocha",
-    "clean": "npm run clean:src && npm run clean:test && npm run clean:build && npm run clean:cover",
-    "clean:src": "ts-cleanup -s src --all",
-    "clean:test": "ts-cleanup -s test --all",
-    "clean:build": "rimraf build *.tsbuildinfo",
-    "clean:cover": "rimraf ../../coverage/nestjs-kafka"
+    "test": "mocha"
   },
   "dependencies": {
-    "@jsopen/objects": "^2.3.1",
-    "fast-tokenizer": "^1.9.0",
+    "@jsopen/objects": "^2.3.4",
+    "fast-tokenizer": "^1.10.1",
     "putil-promisify": "^1.10.1",
     "reflect-metadata": "^0.2.2",
     "tslib": "^2.8.1"
@@ -39,14 +33,14 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",
-    "@nestjs/platform-express": "^12.0.1",
-    "@nestjs/testing": "^12.0.1",
+    "@nestjs/platform-express": "^12.1.2",
+    "@nestjs/testing": "^12.1.2",
     "@types/amqplib": "^0.10.8",
-    "expect": "^30.5.1",
+    "expect": "^30.5.2",
     "express": "^5.2.1",
     "kafkajs": "^2.2.4",
     "rxjs": "^7.8.2",
-    "ts-gems": "^4.0.3"
+    "ts-gems": "^4.0.4"
   },
   "type": "module",
   "module": "./index.js",

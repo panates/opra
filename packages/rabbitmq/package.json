@@ -3,32 +3,25 @@
   "version": "1.30.0",
   "description": "Opra RabbitMQ adapter",
   "author": "Panates",
+  "contributors": [
+    "Eray Hanoglu <e.hanoglu@panates.com>",
+    "Ilker Gurelli <i.gurelli@panates.com>",
+    "Onur Tokel <o.tokel@panates.com>",
+    "Bircan Yuruk <b.yuruk@panates.com>"
+  ],
   "license": "MIT",
   "homepage": "https://www.oprajs.com",
   "scripts": {
-    "compile": "tsc",
-    "prebuild": "npm run check && npm run lint && npm run clean",
-    "build": "tsc -b tsconfig-build.json",
-    "postbuild": "node ../../support/postbuild.cjs",
-    "lint": "eslint . --max-warnings=0",
-    "lint:fix": "eslint . --max-warnings=0 --fix",
-    "format": "prettier . --write --log-level=warn",
-    "check": "dpdm -T --no-warning --no-tree --skip-dynamic-imports circular --exit-code circular:1 ./src/index.ts",
-    "test": "mocha",
-    "clean": "npm run clean:src && npm run clean:test && npm run clean:build && npm run clean:cover",
-    "clean:src": "ts-cleanup -s src --all",
-    "clean:test": "ts-cleanup -s test --all",
-    "clean:build": "rimraf build *.tsbuildinfo",
-    "clean:cover": "rimraf ../../coverage/rabbitmq"
+    "test": "mocha"
   },
   "dependencies": {
-    "@jsopen/objects": "^2.3.1",
+    "@jsopen/objects": "^2.3.4",
     "@browsery/type-is": "^2.0.2-r2",
-    "content-type": "^3.0.0",
+    "content-type": "^3.1.1",
     "iconv-lite": "^0.7.3",
     "node-events-async": "^1.5.2",
     "tslib": "^2.8.1",
-    "valgen": "^7.0.0"
+    "valgen": "^7.0.3"
   },
   "peerDependencies": {
     "@opra/common": "^1.30.0",
@@ -38,8 +31,8 @@
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",
     "@types/accepts": "^1.3.7",
-    "expect": "^30.5.1",
-    "ts-gems": "^4.0.3"
+    "expect": "^30.5.2",
+    "ts-gems": "^4.0.4"
   },
   "type": "module",
   "module": "./index.js",

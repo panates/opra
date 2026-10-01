@@ -1,22 +1,47 @@
 name: Test
 on:
   # Can be called from other workflows
+  # `PERSONAL_ACCESS_TOKEN` is gone: measured, every publishable manifest here carries
+  # `publishConfig: {"access": "public"}`, no manifest names a custom registry and there is no
+  # .npmrc anywhere - so the token had nothing to authenticate.
   workflow_call:
-    secrets:
-      PERSONAL_ACCESS_TOKEN:
-        required: true
 
   # Can be run manually
   workflow_dispatch:
 
   # on git push
   push:
-    branches:
-      - dev
+    # Every branch except the release one. `branches: [dev]` meant a feature branch ran no tests
+    # until it was merged, and `main` is where release.yml takes over.
+    branches-ignore:
+      - main
+    # **No brace expansion.** GitHub's path filter syntax is `*`, `**`, `?`, `+`, `[]`, `!` and
+    # `\` - and nothing else. `'**/*.{ts,js,mjs,cjs}'` is therefore matched *literally*, so it
+    # never selected a single file: a push to `dev` touching only TypeScript did not run the tests,
+    # silently. What kept the trigger alive at all was the two entries below it, which meant the
+    # tests effectively ran only when a manifest or a tsconfig changed. A filter matching too much
+    # costs a minute of CI; one matching too little costs a release nobody tested.
     paths:
-      - '**/*.{ts,js,mjs,cjs}'
-      - '**/package.json'
+      # This file itself: a change to how the tests run is a reason to run them.
+      - '.github/workflows/test.yml'
+      - 'packages/**'
+      - 'examples/**'
+      - 'support/**'
+      # How anything is compiled, run or measured.
       - '**/tsconfig*.json'
+      - '**/.mocharc.*'
+      - '.c8rc.json'
+      - '**/package.json'
+      - 'package-lock.json'
+      - '.rmanrc.yml'
+
+# The workflow only ever reads the repository: it checks out, installs and runs tests. Anything it
+# reports goes out through a separate credential - Coveralls uses its own token, and releases happen
+# in release.yml - so GITHUB_TOKEN never needs write access here. Set explicitly rather than left to
+# the repository default, which is org-wide and can be widened later without anyone editing this
+# file.
+permissions:
+  contents: read
 
 # Only one run per branch at a time
 concurrency:
@@ -32,17 +57,22 @@ env:
 
 jobs:
   test:
+    # **The "was this a merge from dev" half is gone from here, and that is not a relaxation.** It
+    # was a second copy of release.yml's condition - and inside a `workflow_call`
+    # `github.event_name` is the *caller's* event (`push`), so the identical guard was evaluated
+    # twice on every release, in two files that had to be kept in step by hand. The decision lives
+    # once now, in release.yml, and is answered by the GitHub API (`pr-source.yaml@v3`) rather than
+    # by reading a commit message - which only ever recognised one of the three merge buttons.
+    #
+    # It was also wrong here on its own terms, twice over: this workflow's own trigger is a push to
+    # `dev`, so a merge *into* dev from any branch whose name merely contains `/dev` skipped its
+    # tests; and `contains(..., '/dev')` is a substring test, which this repository's own
+    # `platformatic_kafka` and `api-ui` branches would never match while a `feature/devtools` would.
     if: >
       github.event_name == 'workflow_dispatch' ||
       (
         github.event_name == 'push' &&
-        !(
-          contains(github.event.head_commit.message, 'no-test') ||
-          ( 
-            startsWith(github.event.head_commit.message, 'Merge pull request') &&
-            contains(github.event.head_commit.message, '/dev')
-          )
-        )
+        !contains(github.event.head_commit.message, 'no-test')
       )
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -81,7 +111,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Wait Kafka
         run: |
@@ -91,11 +121,17 @@ jobs:
           done
           exit 1
 
+      # `panates/ghac-setup-node` is this action's old name - it still resolves through GitHub's
+      # rename redirect, which is why nobody noticed it was stale. `@v2` also replaces the separate
+      # unpinned `npm install rman -g` with `rman-version`, which is what pins the *major* that this
+      # repository's config keys need; and `install: 'ci'` installs exactly what the lockfile pins,
+      # where `@v1` deleted package-lock.json first and installed whatever resolved that morning.
       - name: 'Setup Environment'
-        uses: panates/ghac-setup-node@v1
+        uses: panates/gh-setup-node@v2
         with:
           node-version: '24'
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          rman-version: '2'
+          install: 'ci'
 
       - name: Configure sysctl limits
         run: |
@@ -122,8 +158,24 @@ jobs:
       #          kafka-version: "3.7.0"
       #          kafka-topics: "feed-cat,1,feed-dog,1,email-channel-1,1,email-channel-2,1,sms-channel-1,1,sms-channel-2,1"
 
-      - name: Run qc tests
-        run: rman run qc
+      # **`rman run qc` named a script no package defines, and rman 2.x fails on that.** The root's
+      # own `qc` never counted: rman deliberately does not treat a monorepo root's script as
+      # defining one, since the root contributes only its pre/post bookends - so under 1.x the step
+      # ran nothing and reported success, and under 2.x it exits 1 with `No package defines a "qc"
+      # script.` (measured). Nothing here pinned rman's version either - `ghac-setup-node@v1` did a
+      # bare `npm i rman -g` - so this step began failing the moment rman 2.x became `latest`, which
+      # is why the last green run on this workflow was 2026-09-10. The setup step above pins the
+      # major now.
+      #
+      # The two commands are `@panates/rman-preset`'s, and both are repository-wide by design: one
+      # dpdm pass and one eslint pass over the whole tree, which is what a flat eslint config
+      # already expects and what the per-package fan-out could never reach - `support/test/` belongs
+      # to no package and had never been linted at all.
+      - name: Check for circular dependencies
+        run: rman check
+
+      - name: Lint
+        run: rman lint
 
       - name: Run unit tests
         run: npm run citest

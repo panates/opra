@@ -11,15 +11,12 @@
     "@opra/mongodb": "^1.30.0",
     "@opra/openapi": "^1.30.0",
     "express": "^5.2.1",
-    "mongodb": "^7.6.0",
-    "ts-gems": "^4.0.3"
+    "mongodb": "^7.7.0",
+    "ts-gems": "^4.0.4"
   },
   "scripts": {
-    "_build": "tsc && npm run check && npm run lint && npm run format",
-    "lint": "eslint . --max-warnings=0",
-    "check": "dpdm -T --no-warning --no-tree --exit-code circular:1 ./index.ts",
-    "format": "prettier . --write --log-level=warn",
-    "start": "node --loader ../../support/esloader.mjs --experimental-specifier-resolution=node --import=./logerror.js src/start.ts",
+    "_build": "tsc",
+    "start": "node @swc-node/register/esm-register src/start.ts",
     "docs:extract": "node --import @swc-node/register/esm-register ../../packages/cli/src/oprimp-cli.ts docs:extract ./src/api-document.ts#CustomerApiDocument ./docs/en.json",
     "docs:studio": "node --import @swc-node/register/esm-register ../../packages/cli/src/oprimp-cli.ts docs:studio ./src/api-document.ts#CustomerApiDocument --docs ./docs --scope api"
   }

@@ -23,7 +23,8 @@
     "thisDocument": "Tento dokument",
     "references": "Odkazy",
     "documentLanguages": "Jazyky dokumentu",
-    "interfaceOnly": "Len rozhranie"
+    "interfaceOnly": "Len rozhranie",
+    "editDocs": "Upraviť dokumentáciu"
   },
   "sidebar": {
     "overview": "Prehľad",
@@ -272,6 +273,8 @@
       "code": "kód",
       "link": "popis",
       "callout": "Niečo, čo si zaslúži pozornosť."
-    }
+    },
+    "exit": "Hotovo",
+    "exitHint": "Ukončiť úpravy a vrátiť sa k čítaniu"
   }
 }

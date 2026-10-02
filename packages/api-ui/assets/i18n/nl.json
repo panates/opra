@@ -23,7 +23,8 @@
     "thisDocument": "Dit document",
     "references": "Referenties",
     "documentLanguages": "Documenttalen",
-    "interfaceOnly": "Alleen de interface"
+    "interfaceOnly": "Alleen de interface",
+    "editDocs": "Documentatie bewerken"
   },
   "sidebar": {
     "overview": "Overzicht",
@@ -268,6 +269,8 @@
       "code": "code",
       "link": "label",
       "callout": "Iets dat de aandacht verdient."
-    }
+    },
+    "exit": "Klaar",
+    "exitHint": "Stop met bewerken en ga terug naar lezen"
   }
 }

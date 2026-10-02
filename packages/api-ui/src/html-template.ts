@@ -129,6 +129,11 @@ export function renderApiUiHtml(
     docLanguages,
     dir,
     basePath,
+    // The query parameter that switches this page between reading and
+    // writing, and the only thing either direction needs: the header's edit
+    // button adds it, the studio's way back removes it. Absent unless the
+    // server actually serves a studio, and then neither button exists.
+    studioParam: options.studioParam,
     authoring: options.authoring,
   };
 

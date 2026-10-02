@@ -23,7 +23,8 @@
     "thisDocument": "Acest document",
     "references": "Referințe",
     "documentLanguages": "Limbile documentului",
-    "interfaceOnly": "Doar interfața"
+    "interfaceOnly": "Doar interfața",
+    "editDocs": "Editează documentația"
   },
   "sidebar": {
     "overview": "Prezentare generală",
@@ -270,6 +271,8 @@
       "code": "cod",
       "link": "etichetă",
       "callout": "Ceva ce merită semnalat."
-    }
+    },
+    "exit": "Gata",
+    "exitHint": "Oprește editarea și revino la citire"
   }
 }

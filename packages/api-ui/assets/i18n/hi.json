@@ -23,7 +23,8 @@
     "thisDocument": "यह दस्तावेज़",
     "references": "संदर्भ",
     "documentLanguages": "दस्तावेज़ की भाषाएँ",
-    "interfaceOnly": "केवल इंटरफ़ेस"
+    "interfaceOnly": "केवल इंटरफ़ेस",
+    "editDocs": "दस्तावेज़ संपादित करें"
   },
   "sidebar": {
     "overview": "अवलोकन",
@@ -268,6 +269,8 @@
       "code": "कोड",
       "link": "लेबल",
       "callout": "ध्यान देने योग्य कुछ।"
-    }
+    },
+    "exit": "हो गया",
+    "exitHint": "संपादन बंद करें और पढ़ने पर लौटें"
   }
 }

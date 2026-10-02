@@ -23,7 +23,8 @@
     "thisDocument": "Ez a dokumentum",
     "references": "Hivatkozások",
     "documentLanguages": "A dokumentum nyelvei",
-    "interfaceOnly": "Csak a felület"
+    "interfaceOnly": "Csak a felület",
+    "editDocs": "Dokumentáció szerkesztése"
   },
   "sidebar": {
     "overview": "Áttekintés",
@@ -268,6 +269,8 @@
       "code": "kód",
       "link": "felirat",
       "callout": "Valami, ami figyelmet érdemel."
-    }
+    },
+    "exit": "Kész",
+    "exitHint": "Szerkesztés befejezése és visszatérés az olvasáshoz"
   }
 }

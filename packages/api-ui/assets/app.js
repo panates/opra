@@ -59,7 +59,9 @@
   // existing sharing behavior into storage rather than introducing a new
   // one.
   try {
-    var storedCollapsed = JSON.parse(localStorage.getItem('opra-ui-collapsed') || 'null');
+    var storedCollapsed = JSON.parse(
+      localStorage.getItem('opra-ui-collapsed') || 'null',
+    );
     if (storedCollapsed && typeof storedCollapsed === 'object') {
       state.collapsedNav = storedCollapsed.nav || {};
       state.collapsedGroups = storedCollapsed.groups || {};
@@ -77,7 +79,10 @@
     try {
       localStorage.setItem(
         'opra-ui-collapsed',
-        JSON.stringify({ nav: state.collapsedNav || {}, groups: state.collapsedGroups || {} }),
+        JSON.stringify({
+          nav: state.collapsedNav || {},
+          groups: state.collapsedGroups || {},
+        }),
       );
     } catch (e) {
       // ignore
@@ -115,7 +120,9 @@
   function interpolate(template, vars) {
     if (!vars) return template;
     return template.replace(/\{(\w+)\}/g, function (whole, name) {
-      return Object.prototype.hasOwnProperty.call(vars, name) ? String(vars[name]) : whole;
+      return Object.prototype.hasOwnProperty.call(vars, name)
+        ? String(vars[name])
+        : whole;
     });
   }
 
@@ -203,18 +210,29 @@
   }
 
   function svg(markup, cls) {
-    var span = el('span', { class: 'icon' + (cls ? ' ' + cls : ''), html: markup });
+    var span = el('span', {
+      class: 'icon' + (cls ? ' ' + cls : ''),
+      html: markup,
+    });
     return span;
   }
 
   function copyIconSvg(size) {
     return (
-      '<svg viewBox="0 0 20 20" width="' + size + '" height="' + size + '" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M4.5 13.5h-1a1 1 0 0 1 -1-1v-9a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v1"/></svg>'
+      '<svg viewBox="0 0 20 20" width="' +
+      size +
+      '" height="' +
+      size +
+      '" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M4.5 13.5h-1a1 1 0 0 1 -1-1v-9a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v1"/></svg>'
     );
   }
   function checkIconSvg(size) {
     return (
-      '<svg viewBox="0 0 20 20" width="' + size + '" height="' + size + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l3.5 3.5L16 5.5"/></svg>'
+      '<svg viewBox="0 0 20 20" width="' +
+      size +
+      '" height="' +
+      size +
+      '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l3.5 3.5L16 5.5"/></svg>'
     );
   }
 
@@ -273,46 +291,46 @@
     s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
     s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     s = s.replace(/(^|[^*])\*([^*\s][^*]*)\*(?!\*)/g, '$1<em>$2</em>');
-    s = s.replace(/\[([^\]]+)\]\((#[^)\s]+|https?:\/\/[^)\s]+)\)/g, function (m, label, href) {
-      var isHash = href.charAt(0) === '#';
-      var modelMatch = isHash ? MODEL_LINK_RE.exec(href) : null;
-      if (modelMatch) {
-        var typeName = decodeURIComponent(modelMatch[1]);
-        var typeDef = doc && doc.types && doc.types[typeName];
-        var iconKind = typeDef ? dataTypeIconKind(typeDef.kind) : 'cube';
+    s = s.replace(
+      /\[([^\]]+)\]\((#[^)\s]+|https?:\/\/[^)\s]+)\)/g,
+      function (m, label, href) {
+        var isHash = href.charAt(0) === '#';
+        var modelMatch = isHash ? MODEL_LINK_RE.exec(href) : null;
+        if (modelMatch) {
+          var typeName = decodeURIComponent(modelMatch[1]);
+          var typeDef = doc && doc.types && doc.types[typeName];
+          var iconKind = typeDef ? dataTypeIconKind(typeDef.kind) : 'cube';
+          return (
+            '<a class="type-chip c-' +
+            iconKind +
+            '" href="' +
+            href +
+            '">' +
+            iconHtmlFor(iconKind) +
+            label +
+            '</a>'
+          );
+        }
         return (
-          '<a class="type-chip c-' +
-          iconKind +
-          '" href="' +
+          '<a href="' +
           href +
-          '">' +
-          iconHtmlFor(iconKind) +
+          '"' +
+          (isHash ? '' : ' target="_blank" rel="noopener noreferrer"') +
+          '>' +
           label +
           '</a>'
         );
-      }
-      return (
-        '<a href="' +
-        href +
-        '"' +
-        (isHash ? '' : ' target="_blank" rel="noopener noreferrer"') +
-        '>' +
-        label +
-        '</a>'
-      );
-    });
+      },
+    );
     return s;
   }
 
   /** One icon per admonition type (see `mdToHtml`'s `:::type` handling),
    *  Docusaurus's own five: note/tip/info/warning/danger. */
   var ADMONITION_ICONS = {
-    note:
-      '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V6.2A2.2 2.2 0 0 1 6.2 4h7.6L20 9.5V19.5A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5Z"/><path d="M13.8 4v4.3a1.2 1.2 0 0 0 1.2 1.2H20"/></svg>',
-    tip:
-      '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.4.3.7.8.7 1.3V16h5.6v-.8c0-.5.3-1 .7-1.3A6 6 0 0 0 12 3Z"/></svg>',
-    info:
-      '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg>',
+    note: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V6.2A2.2 2.2 0 0 1 6.2 4h7.6L20 9.5V19.5A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5Z"/><path d="M13.8 4v4.3a1.2 1.2 0 0 0 1.2 1.2H20"/></svg>',
+    tip: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.4.3.7.8.7 1.3V16h5.6v-.8c0-.5.3-1 .7-1.3A6 6 0 0 0 12 3Z"/></svg>',
+    info: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg>',
     warning:
       '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5 21 20H3L12 3.5Z"/><path d="M12 9.5v5M12 17.5h.01" stroke-linecap="round"/></svg>',
     danger:
@@ -350,7 +368,8 @@
       var adm = ADMONITION_RE.exec(line);
       if (adm) {
         var admType = adm[1].toLowerCase();
-        var admTitle = adm[2] && adm[2].trim() ? adm[2].trim() : t('admonition.' + admType);
+        var admTitle =
+          adm[2] && adm[2].trim() ? adm[2].trim() : t('admonition.' + admType);
         i++;
         var admLines = [];
         while (i < lines.length && lines[i].trim() !== ':::') {
@@ -359,12 +378,20 @@
         }
         i++; // skip the closing ':::' (or just end of input if unclosed)
         html +=
-          '<div class="admonition admonition-' + admType + '">' +
+          '<div class="admonition admonition-' +
+          admType +
+          '">' +
           '<div class="admonition-heading">' +
-          '<span class="admonition-icon">' + ADMONITION_ICONS[admType] + '</span>' +
-          '<span class="admonition-title">' + mdEscape(admTitle) + '</span>' +
+          '<span class="admonition-icon">' +
+          ADMONITION_ICONS[admType] +
+          '</span>' +
+          '<span class="admonition-title">' +
+          mdEscape(admTitle) +
+          '</span>' +
           '</div>' +
-          '<div class="admonition-content">' + mdToHtml(doc, admLines.join('\n')) + '</div>' +
+          '<div class="admonition-content">' +
+          mdToHtml(doc, admLines.join('\n')) +
+          '</div>' +
           '</div>';
         continue;
       }
@@ -374,7 +401,10 @@
           quoteLines.push(lines[i].replace(/^>\s?/, ''));
           i++;
         }
-        html += '<blockquote>' + mdInline(doc, quoteLines.join(' ')) + '</blockquote>';
+        html +=
+          '<blockquote>' +
+          mdInline(doc, quoteLines.join(' ')) +
+          '</blockquote>';
         continue;
       }
       if (/^[-*]\s+/.test(line) || /^\d+\.\s+/.test(line)) {
@@ -401,7 +431,10 @@
           }
           items.push('<li>' + mdInline(doc, itemLines.join(' ')) + '</li>');
         }
-        html += (ordered ? '<ol>' : '<ul>') + items.join('') + (ordered ? '</ol>' : '</ul>');
+        html +=
+          (ordered ? '<ol>' : '<ul>') +
+          items.join('') +
+          (ordered ? '</ol>' : '</ul>');
         continue;
       }
       var para = [];
@@ -433,7 +466,12 @@
     if (owner._docFields && owner._docFields.indexOf(field) === -1) return node;
     node.setAttribute('data-doc-key', JSON.stringify(owner._docKey));
     node.setAttribute('data-doc-field', field);
-    if (owner._docForeign) node.setAttribute('data-doc-foreign', '');
+    // Which document's bundle this text belongs in. The root page embeds
+    // nodes from its references - a type imported from `cm:` gets a page
+    // here like any other - and a key only means anything against the
+    // bundle of the document that declares it, so an edit has to be routed
+    // by this rather than by which page it was made on.
+    if (owner._docOwner) node.setAttribute('data-doc-owner', owner._docOwner);
     if (owner._docKeyUnstable) node.setAttribute('data-doc-unstable', '');
     return node;
   }
@@ -485,12 +523,9 @@
       '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M1.5 4.2c0-.6.5-1.1 1.1-1.1h3l1.3 1.6h6.5c.6 0 1.1.5 1.1 1.1V12c0 .6-.5 1-1.1 1H2.6c-.6 0-1.1-.4-1.1-1V4.2Z"/></svg>',
     operation:
       '<svg viewBox="0 0 16 16" width="11" height="11" fill="currentColor"><path d="M4 2.3v11.4c0 .5.5.8.9.5l8.6-5.7c.4-.2.4-.8 0-1L4.9 1.8c-.4-.3-.9 0-.9.5Z"/></svg>',
-    cube:
-      '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M8 1.4 14 4.9v6.2L8 14.6l-6-3.5V4.9L8 1.4Z"/><path d="M8 1.4v6.2m0 0-6-3.5m6 3.5 6-3.5m-6 6.9V7.6"/></svg>',
-    list:
-      '<svg viewBox="0 0 512 512" width="14" height="14" fill="currentColor"><path d="m510.173 180.77-53.6 98.448c-2.83 5.22-8.48 8.261-14.4 7.781-5.92-.49-10.99-4.42-12.94-10.031l-8.26-23.762c-11.1 7.081-25.03 17.511-38.67 31.953-11.97 12.671-29.38 34.843-45 60.255l.13-158.883c18.75-15.231 36.57-26.012 51.31-33.493l-8.82-27.872c-1.83-5.781 0-12.091 4.63-16.001 4.63-3.9 11.15-4.64 16.54-1.86l102.78 52.964c3.59 1.85 6.28 5.06 7.47 8.921 1.18 3.859.76 8.04-1.17 11.58z"/><path d="m331.992 111.964h-24.5l-.18 215.958c-18.932-52.992-48.357-101.187-85.38-138.711-5.66-5.77-11.48-11.311-17.44-16.601v-60.645h-24.5c-12.69.42-19.95-16.161-11-25.202l76-82.007c5.63-6.34 16.37-6.34 22 0l76 82.007c8.95 9.03 1.7 25.621-11 25.201z"/><path d="m275.125 327.532c-17.107-43.666-41.951-84.044-74.601-117.3-27.871-28.442-55.831-46.314-77.281-57.195l8.82-27.872c4.315-12.211-9.856-24.181-21.17-17.861l-102.772 52.964c-7.358 3.597-10.361 13.396-6.3 20.502l53.591 98.448c5.666 11.3 23.595 9.814 27.34-2.25l8.26-23.762c11.1 7.081 25.02 17.511 38.66 31.953 45.464 48.154 66.719 115.522 73.551 184.015.86 8.751 1.27 17.852 1.27 27.822 0 8.281 6.72 15.001 15 15.001h72.691c8.219.173 15.416-7.236 14.99-15.451-1.899-62.705-12.679-119.56-32.049-169.014z"/></svg>',
-    book:
-      '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M2 2.6h4.4c1 0 1.6.6 1.6 1.6v9.2c0-.8-.6-1.4-1.6-1.4H2V2.6ZM14 2.6H9.6C8.6 2.6 8 3.2 8 4.2v9.2c0-.8.6-1.4 1.6-1.4H14V2.6Z"/></svg>',
+    cube: '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M8 1.4 14 4.9v6.2L8 14.6l-6-3.5V4.9L8 1.4Z"/><path d="M8 1.4v6.2m0 0-6-3.5m6 3.5 6-3.5m-6 6.9V7.6"/></svg>',
+    list: '<svg viewBox="0 0 512 512" width="14" height="14" fill="currentColor"><path d="m510.173 180.77-53.6 98.448c-2.83 5.22-8.48 8.261-14.4 7.781-5.92-.49-10.99-4.42-12.94-10.031l-8.26-23.762c-11.1 7.081-25.03 17.511-38.67 31.953-11.97 12.671-29.38 34.843-45 60.255l.13-158.883c18.75-15.231 36.57-26.012 51.31-33.493l-8.82-27.872c-1.83-5.781 0-12.091 4.63-16.001 4.63-3.9 11.15-4.64 16.54-1.86l102.78 52.964c3.59 1.85 6.28 5.06 7.47 8.921 1.18 3.859.76 8.04-1.17 11.58z"/><path d="m331.992 111.964h-24.5l-.18 215.958c-18.932-52.992-48.357-101.187-85.38-138.711-5.66-5.77-11.48-11.311-17.44-16.601v-60.645h-24.5c-12.69.42-19.95-16.161-11-25.202l76-82.007c5.63-6.34 16.37-6.34 22 0l76 82.007c8.95 9.03 1.7 25.621-11 25.201z"/><path d="m275.125 327.532c-17.107-43.666-41.951-84.044-74.601-117.3-27.871-28.442-55.831-46.314-77.281-57.195l8.82-27.872c4.315-12.211-9.856-24.181-21.17-17.861l-102.772 52.964c-7.358 3.597-10.361 13.396-6.3 20.502l53.591 98.448c5.666 11.3 23.595 9.814 27.34-2.25l8.26-23.762c11.1 7.081 25.02 17.511 38.66 31.953 45.464 48.154 66.719 115.522 73.551 184.015.86 8.751 1.27 17.852 1.27 27.822 0 8.281 6.72 15.001 15 15.001h72.691c8.219.173 15.416-7.236 14.99-15.451-1.899-62.705-12.679-119.56-32.049-169.014z"/></svg>',
+    book: '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M2 2.6h4.4c1 0 1.6.6 1.6 1.6v9.2c0-.8-.6-1.4-1.6-1.4H2V2.6ZM14 2.6H9.6C8.6 2.6 8 3.2 8 4.2v9.2c0-.8.6-1.4 1.6-1.4H14V2.6Z"/></svg>',
     chevronDown:
       '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6 8 10.5 12.5 6"/></svg>',
     chevronRight:
@@ -501,26 +536,22 @@
       '<svg viewBox="0 0 511.999 511.999" width="14" height="14" fill="currentColor"><path d="M149.818,200.117c-12.93-0.001-25.484,1.647-37.462,4.742c2.791,9.314,6.51,18.424,11.151,27.216c15.061,28.532,38.357,50.953,66.856,64.765c8.415-27.175,23.117-51.61,42.393-71.609C208.992,209.375,180.468,200.117,149.818,200.117z"/><path d="M362.18,200.117c-30.649,0-59.174,9.258-82.938,25.114c19.269,19.991,33.967,44.415,42.384,71.577c1.446-0.705,2.886-1.426,4.314-2.18c35.39-18.682,61.387-50.026,73.201-88.261c0.156-0.506,0.299-1.015,0.45-1.522C387.629,201.76,375.093,200.117,362.18,200.117z"/><path d="M388.492,92.195c-18.681-35.39-50.025-61.387-88.261-73.202c-14.606-4.514-29.55-6.751-44.415-6.751c-24.047,0-47.886,5.854-69.757,17.399c-35.39,18.682-61.387,50.026-73.201,88.261c-5.836,18.887-7.86,38.339-6.168,57.454c13.823-3.414,28.266-5.24,43.129-5.24c39.687,0,76.404,12.933,106.181,34.792c29.776-21.859,66.494-34.792,106.181-34.792c14.851,0,29.282,1.822,43.094,5.233C407.858,146.822,402.18,118.125,388.492,92.195z"/><path d="M256,244.346c-17.235,17.33-30.261,38.842-37.421,62.86c24.843,6.437,50.463,6.385,74.855,0.044C286.277,283.214,273.245,261.687,256,244.346z"/><path d="M427.79,215.268c-14.187,45.871-45.382,83.475-87.846,105.89c-3.877,2.047-7.811,3.926-11.785,5.674c0.975,7.566,1.48,15.277,1.48,23.104c0,48.379-19.211,92.351-50.397,124.705c23.764,15.857,52.288,25.115,82.938,25.115c82.61,0,149.819-67.209,149.819-149.82C512,290.844,477.607,239.638,427.79,215.268z"/><path d="M182.36,349.937c0-7.821,0.505-15.525,1.478-23.085c-37.216-16.219-67.632-44.344-86.861-80.772c-5.259-9.962-9.52-20.267-12.801-30.794C34.378,239.661,0,290.857,0,349.937c0,82.611,67.209,149.82,149.819,149.82c30.65,0,59.174-9.258,82.938-25.115C201.571,442.288,182.36,398.316,182.36,349.937z"/><path d="M299.057,336.797c-14.041,3.488-28.409,5.245-42.836,5.245c-14.453,0-28.962-1.762-43.272-5.31c-0.382,4.352-0.589,8.754-0.589,13.204c0,41.156,16.684,78.486,43.64,105.591c26.956-27.105,43.64-64.435,43.64-105.591C299.64,345.508,299.435,341.128,299.057,336.797z"/></svg>',
     mapped:
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="m22 5.15v3.7c0 2.25-.9 3.15-3.15 3.15h-2.7c-2.25 0-3.15-.9-3.15-3.15v-3.7c0-2.25.9-3.15 3.15-3.15h2.7c2.25 0 3.15.9 3.15 3.15zm-14.15 6.85h-2.7c-2.25 0-3.15.9-3.15 3.15v3.7c0 2.25.9 3.15 3.15 3.15h2.7c2.25 0 3.15-.9 3.15-3.15v-3.7c0-2.25-.9-3.15-3.15-3.15zm13.4 2.02539a.7502.7502 0 0 0 -.75.75 5.73444 5.73444 0 0 1 -4.292 5.543l.18164-.30176a.75031.75031 0 1 0 -1.28711-.77148l-.9707 1.61914a.75027.75027 0 0 0 .64356 1.13571 7.23313 7.23313 0 0 0 7.22461-7.22461.7502.7502 0 0 0 -.75-.75zm-18.5-4.05078a.7502.7502 0 0 0 .75-.75 5.73444 5.73444 0 0 1 4.292-5.543l-.18164.30176a.75031.75031 0 1 0 1.28711.77148l.9707-1.61914a.75027.75027 0 0 0 -.64356-1.13571 7.23313 7.23313 0 0 0 -7.22461 7.22461.7502.7502 0 0 0 .75.75z"/></svg>',
-    mail:
-      '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
+    mail: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
     globe:
       '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a5 5 0 0 0 7.07 0l2-2a5 5 0 0 0-7.07-7.07l-1 1"/><path d="M14 10a5 5 0 0 0-7.07 0l-2 2a5 5 0 0 0 7.07 7.07l1-1"/></svg>',
     scale:
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M6 21h12"/><path d="M12 5.5 5 8l3.2 6.4a3.6 3.6 0 0 0 6.4 0L12 5.5Z"/><path d="M12 5.5 19 8l-3.2 6.4a3.6 3.6 0 0 1-6.4 0"/></svg>',
     users:
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 8.5a3 3 0 1 1 3.5 4.4"/><path d="M20.5 20a5 5 0 0 0-3.8-6.4"/></svg>',
-    menu:
-      '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/></svg>',
+    menu: '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/></svg>',
     close:
       '<svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
     check:
       '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>',
-    tag:
-      '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.59 2H4a2 2 0 0 0-2 2v8.59a2 2 0 0 0 .59 1.41l9.59 9.59a2 2 0 0 0 2.82 0l6.18-6.18a2 2 0 0 0 0-2.82L11.99 2h.6Z"/><circle cx="7.5" cy="7.5" r="1.1" fill="currentColor" stroke="none"/></svg>',
+    tag: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.59 2H4a2 2 0 0 0-2 2v8.59a2 2 0 0 0 .59 1.41l9.59 9.59a2 2 0 0 0 2.82 0l6.18-6.18a2 2 0 0 0 0-2.82L11.99 2h.6Z"/><circle cx="7.5" cy="7.5" r="1.1" fill="currentColor" stroke="none"/></svg>',
     download:
       '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>',
-    eye:
-      '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+    eye: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
     filter:
       '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>',
   };
@@ -553,7 +584,11 @@
   function iconHtmlFor(kind) {
     if (ICONS[kind]) {
       return (
-        '<span class="icon' + (MIRRORED_ICONS[kind] ? ' icon-mirror' : '') + '">' + ICONS[kind] + '</span>'
+        '<span class="icon' +
+        (MIRRORED_ICONS[kind] ? ' icon-mirror' : '') +
+        '">' +
+        ICONS[kind] +
+        '</span>'
       );
     }
     var label = TEXT_ICONS[kind] || '?';
@@ -640,7 +675,14 @@
   // ---------- schema data helpers (all take an explicit `doc`) ----------
 
   /** Walks the controller tree, calling `onController`/`onOperation` for every node. */
-  function walkControllers(controllers, parentPath, parentRoute, onController, onOperation, depth) {
+  function walkControllers(
+    controllers,
+    parentPath,
+    parentRoute,
+    onController,
+    onOperation,
+    depth,
+  ) {
     if (!controllers) return;
     depth = depth || 0;
     Object.keys(controllers).forEach(function (name) {
@@ -656,7 +698,14 @@
         });
       }
       if (ctrl.controllers) {
-        walkControllers(ctrl.controllers, path, route, onController, onOperation, depth + 1);
+        walkControllers(
+          ctrl.controllers,
+          path,
+          route,
+          onController,
+          onOperation,
+          depth + 1,
+        );
       }
     });
   }
@@ -668,7 +717,8 @@
       '',
       'ctl',
       function (ctrl, ctrlPath, ctrlRoute, name) {
-        if (ctrlRoute === route) found = { ctrl: ctrl, ctrlPath: ctrlPath, name: name };
+        if (ctrlRoute === route)
+          found = { ctrl: ctrl, ctrlPath: ctrlPath, name: name };
       },
       function () {},
     );
@@ -684,8 +734,18 @@
       null,
       function (ctrl, ctrlPath, opKey, op, opRoute, depth, ctrlName) {
         if (opRoute === route) {
-          var ctrlRoute = opRoute.slice(0, opRoute.length - ('/' + encodeURIComponent(opKey)).length);
-          found = { ctrl: ctrl, ctrlName: ctrlName, ctrlRoute: ctrlRoute, ctrlPath: ctrlPath, opKey: opKey, op: op };
+          var ctrlRoute = opRoute.slice(
+            0,
+            opRoute.length - ('/' + encodeURIComponent(opKey)).length,
+          );
+          found = {
+            ctrl: ctrl,
+            ctrlName: ctrlName,
+            ctrlRoute: ctrlRoute,
+            ctrlPath: ctrlPath,
+            opKey: opKey,
+            op: op,
+          };
         }
       },
     );
@@ -725,7 +785,11 @@
     var idx;
     while ((idx = lower.indexOf(filterValue, pos)) !== -1) {
       if (idx > pos) parts.push(text.slice(pos, idx));
-      parts.push(el('mark', { class: 'match-highlight' }, [text.slice(idx, idx + filterValue.length)]));
+      parts.push(
+        el('mark', { class: 'match-highlight' }, [
+          text.slice(idx, idx + filterValue.length),
+        ]),
+      );
       pos = idx + filterValue.length;
     }
     if (!parts.length) return [text];
@@ -766,8 +830,16 @@
   function opTitleNode(op, fallback, cls, filterValue) {
     var base = cls ? cls + ' ' : '';
     return op.title
-      ? el('span', { class: base + 'name' }, highlightParts(op.title, filterValue))
-      : el('span', { class: base + 'name mono' }, highlightParts(fallback, filterValue));
+      ? el(
+          'span',
+          { class: base + 'name' },
+          highlightParts(op.title, filterValue),
+        )
+      : el(
+          'span',
+          { class: base + 'name mono' },
+          highlightParts(fallback, filterValue),
+        );
   }
 
   /** Unwraps any number of ArrayType layers, returning the innermost
@@ -785,11 +857,20 @@
     while (r.def && r.def.kind === 'ArrayType') {
       suffix += '[]';
       if (r.def.minOccurs != null || r.def.maxOccurs != null) {
-        arrayConstraints.push({ minOccurs: r.def.minOccurs, maxOccurs: r.def.maxOccurs });
+        arrayConstraints.push({
+          minOccurs: r.def.minOccurs,
+          maxOccurs: r.def.maxOccurs,
+        });
       }
       r = resolveType(doc, r.def.type);
     }
-    return { name: r.name, def: r.def, prefix: '', suffix: suffix, arrayConstraints: arrayConstraints };
+    return {
+      name: r.name,
+      def: r.def,
+      prefix: '',
+      suffix: suffix,
+      arrayConstraints: arrayConstraints,
+    };
   }
 
   /** A type-chip (icon + name, tinted by kind — same look as a markdown
@@ -813,12 +894,16 @@
     // restyled a shade darker and borderless via `.type-chip-member` so it
     // reads as *part of* the union chip rather than a sibling of it.
     if (d && !u.name && d.kind === 'UnionType' && d.types && d.types.length) {
-      var unionLabel = el('span', { class: 'type-chip-union-label' }, [iconFor(iconKind), 'UnionType' + (suffix || '')]);
-      attachTypeHover(unionLabel, doc, ref);
-      var unionNode = el('span', { class: 'type-chip c-' + iconKind + ' type-chip-union' }, [
-        unionLabel,
-        el('span', { class: 'type-chip-sep' }, ['|']),
+      var unionLabel = el('span', { class: 'type-chip-union-label' }, [
+        iconFor(iconKind),
+        'UnionType' + (suffix || ''),
       ]);
+      attachTypeHover(unionLabel, doc, ref);
+      var unionNode = el(
+        'span',
+        { class: 'type-chip c-' + iconKind + ' type-chip-union' },
+        [unionLabel, el('span', { class: 'type-chip-sep' }, ['|'])],
+      );
       d.types.forEach(function (memberRef) {
         var member = typeRefNode(doc, memberRef);
         member.classList.add('type-chip-member');
@@ -828,15 +913,25 @@
     }
 
     var embedded = !!(d && !u.name && !d.name && d.fields);
-    var name = (u.name || (d && d.name) || (embedded ? t('field.embedded') : d && d.kind) || t('field.unknown')) + (suffix || '');
+    var name =
+      (u.name ||
+        (d && d.name) ||
+        (embedded ? t('field.embedded') : d && d.kind) ||
+        t('field.unknown')) + (suffix || '');
     // `d.anonymous` (see `mapDataType` in schema-builder.ts) covers both
     // this — an embedded ComplexType/Mixin/Mapped type with no name — and
     // a SimpleType customized inline for one field/parameter (which still
     // *displays* a borrowed name like "string", not "embedded", but is
     // just as much "not a real standalone type"). The dashed border is a
     // quiet visual cue for that; `showTypeTooltip` spells it out.
-    var attrs = { class: 'type-chip c-' + iconKind + (d && d.anonymous ? ' type-chip-anonymous' : '') };
-    if (u.name) attrs.href = hrefFor(state.docKey, 'model/' + encodeURIComponent(u.name));
+    var attrs = {
+      class:
+        'type-chip c-' +
+        iconKind +
+        (d && d.anonymous ? ' type-chip-anonymous' : ''),
+    };
+    if (u.name)
+      attrs.href = hrefFor(state.docKey, 'model/' + encodeURIComponent(u.name));
     var node = el(u.name ? 'a' : 'span', attrs, [iconFor(iconKind), name]);
     attachTypeHover(node, doc, ref);
     return node;
@@ -924,18 +1019,24 @@
         // that's easy to miss otherwise, especially when it still reads
         // as an ordinary type name like "string".
         d.anonymous
-          ? el('span', {
-              class: 'badge',
-              title: t('field.embeddedHint'),
-            }, [t('field.embedded')])
+          ? el(
+              'span',
+              {
+                class: 'badge',
+                title: t('field.embeddedHint'),
+              },
+              [t('field.embedded')],
+            )
           : null,
       ]),
     );
     var brief = briefText(d.description, 220);
     tip.appendChild(
-      el('div', { class: 'type-tooltip-desc' + (brief ? '' : ' empty'), dir: 'auto' }, [
-        brief || t('field.noDescription'),
-      ]),
+      el(
+        'div',
+        { class: 'type-tooltip-desc' + (brief ? '' : ' empty'), dir: 'auto' },
+        [brief || t('field.noDescription')],
+      ),
     );
     // The type's own examples — same copyable chip as everywhere else,
     // but without each one's description (there's no room for it here,
@@ -965,8 +1066,10 @@
       var tw = tip.offsetWidth;
       var th = tip.offsetHeight;
       var left = IS_RTL ? rect.right - tw : rect.left;
-      tip.style.left = Math.min(Math.max(8, left), Math.max(8, vw - tw - 8)) + 'px';
-      if (rect.bottom + 6 + th > vh - 8) tip.style.top = Math.max(8, rect.top - th - 6) + 'px';
+      tip.style.left =
+        Math.min(Math.max(8, left), Math.max(8, vw - tw - 8)) + 'px';
+      if (rect.bottom + 6 + th > vh - 8)
+        tip.style.top = Math.max(8, rect.top - th - 6) + 'px';
     });
   }
 
@@ -1012,7 +1115,9 @@
   /** A small badge for a boolean field trait (required, readonly, ...),
    *  with a hover tooltip explaining what it means. */
   function flagBadge(key, label) {
-    return el('span', { class: 'flag', title: FLAG_HINTS[key] }, [label || lookupMessage('flags.' + key) || key]);
+    return el('span', { class: 'flag', title: FLAG_HINTS[key] }, [
+      label || lookupMessage('flags.' + key) || key,
+    ]);
   }
 
   /** A small "from X" flag shown at the end of an inherited field's line,
@@ -1022,16 +1127,25 @@
    *  field's own identity marker (that's what type-kind icons mean
    *  elsewhere in this UI) rather than a provenance note. */
   function fromFlag(from) {
-    var label = typeof from === 'string' ? from : (from && (from.name || from.kind)) || t('field.baseType');
+    var label =
+      typeof from === 'string'
+        ? from
+        : (from && (from.name || from.kind)) || t('field.baseType');
     var title = t('field.inheritedFrom', { type: label });
     if (typeof from === 'string') {
       return el(
         'a',
-        { class: 'flag from-flag', title: title, href: hrefFor(state.docKey, 'model/' + encodeURIComponent(from)) },
+        {
+          class: 'flag from-flag',
+          title: title,
+          href: hrefFor(state.docKey, 'model/' + encodeURIComponent(from)),
+        },
         [t('field.fromType', { type: label })],
       );
     }
-    return el('span', { class: 'flag from-flag', title: title }, [t('field.fromType', { type: label })]);
+    return el('span', { class: 'flag from-flag', title: title }, [
+      t('field.fromType', { type: label }),
+    ]);
   }
 
   /** "Extends X" / "Mixin of (X, Y)" / "Mapped from X" — shown once, above
@@ -1053,7 +1167,11 @@
       frag.appendChild(typeof chip === 'string' ? text(chip) : chip);
     });
     var key =
-      inherits.kind === 'mixin' ? 'model.mixinOf' : inherits.kind === 'mapped' ? 'model.mappedFrom' : 'model.extends';
+      inherits.kind === 'mixin'
+        ? 'model.mixinOf'
+        : inherits.kind === 'mapped'
+          ? 'model.mappedFrom'
+          : 'model.extends';
     return el('p', { class: 'inherits' }, tNodes(key, { types: frag }));
   }
 
@@ -1107,7 +1225,9 @@
       var isObject = value !== null && typeof value === 'object';
       container.appendChild(
         el('div', { class: 'prop-row' }, [
-          el('span', { class: 'prop-key', title: desc || null }, [humanizePropKey(key) + ': ']),
+          el('span', { class: 'prop-key', title: desc || null }, [
+            humanizePropKey(key) + ': ',
+          ]),
           key === 'pattern' || isObject
             ? el('code', {}, [isObject ? JSON.stringify(value) : String(value)])
             : text(String(value)),
@@ -1154,7 +1274,9 @@
    *  "Examples" section (`renderTypeExamples`). */
   function exampleChip(value) {
     return el('span', { class: 'example-chip' }, [
-      el('code', {}, [typeof value === 'string' ? value : JSON.stringify(value)]),
+      el('code', {}, [
+        typeof value === 'string' ? value : JSON.stringify(value),
+      ]),
       copyButton(value),
     ]);
   }
@@ -1165,12 +1287,16 @@
    *  file's "no external dependency" inline-icon/markdown approach. Escapes
    *  `&`/`<`/`>` itself first since the result is used as raw `innerHTML`. */
   function highlightJson(json) {
-    var escaped = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    var escaped = json
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
     return escaped.replace(
       /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false)\b|\bnull\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
       function (match) {
         var cls = 'json-number';
-        if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-string';
+        if (/^"/.test(match))
+          cls = /:$/.test(match) ? 'json-key' : 'json-string';
         else if (/true|false/.test(match)) cls = 'json-boolean';
         else if (match === 'null') cls = 'json-null';
         return '<span class="' + cls + '">' + match + '</span>';
@@ -1179,7 +1305,10 @@
   }
 
   function escapeHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   }
 
   function escapeRegExp(str) {
@@ -1199,10 +1328,14 @@
    *  generated multipart snippets. */
   function highlightShell(code) {
     var escaped = escapeHtml(code);
-    return escaped.replace(/('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")|(\b(?:curl|http)\b|-[A-Za-z]\b|--[a-z-]+\b)/g, function (match, str, kw) {
-      if (str !== undefined) return '<span class="json-string">' + str + '</span>';
-      return '<span class="code-keyword">' + kw + '</span>';
-    });
+    return escaped.replace(
+      /('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")|(\b(?:curl|http)\b|-[A-Za-z]\b|--[a-z-]+\b)/g,
+      function (match, str, kw) {
+        if (str !== undefined)
+          return '<span class="json-string">' + str + '</span>';
+        return '<span class="code-keyword">' + kw + '</span>';
+      },
+    );
   }
 
   /** `extraKeywords` lets each JS-family caller (jQuery/XHR alongside the
@@ -1210,44 +1343,64 @@
    *  (`$`/`ajax`, `XMLHttpRequest`/`open`/`send`, ...) without every caller
    *  needing its own near-duplicate regex. */
   function highlightJs(code, extraKeywords) {
-    var keywords = ['const', 'var', 'new', 'require', 'fetch', 'axios', 'JSON', 'stringify', 'FormData'].concat(extraKeywords || []);
+    var keywords = [
+      'const',
+      'var',
+      'new',
+      'require',
+      'fetch',
+      'axios',
+      'JSON',
+      'stringify',
+      'FormData',
+    ].concat(extraKeywords || []);
     var escaped = escapeHtml(code);
     var re = new RegExp(
-      "('(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\"|//[^\\n]*)|(\\b(?:" +
+      '(\'(?:[^\'\\\\]|\\\\.)*\'|"(?:[^"\\\\]|\\\\.)*"|//[^\\n]*)|(\\b(?:' +
         keywords.map(escapeRegExp).join('|') +
         ')\\b)|(\\b[A-Za-z_$][A-Za-z0-9_$]*)(?=\\s*:)|(-?\\d+(?:\\.\\d+)?)',
       'g',
     );
     return escaped.replace(re, function (match, str, kw, key, num) {
       if (str !== undefined) {
-        if (str.charAt(0) === '/') return '<span class="code-comment">' + str + '</span>';
+        if (str.charAt(0) === '/')
+          return '<span class="code-comment">' + str + '</span>';
         return '<span class="json-string">' + str + '</span>';
       }
-      if (kw !== undefined) return '<span class="code-keyword">' + kw + '</span>';
+      if (kw !== undefined)
+        return '<span class="code-keyword">' + kw + '</span>';
       if (key !== undefined) return '<span class="json-key">' + key + '</span>';
-      if (num !== undefined) return '<span class="json-number">' + num + '</span>';
+      if (num !== undefined)
+        return '<span class="json-number">' + num + '</span>';
       return match;
     });
   }
 
   function highlightPython(code, extraKeywords) {
-    var keywords = ['import', 'open', 'requests', 'response'].concat(extraKeywords || []);
+    var keywords = ['import', 'open', 'requests', 'response'].concat(
+      extraKeywords || [],
+    );
     var escaped = escapeHtml(code);
     var re = new RegExp(
-      "('(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\"|#[^\\n]*)|(\\b(?:" +
+      '(\'(?:[^\'\\\\]|\\\\.)*\'|"(?:[^"\\\\]|\\\\.)*"|#[^\\n]*)|(\\b(?:' +
         keywords.map(escapeRegExp).join('|') +
         ')\\b)|(\\b(?:True|False|None)\\b)|(\\b[A-Za-z_][A-Za-z0-9_]*)(?=\\=(?!=))|(-?\\d+(?:\\.\\d+)?)',
       'g',
     );
     return escaped.replace(re, function (match, str, kw, boolNull, kwarg, num) {
       if (str !== undefined) {
-        if (str.charAt(0) === '#') return '<span class="code-comment">' + str + '</span>';
+        if (str.charAt(0) === '#')
+          return '<span class="code-comment">' + str + '</span>';
         return '<span class="json-string">' + str + '</span>';
       }
-      if (kw !== undefined) return '<span class="code-keyword">' + kw + '</span>';
-      if (boolNull !== undefined) return '<span class="json-boolean">' + boolNull + '</span>';
-      if (kwarg !== undefined) return '<span class="json-key">' + kwarg + '</span>';
-      if (num !== undefined) return '<span class="json-number">' + num + '</span>';
+      if (kw !== undefined)
+        return '<span class="code-keyword">' + kw + '</span>';
+      if (boolNull !== undefined)
+        return '<span class="json-boolean">' + boolNull + '</span>';
+      if (kwarg !== undefined)
+        return '<span class="json-key">' + kwarg + '</span>';
+      if (num !== undefined)
+        return '<span class="json-number">' + num + '</span>';
       return match;
     });
   }
@@ -1260,19 +1413,22 @@
   function highlightGeneric(code, keywords) {
     var escaped = escapeHtml(code);
     var re = new RegExp(
-      "('(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\"|//[^\\n]*|#[^\\n]*)|(\\b(?:" +
+      '(\'(?:[^\'\\\\]|\\\\.)*\'|"(?:[^"\\\\]|\\\\.)*"|//[^\\n]*|#[^\\n]*)|(\\b(?:' +
         keywords.map(escapeRegExp).join('|') +
         ')\\b)|(\\b[A-Za-z_][A-Za-z0-9_]*)(?=\\s*[:=](?!=))|(-?\\d+(?:\\.\\d+)?)',
       'g',
     );
     return escaped.replace(re, function (match, str, kw, key, num) {
       if (str !== undefined) {
-        if (str.charAt(0) === '/' || str.charAt(0) === '#') return '<span class="code-comment">' + str + '</span>';
+        if (str.charAt(0) === '/' || str.charAt(0) === '#')
+          return '<span class="code-comment">' + str + '</span>';
         return '<span class="json-string">' + str + '</span>';
       }
-      if (kw !== undefined) return '<span class="code-keyword">' + kw + '</span>';
+      if (kw !== undefined)
+        return '<span class="code-keyword">' + kw + '</span>';
       if (key !== undefined) return '<span class="json-key">' + key + '</span>';
-      if (num !== undefined) return '<span class="json-number">' + num + '</span>';
+      if (num !== undefined)
+        return '<span class="json-number">' + num + '</span>';
       return match;
     });
   }
@@ -1285,7 +1441,12 @@
   function parseUrlParts(url) {
     try {
       var u = new URL(url);
-      return { hostname: u.hostname, port: u.port, path: (u.pathname || '/') + u.search, protocol: u.protocol.replace(':', '') };
+      return {
+        hostname: u.hostname,
+        port: u.port,
+        path: (u.pathname || '/') + u.search,
+        protocol: u.protocol.replace(':', ''),
+      };
     } catch (e) {
       return { hostname: url, port: '', path: '/', protocol: 'http' };
     }
@@ -1299,7 +1460,8 @@
     if (value === null || value === undefined) return 'null';
     if (typeof value === 'boolean') return value ? 'true' : 'false';
     if (typeof value === 'number') return String(value);
-    if (typeof value === 'string') return "'" + value.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
+    if (typeof value === 'string')
+      return "'" + value.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
     var nextIndent = indent + '  ';
     if (Array.isArray(value)) {
       var items = value.map(function (v) {
@@ -1318,7 +1480,11 @@
    *  backslashes/quotes and turns real newlines into literal `\n` escapes,
    *  since the JSON text is embedded in a normal (non-verbatim) C# string. */
   function csharpStringLiteral(str) {
-    return '"' + str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"';
+    return (
+      '"' +
+      str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n') +
+      '"'
+    );
   }
 
   /** A field's own declared example value(s) (`ApiField.examples` — either
@@ -1330,9 +1496,11 @@
    *  `null` when there's nothing set. */
   function renderFieldExamples(examples) {
     if (!examples) return null;
-    var values = Array.isArray(examples) ? examples : Object.keys(examples).map(function (k) {
-      return examples[k];
-    });
+    var values = Array.isArray(examples)
+      ? examples
+      : Object.keys(examples).map(function (k) {
+          return examples[k];
+        });
     if (!values.length) return null;
     var container = el('div', { class: 'field-properties' });
     var row = el('div', { class: 'prop-row example-row' }, [
@@ -1392,17 +1560,21 @@
     if (extra && extra.required) head.appendChild(flagBadge('required'));
     if (extra && extra.deprecated) {
       var deprecatedFlag = flagBadge('deprecated');
-      if (typeof extra.deprecated === 'string') deprecatedFlag.title = extra.deprecated;
+      if (typeof extra.deprecated === 'string')
+        deprecatedFlag.title = extra.deprecated;
       head.appendChild(deprecatedFlag);
     }
     if (extra && extra.readonly) head.appendChild(flagBadge('readonly'));
     if (extra && extra.writeonly) head.appendChild(flagBadge('writeonly'));
     if (extra && extra.exclusive) head.appendChild(flagBadge('exclusive'));
-    if (extra && extra.localization) head.appendChild(flagBadge('localization'));
+    if (extra && extra.localization)
+      head.appendChild(flagBadge('localization'));
     if (extra && extra.from) head.appendChild(fromFlag(extra.from));
     var row = el('div', { class: 'field-row' }, [head]);
     if (extra && extra.description) {
-      row.appendChild(mdBlock(doc, extra.description, 'field-description', extra.source));
+      row.appendChild(
+        mdBlock(doc, extra.description, 'field-description', extra.source),
+      );
     }
     var arrayConstraintsNode = renderArrayConstraints(u.arrayConstraints);
     if (arrayConstraintsNode) row.appendChild(arrayConstraintsNode);
@@ -1422,7 +1594,10 @@
       });
       row.appendChild(nestedFields);
     } else if (d && d.kind === 'SimpleType' && d.properties) {
-      var propsNode = renderSimpleTypeProperties(d.properties, d.propertyDescriptions);
+      var propsNode = renderSimpleTypeProperties(
+        d.properties,
+        d.propertyDescriptions,
+      );
       if (propsNode) row.appendChild(propsNode);
     }
     return row;
@@ -1465,7 +1640,8 @@
   function renderEnumValues(doc, d) {
     var values = d.values || {};
     var keys = Object.keys(values);
-    if (!keys.length) return el('div', { class: 'empty-note' }, [t('field.noValues')]);
+    if (!keys.length)
+      return el('div', { class: 'empty-note' }, [t('field.noValues')]);
     var list = el('div', { class: 'field-list' });
     keys.forEach(function (val) {
       var meta = values[val] || {};
@@ -1475,10 +1651,15 @@
       // where the "key" is just a label, not something meant to be lifted
       // verbatim.
       var valueRow = el('div', { class: 'field-row' }, [
-        el('span', { class: 'field-head' }, [el('span', { class: 'key' }, [val]), copyButton(val)]),
+        el('span', { class: 'field-head' }, [
+          el('span', { class: 'key' }, [val]),
+          copyButton(val),
+        ]),
       ]);
       if (meta.description) {
-        valueRow.appendChild(mdBlock(doc, meta.description, 'field-description', meta));
+        valueRow.appendChild(
+          mdBlock(doc, meta.description, 'field-description', meta),
+        );
       }
       list.appendChild(valueRow);
     });
@@ -1532,8 +1713,10 @@
       rows.forEach(function (r) {
         container.appendChild(r);
       });
-      if (!rows.length) return el('div', { class: 'empty-note' }, [t('field.noFields')]);
-      if (collapseAfter && rows.length > collapseAfter) appendShowMoreFields(container, rows, collapseAfter);
+      if (!rows.length)
+        return el('div', { class: 'empty-note' }, [t('field.noFields')]);
+      if (collapseAfter && rows.length > collapseAfter)
+        appendShowMoreFields(container, rows, collapseAfter);
     } else if (d.kind === 'EnumType') {
       return renderEnumValues(doc, d);
     } else if (d.kind === 'UnionType') {
@@ -1541,7 +1724,9 @@
         container.appendChild(renderFieldNode(doc, null, ref, null));
       });
     } else if (d.kind === 'SimpleType') {
-      var propRows = d.properties && renderSimpleTypePropertyRows(doc, d.properties, d.propertyDescriptions);
+      var propRows =
+        d.properties &&
+        renderSimpleTypePropertyRows(doc, d.properties, d.propertyDescriptions);
       if (propRows && propRows.length) {
         propRows.forEach(function (r) {
           container.appendChild(r);
@@ -1592,7 +1777,8 @@
     return list
       .map(function (s) {
         if (s && typeof s === 'object') {
-          if (s.end - s.start === 99 && s.start % 100 === 0) return Math.floor(s.start / 100) + 'XX';
+          if (s.end - s.start === 99 && s.start % 100 === 0)
+            return Math.floor(s.start / 100) + 'XX';
           return s.start + '-' + s.end;
         }
         return String(s);
@@ -1654,7 +1840,16 @@
       var lic = info.license;
       var row = el('div', { class: 'doc-meta-license-row' }, [
         lic.url
-          ? el('a', { class: 'doc-meta-value', href: lic.url, target: '_blank', rel: 'noopener' }, [lic.name])
+          ? el(
+              'a',
+              {
+                class: 'doc-meta-value',
+                href: lic.url,
+                target: '_blank',
+                rel: 'noopener',
+              },
+              [lic.name],
+            )
           : el('span', { class: 'doc-meta-value' }, [lic.name]),
       ]);
       var body = [row];
@@ -1668,12 +1863,24 @@
         // at ~80 columns, which reads as ragged half-lines inside this
         // narrow column, and any emphasis in it (`*Example Inc*`) would
         // otherwise show up as literal asterisks.
-        var contentPre = mdBlock(doc, lic.content, 'license-content', lic, 'content');
+        var contentPre = mdBlock(
+          doc,
+          lic.content,
+          'license-content',
+          lic,
+          'content',
+        );
         contentPre.hidden = true;
-        var toggleBtn = el('button', { class: 'text-toggle-btn', type: 'button' }, [t('overview.viewFullText')]);
+        var toggleBtn = el(
+          'button',
+          { class: 'text-toggle-btn', type: 'button' },
+          [t('overview.viewFullText')],
+        );
         toggleBtn.addEventListener('click', function () {
           contentPre.hidden = !contentPre.hidden;
-          toggleBtn.textContent = contentPre.hidden ? t('overview.viewFullText') : t('overview.hideFullText');
+          toggleBtn.textContent = contentPre.hidden
+            ? t('overview.viewFullText')
+            : t('overview.hideFullText');
         });
         row.appendChild(toggleBtn);
         body.push(contentPre);
@@ -1684,7 +1891,8 @@
     if (info.contact && info.contact.length) {
       var cards = info.contact.map(function (c) {
         var card = el('div', { class: 'contact-card' });
-        if (c.name) card.appendChild(el('div', { class: 'contact-name' }, [c.name]));
+        if (c.name)
+          card.appendChild(el('div', { class: 'contact-name' }, [c.name]));
         // The copy button sits *beside* the link, not inside it — nesting
         // it inside the `<a>` would also fire the mailto/website navigation
         // on every copy click, since `copyButton`'s own `stopPropagation`
@@ -1703,10 +1911,21 @@
         if (c.url) {
           card.appendChild(
             el('div', { class: 'contact-line' }, [
-              el('a', { class: 'contact-link', href: c.url, target: '_blank', rel: 'noopener' }, [
-                iconFor('globe'),
-                el('span', { class: 'label' }, [c.url.replace(/^https?:\/\//, '')]),
-              ]),
+              el(
+                'a',
+                {
+                  class: 'contact-link',
+                  href: c.url,
+                  target: '_blank',
+                  rel: 'noopener',
+                },
+                [
+                  iconFor('globe'),
+                  el('span', { class: 'label' }, [
+                    c.url.replace(/^https?:\/\//, ''),
+                  ]),
+                ],
+              ),
               copyButton(c.url),
             ]),
           );
@@ -1724,7 +1943,11 @@
       if (isHttpUrl(info.termsOfService)) {
         items.push(
           metaItem(t('overview.termsOfService'), 'book', [
-            el('a', { href: info.termsOfService, target: '_blank', rel: 'noopener' }, [t('overview.viewTerms')]),
+            el(
+              'a',
+              { href: info.termsOfService, target: '_blank', rel: 'noopener' },
+              [t('overview.viewTerms')],
+            ),
           ]),
         );
       } else {
@@ -1732,16 +1955,27 @@
         // "Show more" toggle — added only once the text is confirmed to
         // actually overflow that clamp (measured post-layout), rather than
         // showing a toggle for a one-line blurb that never needed one.
-        var textEl = el('div', { class: 'terms-text clamped' }, [info.termsOfService]);
-        var moreBtn = el('button', { class: 'text-toggle-btn', type: 'button' }, [t('common.showMore')]);
+        var textEl = el('div', { class: 'terms-text clamped' }, [
+          info.termsOfService,
+        ]);
+        var moreBtn = el(
+          'button',
+          { class: 'text-toggle-btn', type: 'button' },
+          [t('common.showMore')],
+        );
         moreBtn.hidden = true;
         moreBtn.addEventListener('click', function () {
           var stillClamped = textEl.classList.toggle('clamped');
-          moreBtn.textContent = stillClamped ? t('common.showMore') : t('common.showLess');
+          moreBtn.textContent = stillClamped
+            ? t('common.showMore')
+            : t('common.showLess');
         });
-        items.push(metaItem(t('overview.termsOfService'), 'book', [textEl, moreBtn]));
+        items.push(
+          metaItem(t('overview.termsOfService'), 'book', [textEl, moreBtn]),
+        );
         requestAnimationFrame(function () {
-          if (textEl.scrollHeight > textEl.clientHeight + 1) moreBtn.hidden = false;
+          if (textEl.scrollHeight > textEl.clientHeight + 1)
+            moreBtn.hidden = false;
         });
       }
     }
@@ -1758,14 +1992,20 @@
   function renderReferencesSection(main) {
     var keys = Object.keys(embedded.refs || {});
     if (!keys.length) return;
-    var section = el('div', { class: 'section' }, [el('h2', {}, [t('overview.referenceDocuments')])]);
+    var section = el('div', { class: 'section' }, [
+      el('h2', {}, [t('overview.referenceDocuments')]),
+    ]);
     keys.sort().forEach(function (ns) {
       var rinfo = (embedded.refs[ns] && embedded.refs[ns].info) || {};
       section.appendChild(
         el('a', { class: 'row-link', href: hrefFor(ns, '') }, [
           iconFor('book'),
           el('span', { class: 'mono' }, [rinfo.title || ns]),
-          rinfo.version ? el('span', { class: 'row-desc' }, [t('common.versionTag', { version: rinfo.version })]) : null,
+          rinfo.version
+            ? el('span', { class: 'row-desc' }, [
+                t('common.versionTag', { version: rinfo.version }),
+              ])
+            : null,
         ]),
       );
     });
@@ -1782,15 +2022,26 @@
     var controllers = (doc.api && doc.api.controllers) || {};
     var names = Object.keys(controllers);
     if (!names.length) return;
-    var section = el('div', { class: 'section' }, [el('h2', {}, [t('overview.controllers')])]);
+    var section = el('div', { class: 'section' }, [
+      el('h2', {}, [t('overview.controllers')]),
+    ]);
     names.sort().forEach(function (name) {
       var ctrl = controllers[name];
       var n = countOperations(ctrl);
       section.appendChild(
-        el('a', { class: 'row-link', href: hrefFor(docKey, 'ctl/' + encodeURIComponent(name)) }, [
-          el('span', { class: 'mono' }, [name]),
-          el('span', { class: 'row-desc' }, [tp('overview.operationCount', n)]),
-        ]),
+        el(
+          'a',
+          {
+            class: 'row-link',
+            href: hrefFor(docKey, 'ctl/' + encodeURIComponent(name)),
+          },
+          [
+            el('span', { class: 'mono' }, [name]),
+            el('span', { class: 'row-desc' }, [
+              tp('overview.operationCount', n),
+            ]),
+          ],
+        ),
       );
     });
     main.appendChild(section);
@@ -1813,23 +2064,34 @@
     });
     var kinds = Object.keys(byKind);
     if (!kinds.length) return;
-    var section = el('div', { class: 'section' }, [el('h2', {}, [t('overview.models')])]);
+    var section = el('div', { class: 'section' }, [
+      el('h2', {}, [t('overview.models')]),
+    ]);
     var chipRow = el('div', { class: 'stat-chips' });
-    TYPE_GROUP_ORDER.concat(kinds.filter(function (k) { return TYPE_GROUP_ORDER.indexOf(k) === -1; })).forEach(
-      function (kind) {
-        if (!byKind[kind]) return;
-        var names = byKind[kind].sort();
-        var iconKind = dataTypeIconKind(kind);
-        var label = dataTypeGroupLabel(kind, names.length);
-        chipRow.appendChild(
-          el('a', { class: 'stat-chip c-' + iconKind, href: hrefFor(docKey, 'model/' + encodeURIComponent(names[0])) }, [
+    TYPE_GROUP_ORDER.concat(
+      kinds.filter(function (k) {
+        return TYPE_GROUP_ORDER.indexOf(k) === -1;
+      }),
+    ).forEach(function (kind) {
+      if (!byKind[kind]) return;
+      var names = byKind[kind].sort();
+      var iconKind = dataTypeIconKind(kind);
+      var label = dataTypeGroupLabel(kind, names.length);
+      chipRow.appendChild(
+        el(
+          'a',
+          {
+            class: 'stat-chip c-' + iconKind,
+            href: hrefFor(docKey, 'model/' + encodeURIComponent(names[0])),
+          },
+          [
             iconFor(iconKind),
             el('span', { class: 'stat-count' }, [String(names.length)]),
             text(label),
-          ]),
-        );
-      },
-    );
+          ],
+        ),
+      );
+    });
     section.appendChild(chipRow);
     main.appendChild(section);
   }
@@ -1839,18 +2101,31 @@
     main.appendChild(
       el('h1', { dir: 'auto' }, [
         info.title || t('overview.apiReference'),
-        info.version ? el('span', { class: 'badge' }, [t('common.versionTag', { version: info.version })]) : null,
+        info.version
+          ? el('span', { class: 'badge' }, [
+              t('common.versionTag', { version: info.version }),
+            ])
+          : null,
       ]),
     );
     if (doc.api && doc.api.url) {
-      main.appendChild(el('p', { class: 'description path' }, [t('overview.server', { url: doc.api.url })]));
+      main.appendChild(
+        el('p', { class: 'description path' }, [
+          t('overview.server', { url: doc.api.url }),
+        ]),
+      );
     }
     // What the API *is* comes first (description, then what it contains);
     // who owns/licenses it is a footnote, so the license/contact/terms
     // panel goes last, below everything else.
     var descBlock = mdBlock(doc, info.description, null, info);
     if (descBlock) {
-      main.appendChild(el('div', { class: 'section' }, [el('h2', {}, [t('overview.description')]), descBlock]));
+      main.appendChild(
+        el('div', { class: 'section' }, [
+          el('h2', {}, [t('overview.description')]),
+          descBlock,
+        ]),
+      );
     }
 
     // `embedded.refs` is always the *root* document's own references (only
@@ -1946,7 +2221,8 @@
    *  no declared `type` at all (common for a raw file upload) falls back
    *  to the generic `any` type rather than showing nothing. */
   function renderMultipartFieldRow(doc, f) {
-    var nameLabel = typeof f.fieldName === 'string' ? f.fieldName : '/' + f.fieldName + '/';
+    var nameLabel =
+      typeof f.fieldName === 'string' ? f.fieldName : '/' + f.fieldName + '/';
     var row = renderFieldNode(doc, nameLabel, f.type || 'any', {
       source: f,
       required: f.required,
@@ -1956,7 +2232,11 @@
     head.appendChild(el('span', { class: 'badge' }, [f.fieldType]));
     if (f.contentType) {
       head.appendChild(
-        el('span', { class: 'flag' }, [Array.isArray(f.contentType) ? f.contentType.join(', ') : f.contentType]),
+        el('span', { class: 'flag' }, [
+          Array.isArray(f.contentType)
+            ? f.contentType.join(', ')
+            : f.contentType,
+        ]),
       );
     }
     // Size limits declared on *this specific part* (as opposed to the
@@ -1964,15 +2244,20 @@
     // e.g. a per-file `maxPartSize` distinct from the whole body's
     // `maxTotalSize`.
     var limitRows = [];
-    if (f.maxPartSize != null) limitRows.push([t('media.maxSize'), text(formatBytes(f.maxPartSize))]);
-    if (f.maxFieldSize != null) limitRows.push([t('media.maxSize'), text(formatBytes(f.maxFieldSize))]);
+    if (f.maxPartSize != null)
+      limitRows.push([t('media.maxSize'), text(formatBytes(f.maxPartSize))]);
+    if (f.maxFieldSize != null)
+      limitRows.push([t('media.maxSize'), text(formatBytes(f.maxFieldSize))]);
     if (limitRows.length) {
       row.appendChild(
         el(
           'div',
           { class: 'field-properties' },
           limitRows.map(function (r) {
-            return el('div', { class: 'prop-row' }, [el('span', { class: 'prop-key' }, [r[0] + ': ']), r[1]]);
+            return el('div', { class: 'prop-row' }, [
+              el('span', { class: 'prop-key' }, [r[0] + ': ']),
+              r[1],
+            ]);
           }),
         ),
       );
@@ -1986,7 +2271,8 @@
    *  `maxTotalSize`, ...) are declared in bytes; shown in whichever unit
    *  reads as a single reasonable number instead of a long digit string. */
   function formatBytes(n) {
-    if (n >= 1024 * 1024) return (n / (1024 * 1024)).toFixed(n % (1024 * 1024) ? 1 : 0) + ' MB';
+    if (n >= 1024 * 1024)
+      return (n / (1024 * 1024)).toFixed(n % (1024 * 1024) ? 1 : 0) + ' MB';
     if (n >= 1024) return (n / 1024).toFixed(n % 1024 ? 1 : 0) + ' KB';
     return n + ' B';
   }
@@ -2002,16 +2288,30 @@
       ? media.contentType.join(', ')
       : media.contentType || 'application/json';
     rows.push(['Content-Type', el('code', {}, [contentTypeLabel])]);
-    if (media.contentEncoding) rows.push([t('media.encoding'), text(media.contentEncoding)]);
-    if (media.maxParts != null) rows.push([t('media.maxParts'), text(String(media.maxParts))]);
-    if (media.maxPartSize != null) rows.push([t('media.maxPartSize'), text(formatBytes(media.maxPartSize))]);
-    if (media.maxFieldSize != null) rows.push([t('media.maxFieldSize'), text(formatBytes(media.maxFieldSize))]);
-    if (media.maxTotalSize != null) rows.push([t('media.maxTotalSize'), text(formatBytes(media.maxTotalSize))]);
+    if (media.contentEncoding)
+      rows.push([t('media.encoding'), text(media.contentEncoding)]);
+    if (media.maxParts != null)
+      rows.push([t('media.maxParts'), text(String(media.maxParts))]);
+    if (media.maxPartSize != null)
+      rows.push([t('media.maxPartSize'), text(formatBytes(media.maxPartSize))]);
+    if (media.maxFieldSize != null)
+      rows.push([
+        t('media.maxFieldSize'),
+        text(formatBytes(media.maxFieldSize)),
+      ]);
+    if (media.maxTotalSize != null)
+      rows.push([
+        t('media.maxTotalSize'),
+        text(formatBytes(media.maxTotalSize)),
+      ]);
     return el(
       'div',
       { class: 'field-properties' },
       rows.map(function (r) {
-        return el('div', { class: 'prop-row' }, [el('span', { class: 'prop-key' }, [r[0] + ': ']), r[1]]);
+        return el('div', { class: 'prop-row' }, [
+          el('span', { class: 'prop-key' }, [r[0] + ': ']),
+          r[1],
+        ]);
       }),
     );
   }
@@ -2038,7 +2338,13 @@
 
     var hasContent = false;
     if (media.type) {
-      panel.appendChild(renderTypeTreeWithInherits(doc, media.type, REQUEST_BODY_FIELD_COLLAPSE_AFTER));
+      panel.appendChild(
+        renderTypeTreeWithInherits(
+          doc,
+          media.type,
+          REQUEST_BODY_FIELD_COLLAPSE_AFTER,
+        ),
+      );
       hasContent = true;
     }
     var exNode = renderMediaTypeExamples(media);
@@ -2056,7 +2362,9 @@
     }
 
     if (!hasContent) {
-      panel.appendChild(el('div', { class: 'empty-note' }, [t('operation.rawBody')]));
+      panel.appendChild(
+        el('div', { class: 'empty-note' }, [t('operation.rawBody')]),
+      );
     }
     return panel;
   }
@@ -2076,11 +2384,21 @@
   function mediaBodyFormats(media) {
     if (!media || !media.type) return [];
     var raw = media.contentType;
-    var list = Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split(',') : ['application/json'];
+    var list = Array.isArray(raw)
+      ? raw
+      : typeof raw === 'string'
+        ? raw.split(',')
+        : ['application/json'];
     var formats = [];
     list.forEach(function (entry) {
       entry = String(entry).trim().toLowerCase();
-      var fmt = /json/.test(entry) ? 'json' : /yaml/.test(entry) ? 'yaml' : /toml/.test(entry) ? 'toml' : null;
+      var fmt = /json/.test(entry)
+        ? 'json'
+        : /yaml/.test(entry)
+          ? 'yaml'
+          : /toml/.test(entry)
+            ? 'toml'
+            : null;
       if (fmt && formats.indexOf(fmt) === -1) formats.push(fmt);
     });
     if (!formats.length) formats.push('json');
@@ -2116,7 +2434,12 @@
    *  `body-toml` from the grouped one) to which serialization to render —
    *  the one place `renderRequestSection` needs to know that `body` itself
    *  just means "json". */
-  var BODY_KIND_FORMAT = { body: 'json', 'body-json': 'json', 'body-yaml': 'yaml', 'body-toml': 'toml' };
+  var BODY_KIND_FORMAT = {
+    body: 'json',
+    'body-json': 'json',
+    'body-yaml': 'yaml',
+    'body-toml': 'toml',
+  };
 
   /** A fixed, made-up boundary token — real `multipart/form-data` requests
    *  each pick a fresh random one so it can't collide with the body's own
@@ -2137,14 +2460,25 @@
   function multipartBodyPreview(doc, media) {
     var boundary = MULTIPART_EXAMPLE_BOUNDARY;
     var parts = media.multipartFields.map(function (f) {
-      var name = typeof f.fieldName === 'string' ? f.fieldName : String(f.fieldName);
+      var name =
+        typeof f.fieldName === 'string' ? f.fieldName : String(f.fieldName);
       var value = multipartFieldExampleValue(doc, f);
       var lines = ['--' + boundary];
       if (f.fieldType === 'file') {
-        var contentType = (Array.isArray(f.contentType) ? f.contentType.join(',') : f.contentType || 'application/octet-stream')
+        var contentType = (
+          Array.isArray(f.contentType)
+            ? f.contentType.join(',')
+            : f.contentType || 'application/octet-stream'
+        )
           .split(',')[0]
           .trim();
-        lines.push('Content-Disposition: form-data; name="' + name + '"; filename="' + value + '"');
+        lines.push(
+          'Content-Disposition: form-data; name="' +
+            name +
+            '"; filename="' +
+            value +
+            '"',
+        );
         lines.push('Content-Type: ' + contentType);
         lines.push('');
         lines.push('(binary contents of ' + value + ')');
@@ -2170,9 +2504,12 @@
     return escaped.replace(
       /^(--[^\n]+)$|^(Content-Disposition|Content-Type)(:)|(\(binary contents of [^)\n]*\))/gm,
       function (match, delim, header, colon, placeholder) {
-        if (delim !== undefined) return '<span class="code-comment">' + delim + '</span>';
-        if (header !== undefined) return '<span class="json-key">' + header + '</span>' + colon;
-        if (placeholder !== undefined) return '<span class="code-comment">' + placeholder + '</span>';
+        if (delim !== undefined)
+          return '<span class="code-comment">' + delim + '</span>';
+        if (header !== undefined)
+          return '<span class="json-key">' + header + '</span>' + colon;
+        if (placeholder !== undefined)
+          return '<span class="code-comment">' + placeholder + '</span>';
         return match;
       },
     );
@@ -2212,7 +2549,9 @@
     var copyBtn = copyButton(text, 15);
     copyBtn.classList.add('copy-btn-lg');
     return {
-      content: el('pre', { class: 'example-json' }, [el('code', { html: highlighted })]),
+      content: el('pre', { class: 'example-json' }, [
+        el('code', { html: highlighted }),
+      ]),
       copyBtn: copyBtn,
     };
   }
@@ -2246,7 +2585,12 @@
           if (v !== null && typeof v === 'object') {
             var nested = toYaml(v, indent + 1).split('\n');
             var first = nested[0].replace(/^\s+/, '');
-            return pad + '- ' + first + (nested.length > 1 ? '\n' + nested.slice(1).join('\n') : '');
+            return (
+              pad +
+              '- ' +
+              first +
+              (nested.length > 1 ? '\n' + nested.slice(1).join('\n') : '')
+            );
           }
           return pad + '- ' + yamlScalar(v);
         })
@@ -2258,7 +2602,13 @@
       return keys
         .map(function (k) {
           var v = value[k];
-          if ((Array.isArray(v) && v.length) || (v !== null && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length)) {
+          if (
+            (Array.isArray(v) && v.length) ||
+            (v !== null &&
+              typeof v === 'object' &&
+              !Array.isArray(v) &&
+              Object.keys(v).length)
+          ) {
             return pad + k + ':\n' + toYaml(v, indent + 1);
           }
           if (Array.isArray(v)) return pad + k + ': []';
@@ -2282,7 +2632,8 @@
   function tomlValue(v) {
     if (v === null || v === undefined) return null;
     if (typeof v === 'boolean' || typeof v === 'number') return String(v);
-    if (typeof v === 'string') return '"' + v.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+    if (typeof v === 'string')
+      return '"' + v.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
     if (Array.isArray(v)) {
       var items = v.map(tomlValue).filter(function (x) {
         return x !== null;
@@ -2326,11 +2677,15 @@
     return escaped.replace(
       /^(\s*(?:-\s+)?[\w"'.-]+)(:)|('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")|\b(true|false)\b|\bnull\b|(-?\d+(?:\.\d+)?)/gm,
       function (match, key, colon, str, bool, num) {
-        if (key !== undefined) return '<span class="json-key">' + key + '</span>' + colon;
-        if (str !== undefined) return '<span class="json-string">' + str + '</span>';
-        if (bool !== undefined) return '<span class="json-boolean">' + match + '</span>';
+        if (key !== undefined)
+          return '<span class="json-key">' + key + '</span>' + colon;
+        if (str !== undefined)
+          return '<span class="json-string">' + str + '</span>';
+        if (bool !== undefined)
+          return '<span class="json-boolean">' + match + '</span>';
         if (match === 'null') return '<span class="json-null">null</span>';
-        if (num !== undefined) return '<span class="json-number">' + num + '</span>';
+        if (num !== undefined)
+          return '<span class="json-number">' + num + '</span>';
         return match;
       },
     );
@@ -2340,10 +2695,14 @@
     return escaped.replace(
       /^([\w".-]+)(\s*=)|("(?:[^"\\]|\\.)*")|\b(true|false)\b|(-?\d+(?:\.\d+)?)/gm,
       function (match, key, eq, str, bool, num) {
-        if (key !== undefined) return '<span class="json-key">' + key + '</span>' + eq;
-        if (str !== undefined) return '<span class="json-string">' + str + '</span>';
-        if (bool !== undefined) return '<span class="json-boolean">' + match + '</span>';
-        if (num !== undefined) return '<span class="json-number">' + num + '</span>';
+        if (key !== undefined)
+          return '<span class="json-key">' + key + '</span>' + eq;
+        if (str !== undefined)
+          return '<span class="json-string">' + str + '</span>';
+        if (bool !== undefined)
+          return '<span class="json-boolean">' + match + '</span>';
+        if (num !== undefined)
+          return '<span class="json-number">' + num + '</span>';
         return match;
       },
     );
@@ -2390,7 +2749,8 @@
         }
       }
       if (!p) return m;
-      var val = p.default !== undefined ? p.default : buildExampleValue(doc, p.type);
+      var val =
+        p.default !== undefined ? p.default : buildExampleValue(doc, p.type);
       return encodeURIComponent(String(val));
     });
   }
@@ -2399,7 +2759,8 @@
    *  example, or a plausible placeholder filename for a 'file' field (there
    *  is no real file to point at in a synthesized example). */
   function multipartFieldExampleValue(doc, f) {
-    if (f.fieldType === 'file') return firstFieldExampleValue(f.examples) || 'example.png';
+    if (f.fieldType === 'file')
+      return firstFieldExampleValue(f.examples) || 'example.png';
     return buildExampleValue(doc, f.type);
   }
 
@@ -2409,20 +2770,36 @@
    *  formatters so adding a new client only ever means adding one new
    *  `format*Snippet(model)` over this exact same shape. */
   function buildRequestModel(doc, ctrlPath, op, media) {
-    var fullPath = interpolatePath(doc, operationPath(ctrlPath, op), op.parameters);
+    var fullPath = interpolatePath(
+      doc,
+      operationPath(ctrlPath, op),
+      op.parameters,
+    );
     var query = (op.parameters || [])
       .filter(function (p) {
         return p.location === 'query' && p.required;
       })
       .map(function (p) {
-        return { name: p.name, value: p.default !== undefined ? p.default : buildExampleValue(doc, p.type) };
+        return {
+          name: p.name,
+          value:
+            p.default !== undefined
+              ? p.default
+              : buildExampleValue(doc, p.type),
+        };
       });
     var headers = (op.parameters || [])
       .filter(function (p) {
         return p.location === 'header';
       })
       .map(function (p) {
-        return { name: p.name, value: p.default !== undefined ? p.default : buildExampleValue(doc, p.type) };
+        return {
+          name: p.name,
+          value:
+            p.default !== undefined
+              ? p.default
+              : buildExampleValue(doc, p.type),
+        };
       });
     var body = null;
     if (media) {
@@ -2430,7 +2807,11 @@
         body = {
           kind: 'multipart',
           fields: media.multipartFields.map(function (f) {
-            return { name: f.fieldName, type: f.fieldType, value: multipartFieldExampleValue(doc, f) };
+            return {
+              name: f.fieldName,
+              type: f.fieldType,
+              value: multipartFieldExampleValue(doc, f),
+            };
           }),
         };
       } else if (media.type) {
@@ -2440,8 +2821,15 @@
         // content types — fine as a multi-value *label* elsewhere on this
         // page, but a real request only ever sends one, so a generated
         // snippet picks just the first.
-        var contentTypeList = (Array.isArray(media.contentType) ? media.contentType.join(',') : media.contentType || 'application/json').split(',');
-        headers.push({ name: 'Content-Type', value: contentTypeList[0].trim() });
+        var contentTypeList = (
+          Array.isArray(media.contentType)
+            ? media.contentType.join(',')
+            : media.contentType || 'application/json'
+        ).split(',');
+        headers.push({
+          name: 'Content-Type',
+          value: contentTypeList[0].trim(),
+        });
         body = { kind: 'json', value: buildExampleValue(doc, media.type) };
       }
     }
@@ -2465,7 +2853,9 @@
     if (!query || !query.length) return url;
     var qs = query
       .map(function (q) {
-        return encodeURIComponent(q.name) + '=' + encodeURIComponent(String(q.value));
+        return (
+          encodeURIComponent(q.name) + '=' + encodeURIComponent(String(q.value))
+        );
       })
       .join('&');
     return url + (url.indexOf('?') === -1 ? '?' : '&') + qs;
@@ -2488,15 +2878,24 @@
   function formatOpraClientSnippet(model) {
     var isMultipart = model.body && model.body.kind === 'multipart';
     var methodLower = model.method.toLowerCase();
-    var hasShortcut = ['get', 'delete', 'post', 'put', 'patch'].indexOf(methodLower) !== -1;
+    var hasShortcut =
+      ['get', 'delete', 'post', 'put', 'patch'].indexOf(methodLower) !== -1;
     var takesBodyArg = ['post', 'put', 'patch'].indexOf(methodLower) !== -1;
 
-    var pre = ["import { OpraHttpClient } from '@opra/client';", '', "const client = new OpraHttpClient('" + model.baseUrl + "');", ''];
+    var pre = [
+      "import { OpraHttpClient } from '@opra/client';",
+      '',
+      "const client = new OpraHttpClient('" + model.baseUrl + "');",
+      '',
+    ];
     var bodyExpr = null;
     if (isMultipart) {
       pre.push('const form = new FormData();');
       model.body.fields.forEach(function (f) {
-        if (f.type === 'file') pre.push("form.append('" + f.name + "', fileInput.files[0]); // " + f.value);
+        if (f.type === 'file')
+          pre.push(
+            "form.append('" + f.name + "', fileInput.files[0]); // " + f.value,
+          );
         else pre.push("form.append('" + f.name + "', '" + f.value + "');");
       });
       pre.push('');
@@ -2540,7 +2939,13 @@
   }
 
   function formatCurlSnippet(model) {
-    var lines = ['curl -X ' + model.method + " '" + urlWithQuery(model.url, model.query) + "'"];
+    var lines = [
+      'curl -X ' +
+        model.method +
+        " '" +
+        urlWithQuery(model.url, model.query) +
+        "'",
+    ];
     model.headers.forEach(function (h) {
       lines.push("  -H '" + h.name + ': ' + h.value + "'");
     });
@@ -2568,18 +2973,36 @@
     if (headers.length) {
       opts.push('  headers: {');
       headers.forEach(function (h, i) {
-        opts.push("    '" + h.name + "': '" + h.value + "'" + (i < headers.length - 1 ? ',' : ''));
+        opts.push(
+          "    '" +
+            h.name +
+            "': '" +
+            h.value +
+            "'" +
+            (i < headers.length - 1 ? ',' : ''),
+        );
       });
       opts.push('  },');
     }
     if (model.body) {
       if (model.body.kind === 'json') {
-        opts.push('  body: JSON.stringify(' + JSON.stringify(model.body.value, null, 2) + '),');
+        opts.push(
+          '  body: JSON.stringify(' +
+            JSON.stringify(model.body.value, null, 2) +
+            '),',
+        );
       } else if (isMultipart) {
         pre.push('const formData = new FormData();');
         model.body.fields.forEach(function (f) {
-          if (f.type === 'file') pre.push("formData.append('" + f.name + "', fileInput.files[0]); // " + f.value);
-          else pre.push("formData.append('" + f.name + "', '" + f.value + "');");
+          if (f.type === 'file')
+            pre.push(
+              "formData.append('" +
+                f.name +
+                "', fileInput.files[0]); // " +
+                f.value,
+            );
+          else
+            pre.push("formData.append('" + f.name + "', '" + f.value + "');");
         });
         pre.push('');
         opts.push('  body: formData,');
@@ -2599,7 +3022,14 @@
     if (headers.length) {
       var configLines = ['  headers: {'];
       headers.forEach(function (h, i) {
-        configLines.push("    '" + h.name + "': '" + h.value + "'" + (i < headers.length - 1 ? ',' : ''));
+        configLines.push(
+          "    '" +
+            h.name +
+            "': '" +
+            h.value +
+            "'" +
+            (i < headers.length - 1 ? ',' : ''),
+        );
       });
       configLines.push('  }');
       config = configLines.join('\n');
@@ -2609,7 +3039,13 @@
     if (isMultipart) {
       pre.push('const formData = new FormData();');
       model.body.fields.forEach(function (f) {
-        if (f.type === 'file') pre.push("formData.append('" + f.name + "', fileInput.files[0]); // " + f.value);
+        if (f.type === 'file')
+          pre.push(
+            "formData.append('" +
+              f.name +
+              "', fileInput.files[0]); // " +
+              f.value,
+          );
         else pre.push("formData.append('" + f.name + "', '" + f.value + "');");
       });
       pre.push('');
@@ -2620,7 +3056,9 @@
     var args = ["'" + url + "'"];
     if (dataArg !== undefined) args.push(dataArg);
     if (config) args.push('{\n' + config + '\n}');
-    return pre.concat(['axios.' + method + '(' + args.join(', ') + ')']).join('\n');
+    return pre
+      .concat(['axios.' + method + '(' + args.join(', ') + ')'])
+      .join('\n');
   }
 
   function pyLiteral(value) {
@@ -2652,7 +3090,8 @@
         var files = {};
         var data = {};
         model.body.fields.forEach(function (f) {
-          if (f.type === 'file') files[f.name] = "open('" + f.value + "', 'rb')";
+          if (f.type === 'file')
+            files[f.name] = "open('" + f.value + "', 'rb')";
           else data[f.name] = f.value;
         });
         var fileKeys = Object.keys(files);
@@ -2665,23 +3104,41 @@
         if (Object.keys(data).length) args.push('    data=' + pyLiteral(data));
       }
     }
-    return ['import requests', '', 'response = requests.' + method + '(', args.join(',\n'), ')'].join('\n');
+    return [
+      'import requests',
+      '',
+      'response = requests.' + method + '(',
+      args.join(',\n'),
+      ')',
+    ].join('\n');
   }
 
   function formatHttpieSnippet(model) {
     var url = urlWithQuery(model.url, model.query);
     var isMultipart = model.body && model.body.kind === 'multipart';
-    var lines = ['http' + (isMultipart ? ' --form' : '') + ' ' + model.method + " '" + url + "'"];
+    var lines = [
+      'http' +
+        (isMultipart ? ' --form' : '') +
+        ' ' +
+        model.method +
+        " '" +
+        url +
+        "'",
+    ];
     model.headers.forEach(function (h) {
       if (isMultipart && h.name === 'Content-Type') return;
       lines.push("  '" + h.name + ':' + h.value + "'");
     });
     if (model.body) {
       if (model.body.kind === 'json') {
-        lines.push("  --raw='" + JSON.stringify(model.body.value, null, 2) + "'");
+        lines.push(
+          "  --raw='" + JSON.stringify(model.body.value, null, 2) + "'",
+        );
       } else if (isMultipart) {
         model.body.fields.forEach(function (f) {
-          lines.push("  '" + f.name + (f.type === 'file' ? '@' : '=') + f.value + "'");
+          lines.push(
+            "  '" + f.name + (f.type === 'file' ? '@' : '=') + f.value + "'",
+          );
         });
       }
     }
@@ -2699,21 +3156,42 @@
     if (otherHeaders.length) {
       opts.push('  headers: {');
       otherHeaders.forEach(function (h, i) {
-        opts.push("    '" + h.name + "': '" + h.value + "'" + (i < otherHeaders.length - 1 ? ',' : ''));
+        opts.push(
+          "    '" +
+            h.name +
+            "': '" +
+            h.value +
+            "'" +
+            (i < otherHeaders.length - 1 ? ',' : ''),
+        );
       });
       opts.push('  },');
     }
     if (isMultipart) {
       pre.push('var formData = new FormData();');
       model.body.fields.forEach(function (f) {
-        if (f.type === 'file') pre.push("formData.append('" + f.name + "', fileInput.files[0]); // " + f.value);
+        if (f.type === 'file')
+          pre.push(
+            "formData.append('" +
+              f.name +
+              "', fileInput.files[0]); // " +
+              f.value,
+          );
         else pre.push("formData.append('" + f.name + "', '" + f.value + "');");
       });
       pre.push('');
-      opts.push('  data: formData,', '  processData: false,', '  contentType: false,');
+      opts.push(
+        '  data: formData,',
+        '  processData: false,',
+        '  contentType: false,',
+      );
     } else if (model.body && model.body.kind === 'json') {
       opts.push("  contentType: 'application/json',");
-      opts.push('  data: JSON.stringify(' + JSON.stringify(model.body.value, null, 2) + '),');
+      opts.push(
+        '  data: JSON.stringify(' +
+          JSON.stringify(model.body.value, null, 2) +
+          '),',
+      );
     }
     return pre.concat(['$.ajax({'], opts, ['})']).join('\n');
   }
@@ -2725,8 +3203,15 @@
     if (isMultipart) {
       lines.push('var formData = new FormData();');
       model.body.fields.forEach(function (f) {
-        if (f.type === 'file') lines.push("formData.append('" + f.name + "', fileInput.files[0]); // " + f.value);
-        else lines.push("formData.append('" + f.name + "', '" + f.value + "');");
+        if (f.type === 'file')
+          lines.push(
+            "formData.append('" +
+              f.name +
+              "', fileInput.files[0]); // " +
+              f.value,
+          );
+        else
+          lines.push("formData.append('" + f.name + "', '" + f.value + "');");
       });
       lines.push('');
     }
@@ -2737,7 +3222,11 @@
       lines.push("xhr.setRequestHeader('" + h.name + "', '" + h.value + "');");
     });
     if (model.body && model.body.kind === 'json') {
-      lines.push('xhr.send(JSON.stringify(' + JSON.stringify(model.body.value, null, 2) + '));');
+      lines.push(
+        'xhr.send(JSON.stringify(' +
+          JSON.stringify(model.body.value, null, 2) +
+          '));',
+      );
     } else if (isMultipart) {
       lines.push('xhr.send(formData);');
     } else {
@@ -2757,16 +3246,20 @@
     var isMultipart = model.body && model.body.kind === 'multipart';
     if (isMultipart) {
       return [
-        "const " + mod + " = require('" + mod + "');",
+        'const ' + mod + " = require('" + mod + "');",
         '',
         "// Node's http/https module has no built-in multipart encoder —",
         "// use fetch() with FormData (Node 18+), or a package like 'form-data'.",
       ].join('\n');
     }
-    var bodyJson = model.body && model.body.kind === 'json' ? JSON.stringify(model.body.value, null, 2) : null;
+    var bodyJson =
+      model.body && model.body.kind === 'json'
+        ? JSON.stringify(model.body.value, null, 2)
+        : null;
     var headers = model.headers.slice();
-    var lines = ["const " + mod + " = require('" + mod + "');", ''];
-    if (bodyJson) lines.push('const data = JSON.stringify(' + bodyJson + ');', '');
+    var lines = ['const ' + mod + " = require('" + mod + "');", ''];
+    if (bodyJson)
+      lines.push('const data = JSON.stringify(' + bodyJson + ');', '');
     lines.push('const options = {');
     lines.push("  hostname: '" + parts.hostname + "',");
     if (parts.port) lines.push('  port: ' + parts.port + ',');
@@ -2775,7 +3268,14 @@
     if (headers.length) {
       lines.push('  headers: {');
       headers.forEach(function (h, i) {
-        lines.push("    '" + h.name + "': '" + h.value + "'" + (i < headers.length - 1 ? ',' : ''));
+        lines.push(
+          "    '" +
+            h.name +
+            "': '" +
+            h.value +
+            "'" +
+            (i < headers.length - 1 ? ',' : ''),
+        );
       });
       lines.push('  },');
     }
@@ -2804,19 +3304,40 @@
         '# example instead, or build the multipart body by hand.',
       ].join('\n');
     }
-    var conn = parts.protocol === 'https' ? 'HTTPSConnection' : 'HTTPConnection';
+    var conn =
+      parts.protocol === 'https' ? 'HTTPSConnection' : 'HTTPConnection';
     var lines = ['import http.client'];
-    var bodyJson = model.body && model.body.kind === 'json' ? JSON.stringify(model.body.value, null, 2) : null;
+    var bodyJson =
+      model.body && model.body.kind === 'json'
+        ? JSON.stringify(model.body.value, null, 2)
+        : null;
     if (bodyJson) lines.push('import json');
-    lines.push('', 'conn = http.client.' + conn + "('" + parts.hostname + (parts.port ? "', " + parts.port : "'") + ')');
-    if (bodyJson) lines.push('payload = json.dumps(' + pyLiteral(model.body.value) + ')');
+    lines.push(
+      '',
+      'conn = http.client.' +
+        conn +
+        "('" +
+        parts.hostname +
+        (parts.port ? "', " + parts.port : "'") +
+        ')',
+    );
+    if (bodyJson)
+      lines.push('payload = json.dumps(' + pyLiteral(model.body.value) + ')');
     if (model.headers.length) {
-      lines.push('headers = ' + pyLiteral(model.headers.reduce(function (acc, h) {
-        acc[h.name] = h.value;
-        return acc;
-      }, {})));
+      lines.push(
+        'headers = ' +
+          pyLiteral(
+            model.headers.reduce(function (acc, h) {
+              acc[h.name] = h.value;
+              return acc;
+            }, {}),
+          ),
+      );
     }
-    var reqArgs = ["'" + model.method + "'", "'" + urlWithQuery(parts.path, model.query) + "'"];
+    var reqArgs = [
+      "'" + model.method + "'",
+      "'" + urlWithQuery(parts.path, model.query) + "'",
+    ];
     if (bodyJson) reqArgs.push('payload');
     if (model.headers.length) reqArgs.push('headers');
     lines.push('conn.request(' + reqArgs.join(', ') + ')');
@@ -2827,30 +3348,63 @@
 
   function formatPhpCurlSnippet(model) {
     var isMultipart = model.body && model.body.kind === 'multipart';
-    var lines = ['<?php', '$curl = curl_init();', 'curl_setopt_array($curl, [', "  CURLOPT_URL => '" + urlWithQuery(model.url, model.query) + "',", '  CURLOPT_RETURNTRANSFER => true,', "  CURLOPT_CUSTOMREQUEST => '" + model.method + "',"];
+    var lines = [
+      '<?php',
+      '$curl = curl_init();',
+      'curl_setopt_array($curl, [',
+      "  CURLOPT_URL => '" + urlWithQuery(model.url, model.query) + "',",
+      '  CURLOPT_RETURNTRANSFER => true,',
+      "  CURLOPT_CUSTOMREQUEST => '" + model.method + "',",
+    ];
     var headers = model.headers.filter(function (h) {
       return !(isMultipart && h.name === 'Content-Type');
     });
     if (headers.length) {
       lines.push('  CURLOPT_HTTPHEADER => [');
       headers.forEach(function (h, i) {
-        lines.push("    '" + h.name + ': ' + h.value + "'" + (i < headers.length - 1 ? ',' : ''));
+        lines.push(
+          "    '" +
+            h.name +
+            ': ' +
+            h.value +
+            "'" +
+            (i < headers.length - 1 ? ',' : ''),
+        );
       });
       lines.push('  ],');
     }
     if (model.body) {
       if (model.body.kind === 'json') {
-        lines.push('  CURLOPT_POSTFIELDS => json_encode(' + phpLiteral(model.body.value, '  ') + '),');
+        lines.push(
+          '  CURLOPT_POSTFIELDS => json_encode(' +
+            phpLiteral(model.body.value, '  ') +
+            '),',
+        );
       } else if (isMultipart) {
         lines.push('  CURLOPT_POSTFIELDS => [');
         model.body.fields.forEach(function (f, i) {
-          var val = f.type === 'file' ? "new CURLFile('" + f.value + "')" : "'" + f.value + "'";
-          lines.push("    '" + f.name + "' => " + val + (i < model.body.fields.length - 1 ? ',' : ''));
+          var val =
+            f.type === 'file'
+              ? "new CURLFile('" + f.value + "')"
+              : "'" + f.value + "'";
+          lines.push(
+            "    '" +
+              f.name +
+              "' => " +
+              val +
+              (i < model.body.fields.length - 1 ? ',' : ''),
+          );
         });
         lines.push('  ],');
       }
     }
-    lines.push(']);', '', '$response = curl_exec($curl);', 'curl_close($curl);', 'echo $response;');
+    lines.push(
+      ']);',
+      '',
+      '$response = curl_exec($curl);',
+      'curl_close($curl);',
+      'echo $response;',
+    );
     return lines.join('\n');
   }
 
@@ -2859,21 +3413,42 @@
     var lines = ['OkHttpClient client = new OkHttpClient();'];
     var bodyVar = null;
     if (isMultipart) {
-      lines.push('MultipartBody body = new MultipartBody.Builder()', '  .setType(MultipartBody.FORM)');
+      lines.push(
+        'MultipartBody body = new MultipartBody.Builder()',
+        '  .setType(MultipartBody.FORM)',
+      );
       model.body.fields.forEach(function (f) {
-        if (f.type === 'file') lines.push("  .addFormDataPart('" + f.name + "', '" + f.value + "', RequestBody.create(MediaType.parse('application/octet-stream'), new File('" + f.value + "')))");
-        else lines.push("  .addFormDataPart(\"" + f.name + '", "' + f.value + '")');
+        if (f.type === 'file')
+          lines.push(
+            "  .addFormDataPart('" +
+              f.name +
+              "', '" +
+              f.value +
+              "', RequestBody.create(MediaType.parse('application/octet-stream'), new File('" +
+              f.value +
+              "')))",
+          );
+        else
+          lines.push('  .addFormDataPart("' + f.name + '", "' + f.value + '")');
       });
       lines.push('  .build();');
       bodyVar = 'body';
     } else if (model.body && model.body.kind === 'json') {
       lines.push('MediaType mediaType = MediaType.parse("application/json");');
-      lines.push('RequestBody body = RequestBody.create(mediaType, "' + JSON.stringify(model.body.value).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '");');
+      lines.push(
+        'RequestBody body = RequestBody.create(mediaType, "' +
+          JSON.stringify(model.body.value)
+            .replace(/\\/g, '\\\\')
+            .replace(/"/g, '\\"') +
+          '");',
+      );
       bodyVar = 'body';
     }
     lines.push('Request request = new Request.Builder()');
     lines.push('  .url("' + urlWithQuery(model.url, model.query) + '")');
-    lines.push('  .method("' + model.method + '", ' + (bodyVar || 'null') + ')');
+    lines.push(
+      '  .method("' + model.method + '", ' + (bodyVar || 'null') + ')',
+    );
     model.headers.forEach(function (h) {
       if (isMultipart && h.name === 'Content-Type') return;
       lines.push('  .addHeader("' + h.name + '", "' + h.value + '")');
@@ -2891,17 +3466,28 @@
       // and use it, unlike the "fmt"/"net/http" imports below, so this
       // stays a short note instead of unused-import code that wouldn't
       // actually compile.
-      return ['// multipart/form-data: build the body with mime/multipart.Writer', "// (see Go's standard library docs), then POST it via net/http as usual."].join('\n');
+      return [
+        '// multipart/form-data: build the body with mime/multipart.Writer',
+        "// (see Go's standard library docs), then POST it via net/http as usual.",
+      ].join('\n');
     }
     var lines = ['package main', '', 'import (', '\t"fmt"', '\t"net/http"'];
     if (model.body && model.body.kind === 'json') lines.push('\t"strings"');
     lines.push(')', '', 'func main() {');
     lines.push('\turl := "' + urlWithQuery(model.url, model.query) + '"');
     if (model.body && model.body.kind === 'json') {
-      lines.push('\tpayload := strings.NewReader(`' + JSON.stringify(model.body.value, null, 2) + '`)');
-      lines.push('\treq, _ := http.NewRequest("' + model.method + '", url, payload)');
+      lines.push(
+        '\tpayload := strings.NewReader(`' +
+          JSON.stringify(model.body.value, null, 2) +
+          '`)',
+      );
+      lines.push(
+        '\treq, _ := http.NewRequest("' + model.method + '", url, payload)',
+      );
     } else {
-      lines.push('\treq, _ := http.NewRequest("' + model.method + '", url, nil)');
+      lines.push(
+        '\treq, _ := http.NewRequest("' + model.method + '", url, nil)',
+      );
     }
     model.headers.forEach(function (h) {
       lines.push('\treq.Header.Add("' + h.name + '", "' + h.value + '")');
@@ -2915,10 +3501,15 @@
 
   function formatRubySnippet(model) {
     var isMultipart = model.body && model.body.kind === 'multipart';
-    var methodClass = model.method.charAt(0) + model.method.slice(1).toLowerCase();
+    var methodClass =
+      model.method.charAt(0) + model.method.slice(1).toLowerCase();
     var lines = ["require 'net/http'"];
     if (!isMultipart) lines.push("require 'json'");
-    lines.push('', "uri = URI('" + urlWithQuery(model.url, model.query) + "')", 'http = Net::HTTP.new(uri.host, uri.port)');
+    lines.push(
+      '',
+      "uri = URI('" + urlWithQuery(model.url, model.query) + "')",
+      'http = Net::HTTP.new(uri.host, uri.port)',
+    );
     if (isHttpsUrl(model.url)) lines.push('http.use_ssl = true');
     lines.push('request = Net::HTTP::' + methodClass + '.new(uri)');
     model.headers.forEach(function (h) {
@@ -2928,7 +3519,9 @@
     if (model.body && model.body.kind === 'json') {
       lines.push('request.body = ' + rubyHash(model.body.value) + '.to_json');
     } else if (isMultipart) {
-      lines.push('# multipart bodies: see net/http\'s Net::HTTP::Post::Multipart (net-http-multipart gem)');
+      lines.push(
+        "# multipart bodies: see net/http's Net::HTTP::Post::Multipart (net-http-multipart gem)",
+      );
       lines.push('# or build a multipart/form-data body by hand.');
     }
     lines.push('response = http.request(request)', 'puts response.read_body');
@@ -2944,8 +3537,10 @@
   function rubyHash(value, indent) {
     indent = indent || '';
     if (value === null || value === undefined) return 'nil';
-    if (typeof value === 'boolean' || typeof value === 'number') return String(value);
-    if (typeof value === 'string') return '"' + value.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+    if (typeof value === 'boolean' || typeof value === 'number')
+      return String(value);
+    if (typeof value === 'string')
+      return '"' + value.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
     var nextIndent = indent + '  ';
     if (Array.isArray(value)) {
       var items = value.map(function (v) {
@@ -2962,8 +3557,20 @@
 
   function formatCsharpSnippet(model) {
     var isMultipart = model.body && model.body.kind === 'multipart';
-    var lines = ['using System.Net.Http;', 'using System.Text;', 'using System.IO;', '', 'var client = new HttpClient();'];
-    lines.push('var request = new HttpRequestMessage(new HttpMethod("' + model.method + '"), "' + urlWithQuery(model.url, model.query) + '");');
+    var lines = [
+      'using System.Net.Http;',
+      'using System.Text;',
+      'using System.IO;',
+      '',
+      'var client = new HttpClient();',
+    ];
+    lines.push(
+      'var request = new HttpRequestMessage(new HttpMethod("' +
+        model.method +
+        '"), "' +
+        urlWithQuery(model.url, model.query) +
+        '");',
+    );
     // `Content-Type` is a *content* header in HttpClient's model — setting
     // it via `request.Headers.Add` (a request-header collection) throws at
     // runtime; it's passed as `StringContent`'s own 3rd argument below
@@ -2977,12 +3584,32 @@
     if (isMultipart) {
       lines.push('var content = new MultipartFormDataContent();');
       model.body.fields.forEach(function (f) {
-        if (f.type === 'file') lines.push('content.Add(new StreamContent(File.OpenRead("' + f.value + '")), "' + f.name + '", "' + f.value + '");');
-        else lines.push('content.Add(new StringContent("' + f.value + '"), "' + f.name + '");');
+        if (f.type === 'file')
+          lines.push(
+            'content.Add(new StreamContent(File.OpenRead("' +
+              f.value +
+              '")), "' +
+              f.name +
+              '", "' +
+              f.value +
+              '");',
+          );
+        else
+          lines.push(
+            'content.Add(new StringContent("' +
+              f.value +
+              '"), "' +
+              f.name +
+              '");',
+          );
       });
       lines.push('request.Content = content;');
     } else if (model.body && model.body.kind === 'json') {
-      lines.push('request.Content = new StringContent(' + csharpStringLiteral(JSON.stringify(model.body.value, null, 2)) + ', Encoding.UTF8, "application/json");');
+      lines.push(
+        'request.Content = new StringContent(' +
+          csharpStringLiteral(JSON.stringify(model.body.value, null, 2)) +
+          ', Encoding.UTF8, "application/json");',
+      );
     }
     lines.push('var response = await client.SendAsync(request);');
     return lines.join('\n');
@@ -2990,21 +3617,44 @@
 
   function formatSwiftSnippet(model) {
     var isMultipart = model.body && model.body.kind === 'multipart';
-    var lines = ['import Foundation', '', 'let url = URL(string: "' + urlWithQuery(model.url, model.query) + '")!', 'var request = URLRequest(url: url)', 'request.httpMethod = "' + model.method + '"'];
+    var lines = [
+      'import Foundation',
+      '',
+      'let url = URL(string: "' + urlWithQuery(model.url, model.query) + '")!',
+      'var request = URLRequest(url: url)',
+      'request.httpMethod = "' + model.method + '"',
+    ];
     var headers = model.headers.filter(function (h) {
       return !(isMultipart && h.name === 'Content-Type');
     });
     headers.forEach(function (h) {
-      lines.push('request.setValue("' + h.value + '", forHTTPHeaderField: "' + h.name + '")');
+      lines.push(
+        'request.setValue("' +
+          h.value +
+          '", forHTTPHeaderField: "' +
+          h.name +
+          '")',
+      );
     });
     if (model.body && model.body.kind === 'json') {
-      var jsonStr = JSON.stringify(model.body.value, null, 2).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      var jsonStr = JSON.stringify(model.body.value, null, 2)
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n');
       lines.push('request.httpBody = "' + jsonStr + '".data(using: .utf8)');
     } else if (isMultipart) {
-      lines.push('// multipart/form-data: build a boundary-delimited Data body by hand,');
+      lines.push(
+        '// multipart/form-data: build a boundary-delimited Data body by hand,',
+      );
       lines.push('// or use a library like Alamofire.');
     }
-    lines.push('', 'let task = URLSession.shared.dataTask(with: request) { data, response, error in', '  // handle response', '}', 'task.resume()');
+    lines.push(
+      '',
+      'let task = URLSession.shared.dataTask(with: request) { data, response, error in',
+      '  // handle response',
+      '}',
+      'task.resume()',
+    );
     return lines.join('\n');
   }
 
@@ -3082,7 +3732,12 @@
       return highlightJs(code, ['ajax']);
     },
     xhr: function (code) {
-      return highlightJs(code, ['XMLHttpRequest', 'open', 'send', 'setRequestHeader']);
+      return highlightJs(code, [
+        'XMLHttpRequest',
+        'open',
+        'send',
+        'setRequestHeader',
+      ]);
     },
     node: function (code) {
       return highlightJs(code, ['http', 'https', 'request']);
@@ -3092,22 +3747,73 @@
       return highlightPython(code, ['json', 'http', 'client']);
     },
     php: function (code) {
-      return highlightGeneric(code, ['curl_init', 'curl_setopt_array', 'curl_exec', 'curl_close', 'json_encode', 'echo', 'new', 'CURLFile']);
+      return highlightGeneric(code, [
+        'curl_init',
+        'curl_setopt_array',
+        'curl_exec',
+        'curl_close',
+        'json_encode',
+        'echo',
+        'new',
+        'CURLFile',
+      ]);
     },
     java: function (code) {
-      return highlightGeneric(code, ['new', 'OkHttpClient', 'MediaType', 'RequestBody', 'MultipartBody', 'Request', 'Response', 'File']);
+      return highlightGeneric(code, [
+        'new',
+        'OkHttpClient',
+        'MediaType',
+        'RequestBody',
+        'MultipartBody',
+        'Request',
+        'Response',
+        'File',
+      ]);
     },
     go: function (code) {
-      return highlightGeneric(code, ['package', 'import', 'func', 'main', 'http', 'strings', 'defer']);
+      return highlightGeneric(code, [
+        'package',
+        'import',
+        'func',
+        'main',
+        'http',
+        'strings',
+        'defer',
+      ]);
     },
     ruby: function (code) {
-      return highlightGeneric(code, ['require', 'Net', 'HTTP', 'URI', 'new', 'puts']);
+      return highlightGeneric(code, [
+        'require',
+        'Net',
+        'HTTP',
+        'URI',
+        'new',
+        'puts',
+      ]);
     },
     csharp: function (code) {
-      return highlightGeneric(code, ['var', 'new', 'await', 'HttpClient', 'HttpRequestMessage', 'HttpMethod', 'StringContent', 'MultipartFormDataContent', 'StreamContent', 'File']);
+      return highlightGeneric(code, [
+        'var',
+        'new',
+        'await',
+        'HttpClient',
+        'HttpRequestMessage',
+        'HttpMethod',
+        'StringContent',
+        'MultipartFormDataContent',
+        'StreamContent',
+        'File',
+      ]);
     },
     swift: function (code) {
-      return highlightGeneric(code, ['import', 'let', 'var', 'URL', 'URLRequest', 'URLSession']);
+      return highlightGeneric(code, [
+        'import',
+        'let',
+        'var',
+        'URL',
+        'URLRequest',
+        'URLSession',
+      ]);
     },
   };
 
@@ -3160,19 +3866,29 @@
       clear(railCopyHolder);
       var bodyFormat = BODY_KIND_FORMAT[selectedKind];
       if (bodyFormat) {
-        var bodyView = currentMedia ? requestBodyExample(doc, currentMedia, bodyFormat) : null;
+        var bodyView = currentMedia
+          ? requestBodyExample(doc, currentMedia, bodyFormat)
+          : null;
         if (bodyView) {
           railContent.appendChild(bodyView.content);
           railCopyHolder.appendChild(bodyView.copyBtn);
         } else {
-          railContent.appendChild(el('div', { class: 'empty-note' }, [t('operation.noBodyAlternative')]));
+          railContent.appendChild(
+            el('div', { class: 'empty-note' }, [
+              t('operation.noBodyAlternative'),
+            ]),
+          );
         }
         return;
       }
       var model = buildRequestModel(doc, ctrlPath, op, currentMedia);
       var snippet = REQUEST_SNIPPET_FORMATTERS[selectedKind](model);
       var highlighted = REQUEST_SNIPPET_HIGHLIGHTERS[selectedKind](snippet);
-      railContent.appendChild(el('pre', { class: 'example-json' }, [el('code', { html: highlighted })]));
+      railContent.appendChild(
+        el('pre', { class: 'example-json' }, [
+          el('code', { html: highlighted }),
+        ]),
+      );
       var copyBtn = copyButton(snippet, 15);
       copyBtn.classList.add('copy-btn-lg');
       railCopyHolder.appendChild(copyBtn);
@@ -3190,7 +3906,9 @@
     function refreshSelect(media) {
       if (!select) return;
       clear(select);
-      var kinds = (hasBody ? [bodyKindEntry(media)] : []).concat(REQUEST_SNIPPET_KINDS);
+      var kinds = (hasBody ? [bodyKindEntry(media)] : []).concat(
+        REQUEST_SNIPPET_KINDS,
+      );
       kinds.forEach(function (k) {
         if (k.group) {
           var group = el('optgroup', { label: k.group });
@@ -3221,7 +3939,11 @@
       railExample.classList.add('request-rail');
       var fullPath = operationPath(ctrlPath, op);
       var header = el('div', { class: 'request-rail-header' }, [
-        el('span', { class: 'request-rail-path mono' }, [methodBadge(op.method), ' ', fullPath]),
+        el('span', { class: 'request-rail-path mono' }, [
+          methodBadge(op.method),
+          ' ',
+          fullPath,
+        ]),
       ]);
       select = el('select', { class: 'request-rail-select' });
       select.addEventListener('change', function () {
@@ -3232,7 +3954,12 @@
       railExample.appendChild(header);
       railContent = el('div', { class: 'request-rail-content' });
       railCopyHolder = el('div', { class: 'request-rail-copy' });
-      railExample.appendChild(el('div', { class: 'request-rail-content-wrap' }, [railContent, railCopyHolder]));
+      railExample.appendChild(
+        el('div', { class: 'request-rail-content-wrap' }, [
+          railContent,
+          railCopyHolder,
+        ]),
+      );
     }
 
     if (!hasBody) {
@@ -3240,12 +3967,17 @@
       return;
     }
 
-    var section = el('div', { class: 'section' }, [el('h2', {}, [t('operation.requestBody')])]);
+    var section = el('div', { class: 'section' }, [
+      el('h2', {}, [t('operation.requestBody')]),
+    ]);
     var metaChildren = [];
     if (requestBody.required) metaChildren.push(flagBadge('required'));
     var descBlock = mdBlock(doc, requestBody.description, null, requestBody);
     if (descBlock) metaChildren.push(descBlock);
-    if (metaChildren.length) section.appendChild(el('div', { class: 'request-body-meta' }, metaChildren));
+    if (metaChildren.length)
+      section.appendChild(
+        el('div', { class: 'request-body-meta' }, metaChildren),
+      );
 
     var contents = requestBody.content || [];
     if (contents.length > 1) {
@@ -3257,7 +3989,11 @@
         var label = Array.isArray(media.contentType)
           ? media.contentType.join(', ')
           : media.contentType || 'application/json';
-        var tabBtn = el('button', { class: 'content-tab' + (i === 0 ? ' active' : ''), type: 'button' }, [label]);
+        var tabBtn = el(
+          'button',
+          { class: 'content-tab' + (i === 0 ? ' active' : ''), type: 'button' },
+          [label],
+        );
         tabBtn.addEventListener('click', function () {
           Array.prototype.forEach.call(tabBar.children, function (b) {
             b.classList.remove('active');
@@ -3316,7 +4052,9 @@
    *  tabs are the primary way to flip through responses without leaving
    *  a schema expanded. */
   function renderResponsesSection(main, doc, responses, railResponseExample) {
-    var section = el('div', { class: 'section' }, [el('h2', {}, [t('operation.responses')])]);
+    var section = el('div', { class: 'section' }, [
+      el('h2', {}, [t('operation.responses')]),
+    ]);
     var list = el('div', { class: 'responses-list' });
 
     var showSchema = false;
@@ -3362,12 +4100,18 @@
         json = JSON.stringify(buildExampleValue(doc, r.type), null, 2);
       }
       if (json) {
-        railContent.appendChild(el('pre', { class: 'example-json' }, [el('code', { html: highlightJson(json) })]));
+        railContent.appendChild(
+          el('pre', { class: 'example-json' }, [
+            el('code', { html: highlightJson(json) }),
+          ]),
+        );
         var copyBtn = copyButton(json, 15);
         copyBtn.classList.add('copy-btn-lg');
         railCopyHolder.appendChild(copyBtn);
       } else {
-        railContent.appendChild(el('div', { class: 'empty-note' }, [t('operation.noBody')]));
+        railContent.appendChild(
+          el('div', { class: 'empty-note' }, [t('operation.noBody')]),
+        );
       }
       railFooterCode.textContent = formatStatusCode(r.statusCode);
       railFooterDesc.textContent = r.description || '';
@@ -3385,7 +4129,14 @@
       railResponseExample.classList.add('response-rail');
       var tabsBar = el('div', { class: 'response-tabs' });
       responses.forEach(function (r, i) {
-        var tabBtn = el('button', { class: 'response-tab' + (i === 0 ? ' active' : ''), type: 'button' }, [formatStatusCode(r.statusCode)]);
+        var tabBtn = el(
+          'button',
+          {
+            class: 'response-tab' + (i === 0 ? ' active' : ''),
+            type: 'button',
+          },
+          [formatStatusCode(r.statusCode)],
+        );
         tabBtn.addEventListener('click', function () {
           selectResponse(i);
         });
@@ -3397,17 +4148,29 @@
         showSchema = schemaCheckbox.checked;
         renderRailContent(responses[activeIndex]);
       });
-      schemaToggleLabel = el('label', { class: 'show-schema-toggle' }, [schemaCheckbox, t('operation.showSchema')]);
+      schemaToggleLabel = el('label', { class: 'show-schema-toggle' }, [
+        schemaCheckbox,
+        t('operation.showSchema'),
+      ]);
       tabsBar.appendChild(schemaToggleLabel);
       railResponseExample.appendChild(tabsBar);
       railContent = el('div', { class: 'response-rail-content' });
       railCopyHolder = el('div', { class: 'response-rail-copy' });
-      railResponseExample.appendChild(el('div', { class: 'response-rail-content-wrap' }, [railContent, railCopyHolder]));
+      railResponseExample.appendChild(
+        el('div', { class: 'response-rail-content-wrap' }, [
+          railContent,
+          railCopyHolder,
+        ]),
+      );
       railFooterCode = el('code', {}, ['']);
       railFooterDesc = el('div', { class: 'footer-desc' }, ['']);
       railResponseExample.appendChild(
         el('div', { class: 'response-rail-footer' }, [
-          el('div', { class: 'footer-status' }, tNodes('operation.httpStatusCode', { code: railFooterCode })),
+          el(
+            'div',
+            { class: 'footer-status' },
+            tNodes('operation.httpStatusCode', { code: railFooterCode }),
+          ),
           railFooterDesc,
         ]),
       );
@@ -3415,11 +4178,16 @@
     }
 
     responses.forEach(function (r, i) {
-      var details = el('details', { class: 'response-row', name: 'op-responses' });
+      var details = el('details', {
+        class: 'response-row',
+        name: 'op-responses',
+      });
       details.appendChild(
         el('summary', {}, [
           iconFor('chevronDown', 'response-chevron'),
-          el('span', { class: 'mono response-status' }, [formatStatusCode(r.statusCode)]),
+          el('span', { class: 'mono response-status' }, [
+            formatStatusCode(r.statusCode),
+          ]),
           el('span', { class: 'response-col' }, [
             // Plain text rather than `mdBlock`: a block-level markdown div
             // inside a `<summary>` costs the row its disclosure marker (which
@@ -3427,7 +4195,11 @@
             // document's own texts, so the studio gets to edit it here — and
             // gets a placeholder when it has never been written.
             r.description
-              ? markEditable(el('span', { class: 'response-desc' }, [r.description]), r, 'description')
+              ? markEditable(
+                  el('span', { class: 'response-desc' }, [r.description]),
+                  r,
+                  'description',
+                )
               : emptySlot(r, 'description', 'response-desc', 'span'),
             // What the call actually gives you back, on a line of its own
             // under the prose. Inline it landed wherever the description
@@ -3439,7 +4211,10 @@
       );
       var body = el('div', { class: 'body' });
       if (r.type) body.appendChild(renderTypeTreeWithInherits(doc, r.type));
-      else body.appendChild(el('div', { class: 'empty-note' }, [t('operation.noBody')]));
+      else
+        body.appendChild(
+          el('div', { class: 'empty-note' }, [t('operation.noBody')]),
+        );
       details.appendChild(body);
       details.addEventListener('toggle', function () {
         if (details.open) selectResponse(i);
@@ -3453,27 +4228,43 @@
   function renderControllerPage(main, docKey, doc, found, ctrlRoute) {
     var ctrl = found.ctrl;
     main.appendChild(el('h1', { class: 'mono' }, [found.name]));
-    main.appendChild(el('p', { class: 'description path' }, [found.ctrlPath || '/']));
+    main.appendChild(
+      el('p', { class: 'description path' }, [found.ctrlPath || '/']),
+    );
     var ctrlDescBlock = mdBlock(doc, ctrl.description, null, ctrl);
     if (ctrlDescBlock) main.appendChild(ctrlDescBlock);
     renderParametersSections(main, doc, ctrl.parameters);
 
     var ops = ctrl.operations ? Object.keys(ctrl.operations) : [];
     if (ops.length) {
-      var opSection = el('div', { class: 'section' }, [el('h2', {}, [t('controller.operations')])]);
+      var opSection = el('div', { class: 'section' }, [
+        el('h2', {}, [t('controller.operations')]),
+      ]);
       ops.forEach(function (opKey) {
         var op = ctrl.operations[opKey];
         opSection.appendChild(
           el(
             'a',
-            { class: 'row-link', href: hrefFor(docKey, ctrlRoute + '/' + encodeURIComponent(opKey)) },
+            {
+              class: 'row-link',
+              href: hrefFor(
+                docKey,
+                ctrlRoute + '/' + encodeURIComponent(opKey),
+              ),
+            },
             [
               methodBadge(op.method),
               op.title
                 ? el('span', {}, [op.title])
                 : el('span', { class: 'mono' }, [opKey + '()']),
-              el('span', { class: 'row-path' }, [operationPath(found.ctrlPath || '/', op)]),
-              op.description ? el('span', { class: 'row-desc', dir: 'auto' }, [op.description]) : null,
+              el('span', { class: 'row-path' }, [
+                operationPath(found.ctrlPath || '/', op),
+              ]),
+              op.description
+                ? el('span', { class: 'row-desc', dir: 'auto' }, [
+                    op.description,
+                  ])
+                : null,
             ],
           ),
         );
@@ -3483,21 +4274,34 @@
 
     var children = ctrl.controllers ? Object.keys(ctrl.controllers) : [];
     if (children.length) {
-      var childSection = el('div', { class: 'section' }, [el('h2', {}, [t('controller.childControllers')])]);
+      var childSection = el('div', { class: 'section' }, [
+        el('h2', {}, [t('controller.childControllers')]),
+      ]);
       children.forEach(function (name) {
         var child = ctrl.controllers[name];
         childSection.appendChild(
-          el('a', { class: 'row-link', href: hrefFor(docKey, ctrlRoute + '/' + encodeURIComponent(name)) }, [
-            el('span', { class: 'mono' }, [name]),
-            el('span', { class: 'row-desc path' }, [controllerPath(child, found.ctrlPath)]),
-          ]),
+          el(
+            'a',
+            {
+              class: 'row-link',
+              href: hrefFor(docKey, ctrlRoute + '/' + encodeURIComponent(name)),
+            },
+            [
+              el('span', { class: 'mono' }, [name]),
+              el('span', { class: 'row-desc path' }, [
+                controllerPath(child, found.ctrlPath),
+              ]),
+            ],
+          ),
         );
       });
       main.appendChild(childSection);
     }
 
     if (!ops.length && !children.length) {
-      main.appendChild(el('div', { class: 'section empty-note' }, [t('controller.empty')]));
+      main.appendChild(
+        el('div', { class: 'section empty-note' }, [t('controller.empty')]),
+      );
     }
   }
 
@@ -3515,7 +4319,15 @@
    *  `responsesMain` does; a responses row that has nothing to show
    *  doesn't get created, so `render()` passes `topMain` for that
    *  container instead (with `railResponseExample` as `null`). */
-  function renderOperationPage(topMain, responsesMain, docKey, doc, found, railExample, railResponseExample) {
+  function renderOperationPage(
+    topMain,
+    responsesMain,
+    docKey,
+    doc,
+    found,
+    railExample,
+    railResponseExample,
+  ) {
     var op = found.op;
     var fullPath = operationPath(found.ctrlPath, op);
 
@@ -3525,12 +4337,19 @@
     // between an operation's `summary` and its `operationId`. Without a
     // `title`, this renders exactly as it always has.
     if (op.title) {
-      topMain.appendChild(markEditable(el('h1', { dir: 'auto' }, [op.title]), op, 'title'));
-      topMain.appendChild(el('div', { class: 'op-id mono' }, [found.opKey + '()']));
+      topMain.appendChild(
+        markEditable(el('h1', { dir: 'auto' }, [op.title]), op, 'title'),
+      );
+      topMain.appendChild(
+        el('div', { class: 'op-id mono' }, [found.opKey + '()']),
+      );
     } else {
       topMain.appendChild(el('h1', { class: 'mono' }, [found.opKey + '()']));
     }
-    var sub = el('p', { class: 'op-sub' }, [methodBadge(op.method), el('span', { class: 'path' }, [fullPath])]);
+    var sub = el('p', { class: 'op-sub' }, [
+      methodBadge(op.method),
+      el('span', { class: 'path' }, [fullPath]),
+    ]);
     topMain.appendChild(sub);
     if (found.ctrlName) {
       topMain.appendChild(
@@ -3538,7 +4357,9 @@
           'p',
           { class: 'description' },
           tNodes('operation.partOf', {
-            controller: el('a', { href: hrefFor(docKey, found.ctrlRoute) }, [found.ctrlName]),
+            controller: el('a', { href: hrefFor(docKey, found.ctrlRoute) }, [
+              found.ctrlName,
+            ]),
           }),
         ),
       );
@@ -3553,7 +4374,12 @@
         ]),
       );
     }
-    if (op.composition) topMain.appendChild(el('div', { class: 'badge' }, [t('operation.composition', { value: op.composition })]));
+    if (op.composition)
+      topMain.appendChild(
+        el('div', { class: 'badge' }, [
+          t('operation.composition', { value: op.composition }),
+        ]),
+      );
     var opDescBlock = mdBlock(doc, op.description, null, op);
     if (opDescBlock) topMain.appendChild(opDescBlock);
 
@@ -3562,9 +4388,18 @@
     renderRequestSection(topMain, doc, op, found.ctrlPath, railExample);
 
     if (op.responses && op.responses.length) {
-      renderResponsesSection(responsesMain, doc, op.responses, railResponseExample);
+      renderResponsesSection(
+        responsesMain,
+        doc,
+        op.responses,
+        railResponseExample,
+      );
     } else {
-      responsesMain.appendChild(el('div', { class: 'section empty-note' }, [t('operation.noResponses')]));
+      responsesMain.appendChild(
+        el('div', { class: 'section empty-note' }, [
+          t('operation.noResponses'),
+        ]),
+      );
     }
   }
 
@@ -3605,7 +4440,8 @@
    *  fall back to a synthesized placeholder. */
   function firstFieldExampleValue(examples) {
     if (!examples) return undefined;
-    if (Array.isArray(examples)) return examples.length ? examples[0] : undefined;
+    if (Array.isArray(examples))
+      return examples.length ? examples[0] : undefined;
     var keys = Object.keys(examples);
     return keys.length ? examples[keys[0]] : undefined;
   }
@@ -3616,7 +4452,12 @@
    *  *named* SimpleType's own declared examples (`@SimpleType().Example()`)
    *  take priority over any of that guessing. */
   function exampleForSimpleType(d) {
-    if (d.examples && d.examples.length && d.examples[0] && 'value' in d.examples[0]) {
+    if (
+      d.examples &&
+      d.examples.length &&
+      d.examples[0] &&
+      'value' in d.examples[0]
+    ) {
       return d.examples[0].value;
     }
     var name = (d.name || d.kind || '').toLowerCase();
@@ -3630,7 +4471,10 @@
     if (name === 'null') return null;
     if (name === 'object' || name === 'any') return {};
     if (name === 'base64') return 'base64==';
-    if (typeof props.minLength === 'number' && props.minLength > 'string'.length) {
+    if (
+      typeof props.minLength === 'number' &&
+      props.minLength > 'string'.length
+    ) {
       return 'string'.padEnd(props.minLength, 'x');
     }
     return 'string';
@@ -3657,13 +4501,19 @@
       Object.keys(d.fields).forEach(function (fname) {
         var f = d.fields[fname];
         var declared = firstFieldExampleValue(f.examples);
-        value[fname] = declared !== undefined ? declared : buildExampleValue(doc, f.type, nextSeen);
+        value[fname] =
+          declared !== undefined
+            ? declared
+            : buildExampleValue(doc, f.type, nextSeen);
       });
     } else if (d.kind === 'EnumType') {
       var enumKeys = Object.keys(d.values || {});
       value = enumKeys.length ? enumKeys[0] : null;
     } else if (d.kind === 'UnionType') {
-      value = d.types && d.types.length ? buildExampleValue(doc, d.types[0], nextSeen) : null;
+      value =
+        d.types && d.types.length
+          ? buildExampleValue(doc, d.types[0], nextSeen)
+          : null;
     } else if (d.kind === 'SimpleType') {
       value = exampleForSimpleType(d);
     } else {
@@ -3692,7 +4542,9 @@
     // multi-part value.
     examples.forEach(function (ex, i) {
       var head = el('span', { class: 'field-head' }, [
-        el('span', { class: 'key' }, [t('model.exampleIndex', { index: i + 1 })]),
+        el('span', { class: 'key' }, [
+          t('model.exampleIndex', { index: i + 1 }),
+        ]),
         exampleChip(ex.value),
       ]);
       if (ex.description) {
@@ -3703,7 +4555,11 @@
         // secondary (smaller, muted, "— " prefix) keeps the chip itself
         // as the one thing that looks like the example.
         head.appendChild(
-          el('span', { class: 'example-desc', dir: 'auto', html: '— ' + mdInline(doc, ex.description) }),
+          el('span', {
+            class: 'example-desc',
+            dir: 'auto',
+            html: '— ' + mdInline(doc, ex.description),
+          }),
         );
       }
       var row = el('div', { class: 'field-row' }, [head]);
@@ -3729,7 +4585,9 @@
     return el('div', { class: 'section' }, [
       el('h2', {}, [t('model.example')]),
       el('div', { class: 'example-json-wrap' }, [
-        el('pre', { class: 'example-json' }, [el('code', { html: highlightJson(json) })]),
+        el('pre', { class: 'example-json' }, [
+          el('code', { html: highlightJson(json) }),
+        ]),
         btn,
       ]),
     ]);
@@ -3742,11 +4600,15 @@
       el('h1', { class: 'mono' }, [
         def ? iconFor(kindKey, 'c-' + kindKey) : null,
         typeName,
-        def ? el('span', { class: 'badge kind-badge c-' + kindKey }, [def.kind]) : null,
+        def
+          ? el('span', { class: 'badge kind-badge c-' + kindKey }, [def.kind])
+          : null,
       ]),
     );
     if (!def) {
-      main.appendChild(el('div', { class: 'empty-note' }, [t('model.notFound')]));
+      main.appendChild(
+        el('div', { class: 'empty-note' }, [t('model.notFound')]),
+      );
       return;
     }
     var inheritsBlock = renderInherits(doc, def.inherits);
@@ -3754,7 +4616,12 @@
 
     var modelDescBlock = mdBlock(doc, def.description, null, def);
     if (modelDescBlock) {
-      main.appendChild(el('div', { class: 'section' }, [el('h2', {}, [t('overview.description')]), modelDescBlock]));
+      main.appendChild(
+        el('div', { class: 'section' }, [
+          el('h2', {}, [t('overview.description')]),
+          modelDescBlock,
+        ]),
+      );
     }
 
     var referencedBy = findReferencingTypes(doc, typeName);
@@ -3782,15 +4649,27 @@
             ? t('model.properties')
             : t('model.fields');
     main.appendChild(
-      el('div', { class: 'section' }, [el('h2', {}, [fieldsHeading]), renderTypeTree(doc, typeName)]),
+      el('div', { class: 'section' }, [
+        el('h2', {}, [fieldsHeading]),
+        renderTypeTree(doc, typeName),
+      ]),
     );
 
     var typeExamplesNode = renderTypeExamples(doc, def.examples);
     if (typeExamplesNode) {
-      main.appendChild(el('div', { class: 'section' }, [el('h2', {}, [t('model.examples')]), typeExamplesNode]));
+      main.appendChild(
+        el('div', { class: 'section' }, [
+          el('h2', {}, [t('model.examples')]),
+          typeExamplesNode,
+        ]),
+      );
     }
 
-    if (def.kind === 'ComplexType' || def.kind === 'MappedType' || def.kind === 'MixinType') {
+    if (
+      def.kind === 'ComplexType' ||
+      def.kind === 'MappedType' ||
+      def.kind === 'MixinType'
+    ) {
       main.appendChild(renderExampleBlock(doc, typeName));
     }
   }
@@ -3799,12 +4678,17 @@
 
   function buildSidebar(nav, docKey, doc) {
     clear(nav);
-    var filterValue = ((document.getElementById('opra-sidebar-filter') || {}).value || '').toLowerCase();
+    var filterValue = (
+      (document.getElementById('opra-sidebar-filter') || {}).value || ''
+    ).toLowerCase();
     // `null` (not just falsy) when nothing's selected, so every check
     // below reads the same as `filterValue`'s own "empty means no
     // filter" convention rather than a subtly different truthy/length
     // check at each call site.
-    var methodFilter = state.methodFilter && state.methodFilter.length ? state.methodFilter : null;
+    var methodFilter =
+      state.methodFilter && state.methodFilter.length
+        ? state.methodFilter
+        : null;
     // Persisted across rebuilds (search, navigation) for the life of the
     // page — which controller folders the user has collapsed. A search in
     // progress always shows the full (matching) tree, ignoring collapse.
@@ -3827,7 +4711,10 @@
     var activeRoute = parseHash().rest;
     var activeInCtl = activeRoute[0] === 'ctl';
     var activeInModels = activeRoute[0] === 'model';
-    var activeModelKind = activeInModels && doc.types && doc.types[activeRoute[1]] ? doc.types[activeRoute[1]].kind : null;
+    var activeModelKind =
+      activeInModels && doc.types && doc.types[activeRoute[1]]
+        ? doc.types[activeRoute[1]].kind
+        : null;
 
     // The document's own root page (title, version, description, a
     // one-line content summary — see `renderOverviewPage`) — first item
@@ -3843,9 +4730,15 @@
     // than this needing a second, redundant one right above it too.
     if (!filterValue) {
       nav.appendChild(
-        el('a', { class: 'nav-link nav-doc-info' + (!activeRoute.length ? ' active' : ''), href: hrefFor(docKey, '') }, [
-          el('span', { class: 'name' }, [t('sidebar.overview')]),
-        ]),
+        el(
+          'a',
+          {
+            class:
+              'nav-link nav-doc-info' + (!activeRoute.length ? ' active' : ''),
+            href: hrefFor(docKey, ''),
+          },
+          [el('span', { class: 'name' }, [t('sidebar.overview')])],
+        ),
       );
     }
 
@@ -3860,9 +4753,11 @@
     // (skip building collapsed subtrees outright) had nothing to
     // transition since there was nothing there to shrink.
     function collapseWrap(children, collapsed) {
-      return el('div', { class: 'nav-children' + (collapsed ? ' collapsed' : '') }, [
-        el('div', { class: 'nav-children-inner' }, children),
-      ]);
+      return el(
+        'div',
+        { class: 'nav-children' + (collapsed ? ' collapsed' : '') },
+        [el('div', { class: 'nav-children-inner' }, children)],
+      );
     }
 
     // A top-level group ("Controllers"/"Models") or a Models kind
@@ -3875,10 +4770,19 @@
     // state with nothing to transition from (which is what re-invoking
     // buildSidebar on every click amounted to). Returns `{title, wrap}`
     // so the caller places each in the right spot in the group's markup.
-    function buildCollapsibleSection(cls, label, key, isActiveSection, children) {
+    function buildCollapsibleSection(
+      cls,
+      label,
+      key,
+      isActiveSection,
+      children,
+    ) {
       var collapsed = groupCollapsed(key);
       var wrap = collapseWrap(children, collapsed);
-      var chevron = iconFor('chevronDown', 'group-chevron' + (collapsed ? ' collapsed' : ''));
+      var chevron = iconFor(
+        'chevronDown',
+        'group-chevron' + (collapsed ? ' collapsed' : ''),
+      );
       var title = el(
         'div',
         {
@@ -3913,14 +4817,26 @@
         var ctrl = controllers[name];
         var path = controllerPath(ctrl, parentPath);
         var route = parentRoute + '/' + encodeURIComponent(name);
-        var hay = (name + ' ' + path + ' ' + (ctrl.description || '')).toLowerCase();
-        if (filterValue && hay.indexOf(filterValue) === -1 && !hasMatchingDescendant(ctrl, filterValue)) return;
+        var hay = (
+          name +
+          ' ' +
+          path +
+          ' ' +
+          (ctrl.description || '')
+        ).toLowerCase();
+        if (
+          filterValue &&
+          hay.indexOf(filterValue) === -1 &&
+          !hasMatchingDescendant(ctrl, filterValue)
+        )
+          return;
         // Unlike the text filter above, a method filter never matches the
         // *folder* itself (a controller has no "method" of its own) — a
         // folder only stays once at least one of its own descendant
         // operations actually uses one of the selected methods, or it
         // would render as an empty heading with nothing under it.
-        if (methodFilter && !hasMatchingDescendantMethod(ctrl, methodFilter)) return;
+        if (methodFilter && !hasMatchingDescendantMethod(ctrl, methodFilter))
+          return;
         anyCtrl = true;
 
         var childNodes = [];
@@ -3939,7 +4855,15 @@
             // check a few lines up (plus `hasMatchingDescendant`) is
             // already what decides whether that folder belongs in a
             // filtered tree at all.
-            var opHay = (opKey + ' ' + (op.title || '') + ' ' + op.method + ' ' + (op.path || '')).toLowerCase();
+            var opHay = (
+              opKey +
+              ' ' +
+              (op.title || '') +
+              ' ' +
+              op.method +
+              ' ' +
+              (op.path || '')
+            ).toLowerCase();
             if (filterValue && opHay.indexOf(filterValue) === -1) return;
             if (methodFilter && methodFilter.indexOf(op.method) === -1) return;
             var opRoute = route + '/' + encodeURIComponent(opKey);
@@ -3949,15 +4873,24 @@
               // right already identifies the row, and a generic "play"
               // triangle in front of every operation read as its own
               // clickable "run" affordance rather than a type marker.
-              el('a', { class: 'nav-link nav-op depth-' + (depth + 1), href: hrefFor(docKey, opRoute) }, [
-                opNameNode(op, opKey, null, filterValue),
-                methodBadge(op.method),
-              ]),
+              el(
+                'a',
+                {
+                  class: 'nav-link nav-op depth-' + (depth + 1),
+                  href: hrefFor(docKey, opRoute),
+                },
+                [
+                  opNameNode(op, opKey, null, filterValue),
+                  methodBadge(op.method),
+                ],
+              ),
             );
           });
         }
         if (ctrl.controllers) {
-          childNodes = childNodes.concat(buildControllerNodes(ctrl.controllers, path, route, depth + 1));
+          childNodes = childNodes.concat(
+            buildControllerNodes(ctrl.controllers, path, route, depth + 1),
+          );
         }
 
         var hasChildren = childNodes.length > 0;
@@ -4025,7 +4958,14 @@
                     }
                   : undefined,
             },
-            [el('span', { class: 'name mono' }, highlightParts(name, filterValue)), toggle],
+            [
+              el(
+                'span',
+                { class: 'name mono' },
+                highlightParts(name, filterValue),
+              ),
+              toggle,
+            ],
           ),
         );
         if (wrap) nodes.push(wrap);
@@ -4085,7 +5025,13 @@
         // `Customers@{customerId}` controller match "customer" regardless
         // of the operation's own name).
         var opHay = (
-          entry.opKey + ' ' + (entry.op.title || '') + ' ' + entry.op.method + ' ' + (entry.op.path || '')
+          entry.opKey +
+          ' ' +
+          (entry.op.title || '') +
+          ' ' +
+          entry.op.method +
+          ' ' +
+          (entry.op.path || '')
         ).toLowerCase();
         entry.matches =
           (!filterValue || opHay.indexOf(filterValue) !== -1) &&
@@ -4100,10 +5046,22 @@
       });
 
       function opRow(entry) {
-        return el('a', { class: 'nav-link nav-op depth-1', href: hrefFor(docKey, entry.route) }, [
-          opTitleNode(entry.op, entry.ctrlName + '.' + entry.opKey, null, filterValue),
-          methodBadge(entry.op.method),
-        ]);
+        return el(
+          'a',
+          {
+            class: 'nav-link nav-op depth-1',
+            href: hrefFor(docKey, entry.route),
+          },
+          [
+            opTitleNode(
+              entry.op,
+              entry.ctrlName + '.' + entry.opKey,
+              null,
+              filterValue,
+            ),
+            methodBadge(entry.op.method),
+          ],
+        );
       }
 
       var declared = (doc.api && doc.api.sections) || [];
@@ -4124,10 +5082,23 @@
         });
         if (!entries.length) return;
         anyShown = true;
-        var label = g.icon ? el('span', {}, [el('span', { class: 'group-icon' }, [g.icon]), ' ' + g.name]) : g.name;
+        var label = g.icon
+          ? el('span', {}, [
+              el('span', { class: 'group-icon' }, [g.icon]),
+              ' ' + g.name,
+            ])
+          : g.name;
         var key = 'group:' + g.name;
-        var section = buildCollapsibleSection('group-title', label, key, false, entries.map(opRow));
-        nav.appendChild(el('div', { class: 'group' }, [section.title, section.wrap]));
+        var section = buildCollapsibleSection(
+          'group-title',
+          label,
+          key,
+          false,
+          entries.map(opRow),
+        );
+        nav.appendChild(
+          el('div', { class: 'group' }, [section.title, section.wrap]),
+        );
       });
       var ungroupedEntries = ungrouped.filter(function (e) {
         return e.matches;
@@ -4141,18 +5112,34 @@
           false,
           ungroupedEntries.map(opRow),
         );
-        nav.appendChild(el('div', { class: 'group' }, [ungroupedSection.title, ungroupedSection.wrap]));
+        nav.appendChild(
+          el('div', { class: 'group' }, [
+            ungroupedSection.title,
+            ungroupedSection.wrap,
+          ]),
+        );
       }
       if (!anyShown && allOps.length) {
-        var emptyTitle = buildCollapsibleSection('group-title', t('sidebar.sections'), 'sections', false, [
-          el('div', { class: 'empty-note' }, [t('sidebar.noMatches')]),
-        ]);
-        nav.appendChild(el('div', { class: 'group' }, [emptyTitle.title, emptyTitle.wrap]));
+        var emptyTitle = buildCollapsibleSection(
+          'group-title',
+          t('sidebar.sections'),
+          'sections',
+          false,
+          [el('div', { class: 'empty-note' }, [t('sidebar.noMatches')])],
+        );
+        nav.appendChild(
+          el('div', { class: 'group' }, [emptyTitle.title, emptyTitle.wrap]),
+        );
       }
     }
 
     var controllers = (doc.api && doc.api.controllers) || {};
-    if (state.groupBy === 'sections' && doc.api && doc.api.sections && doc.api.sections.length) {
+    if (
+      state.groupBy === 'sections' &&
+      doc.api &&
+      doc.api.sections &&
+      doc.api.sections.length
+    ) {
       buildSectionsNav(controllers);
     } else {
       var anyCtrl = false;
@@ -4164,14 +5151,31 @@
         // out still gets a "No matches." note, since there's something to
         // say there.
         if (Object.keys(controllers).length) {
-          var ctlEmptyTitle = buildCollapsibleSection('group-title', t('sidebar.controllers'), 'controllers', activeInCtl, [
-            el('div', { class: 'empty-note' }, [t('sidebar.noMatches')]),
-          ]);
-          nav.appendChild(el('div', { class: 'group' }, [ctlEmptyTitle.title, ctlEmptyTitle.wrap]));
+          var ctlEmptyTitle = buildCollapsibleSection(
+            'group-title',
+            t('sidebar.controllers'),
+            'controllers',
+            activeInCtl,
+            [el('div', { class: 'empty-note' }, [t('sidebar.noMatches')])],
+          );
+          nav.appendChild(
+            el('div', { class: 'group' }, [
+              ctlEmptyTitle.title,
+              ctlEmptyTitle.wrap,
+            ]),
+          );
         }
       } else {
-        var ctlSection = buildCollapsibleSection('group-title', t('sidebar.controllers'), 'controllers', activeInCtl, ctlChildNodes);
-        nav.appendChild(el('div', { class: 'group' }, [ctlSection.title, ctlSection.wrap]));
+        var ctlSection = buildCollapsibleSection(
+          'group-title',
+          t('sidebar.controllers'),
+          'controllers',
+          activeInCtl,
+          ctlChildNodes,
+        );
+        nav.appendChild(
+          el('div', { class: 'group' }, [ctlSection.title, ctlSection.wrap]),
+        );
       }
     }
 
@@ -4183,7 +5187,9 @@
     var types = doc.types || {};
     var declaredNames = doc.declaredTypes || Object.keys(types);
     var modelKindFilter =
-      state.modelKindFilter && state.modelKindFilter.length ? state.modelKindFilter : null;
+      state.modelKindFilter && state.modelKindFilter.length
+        ? state.modelKindFilter
+        : null;
     var byKind = {};
     declaredNames.forEach(function (name) {
       if (!types[name]) return;
@@ -4195,28 +5201,52 @@
     var kinds = Object.keys(byKind);
     if (kinds.length) {
       var modelBody = [];
-      TYPE_GROUP_ORDER.concat(kinds.filter(function (k) { return TYPE_GROUP_ORDER.indexOf(k) === -1; })).forEach(
-        function (kind) {
-          if (!byKind[kind]) return;
-          var kindKey = 'kind:' + kind;
-          var kindLinks = byKind[kind].sort().map(function (name) {
-            return el('a', { class: 'nav-link nav-model', href: hrefFor(docKey, 'model/' + encodeURIComponent(name)) }, [
+      TYPE_GROUP_ORDER.concat(
+        kinds.filter(function (k) {
+          return TYPE_GROUP_ORDER.indexOf(k) === -1;
+        }),
+      ).forEach(function (kind) {
+        if (!byKind[kind]) return;
+        var kindKey = 'kind:' + kind;
+        var kindLinks = byKind[kind].sort().map(function (name) {
+          return el(
+            'a',
+            {
+              class: 'nav-link nav-model',
+              href: hrefFor(docKey, 'model/' + encodeURIComponent(name)),
+            },
+            [
               iconFor(dataTypeIconKind(kind), 'c-' + dataTypeIconKind(kind)),
-              el('span', { class: 'name mono' }, highlightParts(name, filterValue)),
-            ]);
-          });
-          var kindSection = buildCollapsibleSection(
-            'kind-title',
-            dataTypeGroupLabel(kind),
-            kindKey,
-            activeModelKind === kind,
-            kindLinks,
+              el(
+                'span',
+                { class: 'name mono' },
+                highlightParts(name, filterValue),
+              ),
+            ],
           );
-          modelBody.push(kindSection.title, kindSection.wrap);
-        },
+        });
+        var kindSection = buildCollapsibleSection(
+          'kind-title',
+          dataTypeGroupLabel(kind),
+          kindKey,
+          activeModelKind === kind,
+          kindLinks,
+        );
+        modelBody.push(kindSection.title, kindSection.wrap);
+      });
+      var modelsSection = buildCollapsibleSection(
+        'group-title',
+        t('sidebar.models'),
+        'models',
+        activeInModels,
+        modelBody,
       );
-      var modelsSection = buildCollapsibleSection('group-title', t('sidebar.models'), 'models', activeInModels, modelBody);
-      nav.appendChild(el('div', { class: 'group' }, [modelsSection.title, modelsSection.wrap]));
+      nav.appendChild(
+        el('div', { class: 'group' }, [
+          modelsSection.title,
+          modelsSection.wrap,
+        ]),
+      );
     }
   }
 
@@ -4229,7 +5259,10 @@
     }
     if (!found && ctrl.controllers) {
       Object.keys(ctrl.controllers).forEach(function (name) {
-        if (name.toLowerCase().indexOf(filterValue) !== -1 || hasMatchingDescendant(ctrl.controllers[name], filterValue)) {
+        if (
+          name.toLowerCase().indexOf(filterValue) !== -1 ||
+          hasMatchingDescendant(ctrl.controllers[name], filterValue)
+        ) {
           found = true;
         }
       });
@@ -4249,7 +5282,8 @@
     }
     if (!found && ctrl.controllers) {
       Object.keys(ctrl.controllers).forEach(function (name) {
-        if (hasMatchingDescendantMethod(ctrl.controllers[name], methods)) found = true;
+        if (hasMatchingDescendantMethod(ctrl.controllers[name], methods))
+          found = true;
       });
     }
     return found;
@@ -4268,9 +5302,15 @@
 
   function highlightActive(nav) {
     var hash = normalizeHash(location.hash || '#/');
-    Array.prototype.forEach.call(nav.querySelectorAll('a.nav-link'), function (a) {
-      a.classList.toggle('active', normalizeHash(a.getAttribute('href') || '') === hash);
-    });
+    Array.prototype.forEach.call(
+      nav.querySelectorAll('a.nav-link'),
+      function (a) {
+        a.classList.toggle(
+          'active',
+          normalizeHash(a.getAttribute('href') || '') === hash,
+        );
+      },
+    );
   }
 
   // ---------- document switcher ----------
@@ -4299,7 +5339,11 @@
     var current = el('div', { class: 'picker', id: 'opra-picker-btn' }, [
       iconFor('book'),
       el('span', { class: 'picker-label' }, [docTitle(state.docKey)]),
-      activeVersion ? el('span', { class: 'header-version' }, [t('common.versionTag', { version: activeVersion })]) : null,
+      activeVersion
+        ? el('span', { class: 'header-version' }, [
+            t('common.versionTag', { version: activeVersion }),
+          ])
+        : null,
       iconFor('chevronDown'),
     ]);
     container.appendChild(current);
@@ -4311,15 +5355,29 @@
 
     var menu = el('div', { class: 'picker-menu', id: 'opra-picker-menu' });
     menu.hidden = true;
-    menu.appendChild(el('div', { class: 'group-label' }, [t('header.thisDocument')]));
+    menu.appendChild(
+      el('div', { class: 'group-label' }, [t('header.thisDocument')]),
+    );
     var rootInfo = docs.root.info || {};
     menu.appendChild(
-      pickerItem('root', rootInfo.title || 'root', 'root' + (rootInfo.version ? ' · v' + rootInfo.version : '')),
+      pickerItem(
+        'root',
+        rootInfo.title || 'root',
+        'root' + (rootInfo.version ? ' · v' + rootInfo.version : ''),
+      ),
     );
-    menu.appendChild(el('div', { class: 'group-label' }, [t('header.references')]));
+    menu.appendChild(
+      el('div', { class: 'group-label' }, [t('header.references')]),
+    );
     refKeys.forEach(function (ns) {
       var info = docs[ns].info || {};
-      menu.appendChild(pickerItem(ns, info.title || ns, ns + (info.version ? ' · v' + info.version : '')));
+      menu.appendChild(
+        pickerItem(
+          ns,
+          info.title || ns,
+          ns + (info.version ? ' · v' + info.version : ''),
+        ),
+      );
     });
     container.appendChild(menu);
 
@@ -4331,10 +5389,11 @@
   }
 
   function pickerItem(key, title, sub) {
-    var item = el('div', { class: 'picker-item' + (key === state.docKey ? ' sel' : '') }, [
-      el('span', { class: 't' }, [title]),
-      el('span', { class: 's' }, [sub]),
-    ]);
+    var item = el(
+      'div',
+      { class: 'picker-item' + (key === state.docKey ? ' sel' : '') },
+      [el('span', { class: 't' }, [title]), el('span', { class: 's' }, [sub])],
+    );
     item.addEventListener('click', function (ev) {
       ev.stopPropagation();
       // `stopPropagation` above means the document-level "click anywhere
@@ -4406,13 +5465,19 @@
     var contentTop = el('div', { class: 'content-col content-top' });
     var toc = el('div', { class: 'toc' });
     var railCol = el('div', { class: 'rail-col' }, [toc]);
-    var pageRows = el('div', { class: 'page-rows' }, [el('div', { class: 'page-row' }, [contentTop, railCol])]);
+    var pageRows = el('div', { class: 'page-rows' }, [
+      el('div', { class: 'page-row' }, [contentTop, railCol]),
+    ]);
     var pageWrap = el('div', {}, [pageRows]);
     main.appendChild(pageWrap);
 
     var doc = docs[parsed.docKey];
     if (!doc) {
-      contentTop.appendChild(el('div', { class: 'empty-note' }, [t('router.unknownDocument', { key: parsed.docKey })]));
+      contentTop.appendChild(
+        el('div', { class: 'empty-note' }, [
+          t('router.unknownDocument', { key: parsed.docKey }),
+        ]),
+      );
       buildToc(pageWrap, toc);
       return;
     }
@@ -4430,7 +5495,11 @@
     // re-picking it by hand every time they crossed a document with
     // nothing to section.
     var groupByBtn = document.getElementById('opra-groupby-btn');
-    var hasSections = !!(doc.api && doc.api.sections && doc.api.sections.length);
+    var hasSections = !!(
+      doc.api &&
+      doc.api.sections &&
+      doc.api.sections.length
+    );
     groupByBtn.hidden = !hasSections;
     // `state.groupBy` starts out `undefined` (never explicitly initialized
     // — see `state`'s own declaration) rather than the string `'structure'`
@@ -4440,7 +5509,9 @@
     // outright (regardless of the stored preference) whenever the active
     // document has nothing to section — reflecting what's actually on
     // screen for *this* document, without touching the preference itself.
-    var effectiveGroupBy = hasSections ? state.groupBy || 'structure' : 'structure';
+    var effectiveGroupBy = hasSections
+      ? state.groupBy || 'structure'
+      : 'structure';
     ['structure', 'sections'].forEach(function (key) {
       var item = document.getElementById('opra-groupby-item-' + key);
       if (item) item.classList.toggle('sel', effectiveGroupBy === key);
@@ -4488,23 +5559,46 @@
         var contentResponses = contentTop;
         var railResponseExample = null;
         if (op.op.responses && op.op.responses.length) {
-          contentResponses = el('div', { class: 'content-col content-responses' });
+          contentResponses = el('div', {
+            class: 'content-col content-responses',
+          });
           railResponseExample = el('div', { class: 'rail-example' });
-          pageRows.appendChild(el('div', { class: 'page-row' }, [contentResponses, el('div', { class: 'rail-col' }, [railResponseExample])]));
+          pageRows.appendChild(
+            el('div', { class: 'page-row' }, [
+              contentResponses,
+              el('div', { class: 'rail-col' }, [railResponseExample]),
+            ]),
+          );
         }
-        renderOperationPage(contentTop, contentResponses, state.docKey, doc, op, railExample, railResponseExample);
+        renderOperationPage(
+          contentTop,
+          contentResponses,
+          state.docKey,
+          doc,
+          op,
+          railExample,
+          railResponseExample,
+        );
         handled = true;
         needsRailAlign = true;
       } else {
         var ctl = findControllerByRoute(doc, rest.join('/'));
         if (ctl) {
-          renderControllerPage(contentTop, state.docKey, doc, ctl, rest.join('/'));
+          renderControllerPage(
+            contentTop,
+            state.docKey,
+            doc,
+            ctl,
+            rest.join('/'),
+          );
           handled = true;
         }
       }
     }
     if (!handled) {
-      contentTop.appendChild(el('div', { class: 'empty-note' }, [t('router.pageNotFound')]));
+      contentTop.appendChild(
+        el('div', { class: 'empty-note' }, [t('router.pageNotFound')]),
+      );
     }
     buildToc(pageWrap, toc);
     // Bound `tocWrap`'s height to the distance between row 1's top and
@@ -4528,10 +5622,13 @@
     if (needsRailAlign) {
       var firstHeading = contentTop.querySelector('h2');
       if (firstHeading) {
-        var headingOffset = firstHeading.getBoundingClientRect().top - contentTop.getBoundingClientRect().top;
+        var headingOffset =
+          firstHeading.getBoundingClientRect().top -
+          contentTop.getBoundingClientRect().top;
         var tocGap = parseFloat(getComputedStyle(railCol).rowGap) || 0;
         var tocHeight = toc.getBoundingClientRect().height;
-        tocWrap.style.height = Math.max(tocHeight, headingOffset - tocGap) + 'px';
+        tocWrap.style.height =
+          Math.max(tocHeight, headingOffset - tocGap) + 'px';
       }
     }
     renderedHandlers.forEach(function (fn) {
@@ -4612,7 +5709,8 @@
       // scrolled up to within the same-heading threshold used otherwise,
       // which would leave it unreachable/never-active even while it's
       // the very thing on screen at max scroll.
-      var atBottom = main.scrollTop + main.clientHeight >= main.scrollHeight - 4;
+      var atBottom =
+        main.scrollTop + main.clientHeight >= main.scrollHeight - 4;
       if (atBottom) {
         setActive(headings.length - 1);
         return;
@@ -4634,12 +5732,16 @@
    *  `init`) and must stay truthful: the same keys actually focus it,
    *  via the `keydown` listener registered in `init`. */
   function kbdShortcutLabel() {
-    var isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
+    var isMac = /Mac|iPod|iPhone|iPad/.test(
+      navigator.platform || navigator.userAgent || '',
+    );
     return isMac ? '⌘K' : 'Ctrl K';
   }
 
   function currentTheme() {
-    return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    return document.documentElement.getAttribute('data-theme') === 'light'
+      ? 'light'
+      : 'dark';
   }
 
   /** A globe with meridians — the conventional "choose a language" mark,
@@ -4654,6 +5756,35 @@
 
   var THEME_TOGGLE_ICON =
     '<svg viewBox="0 0 20 20" width="20" height="20"><circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.75a7.25 7.25 0 0 1 0 14.5Z" fill="currentColor"/></svg>';
+
+  var EDIT_DOCS_ICON =
+    '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" ' +
+    'stroke="currentColor" stroke-width="1.9" stroke-linecap="round" ' +
+    'stroke-linejoin="round"><path d="M4 20.5h4L20 8.5a2.8 2.8 0 0 0-4-4L4 ' +
+    '16.5z"/><path d="m14.5 6 3.5 3.5"/></svg>';
+
+  /** The way into the documentation studio, shown only when the server said
+   *  there is one (`ui.studioParam`) — which it only does when the document's
+   *  translations can actually be written. A reader's page has no button and
+   *  carries none of the studio's own code.
+   *
+   *  Reloads this same url with the parameter added rather than navigating
+   *  somewhere: the `#/...` you were reading is part of `location`, so you
+   *  start editing on the page you were looking at instead of at the top of
+   *  the document. */
+  function editDocsButton(ui) {
+    return el('button', {
+      class: 'theme-toggle header-edit-docs',
+      type: 'button',
+      title: t('header.editDocs'),
+      html: EDIT_DOCS_ICON,
+      onClick: function () {
+        var url = new URL(location.href);
+        url.searchParams.set(ui.studioParam, '1');
+        location.href = url.toString();
+      },
+    });
+  }
 
   /** A dark/light contrast-circle button — persists the choice to
    *  `localStorage` (read back at the very top of this file, before
@@ -4700,23 +5831,32 @@
    *  viewed under the new scope — exactly the point of comparing the two. */
   function scopeSelector(ui) {
     if (!ui.scopes || ui.scopes.length < 2) return null;
-    var btn = el('button', { class: 'header-export-btn', type: 'button', title: t('header.scope') }, [
-      el('span', {}, [t('header.scopeActive', { scope: ui.scope || '' })]),
-      iconFor('chevronDown'),
-    ]);
+    var btn = el(
+      'button',
+      { class: 'header-export-btn', type: 'button', title: t('header.scope') },
+      [
+        el('span', {}, [t('header.scopeActive', { scope: ui.scope || '' })]),
+        iconFor('chevronDown'),
+      ],
+    );
     var menu = el('div', { class: 'picker-menu header-scope-menu' });
     menu.hidden = true;
     ui.scopes.forEach(function (s) {
-      var item = el('div', { class: 'picker-item groupby-item' + (s === ui.scope ? ' sel' : '') }, [
-        el('span', { class: 't' }, [s]),
-        iconFor('check', 'groupby-check'),
-      ]);
+      var item = el(
+        'div',
+        { class: 'picker-item groupby-item' + (s === ui.scope ? ' sel' : '') },
+        [el('span', { class: 't' }, [s]), iconFor('check', 'groupby-check')],
+      );
       item.addEventListener('click', function (ev) {
         ev.stopPropagation();
         menu.hidden = true;
         openPickerMenu = null;
         if (s === ui.scope) return;
-        window.location.href = (ui.basePath || '') + '/' + encodeURIComponent(s) + window.location.hash;
+        window.location.href =
+          (ui.basePath || '') +
+          '/' +
+          encodeURIComponent(s) +
+          window.location.hash;
       });
       menu.appendChild(item);
     });
@@ -4739,7 +5879,8 @@
       var name = names.of(code);
       // Capitalized *in that language's own locale* — `toUpperCase()` would
       // turn Turkish "i" into "I" rather than "İ".
-      if (name && name !== code) return name.charAt(0).toLocaleUpperCase(code) + name.slice(1);
+      if (name && name !== code)
+        return name.charAt(0).toLocaleUpperCase(code) + name.slice(1);
     } catch (e) {
       // Unknown/invalid tag — fall through to the code itself.
     }
@@ -4782,11 +5923,15 @@
       );
     }
     function addItem(code) {
-      var item = el('div', { class: 'picker-item groupby-item' + (code === active ? ' sel' : '') }, [
-        el('span', { class: 't' }, [languageLabel(code)]),
-        el('span', { class: 's lang-code mono' }, [code]),
-        iconFor('check', 'groupby-check'),
-      ]);
+      var item = el(
+        'div',
+        { class: 'picker-item groupby-item' + (code === active ? ' sel' : '') },
+        [
+          el('span', { class: 't' }, [languageLabel(code)]),
+          el('span', { class: 's lang-code mono' }, [code]),
+          iconFor('check', 'groupby-check'),
+        ],
+      );
       item.addEventListener('click', function (ev) {
         ev.stopPropagation();
         menu.hidden = true;
@@ -4805,9 +5950,13 @@
     // One flat list when the document isn't translated at all — an
     // "Interface only" heading over every entry says nothing.
     if (translated.length && interfaceOnly.length) {
-      menu.appendChild(el('div', { class: 'group-label' }, [t('header.documentLanguages')]));
+      menu.appendChild(
+        el('div', { class: 'group-label' }, [t('header.documentLanguages')]),
+      );
       translated.forEach(addItem);
-      menu.appendChild(el('div', { class: 'group-label' }, [t('header.interfaceOnly')]));
+      menu.appendChild(
+        el('div', { class: 'group-label' }, [t('header.interfaceOnly')]),
+      );
       interfaceOnly.forEach(addItem);
     } else {
       ui.languages.forEach(addItem);
@@ -4837,7 +5986,8 @@
    *  a different language than the page the reader is looking at. */
   function exportUrl(kind, docKey) {
     var ui = window.__OPRA_UI__ || {};
-    var url = exportBaseUrl() + '/' + kind + '/' + encodeURIComponent(docKey) + '.json';
+    var url =
+      exportBaseUrl() + '/' + kind + '/' + encodeURIComponent(docKey) + '.json';
     return ui.lang ? url + '?lang=' + encodeURIComponent(ui.lang) : url;
   }
 
@@ -4905,14 +6055,22 @@
     if (!term) return { html: html, count: 0 };
     var re = new RegExp(escapeRegExp(term), 'gi');
     var count = 0;
-    var result = html.replace(/(<[^>]+>)|([^<]+)/g, function (whole, tag, text) {
-      if (tag) return tag;
-      return text.replace(re, function (m) {
-        var hit = '<mark class="schema-search-hit" data-hit="' + count + '">' + m + '</mark>';
-        count++;
-        return hit;
-      });
-    });
+    var result = html.replace(
+      /(<[^>]+>)|([^<]+)/g,
+      function (whole, tag, text) {
+        if (tag) return tag;
+        return text.replace(re, function (m) {
+          var hit =
+            '<mark class="schema-search-hit" data-hit="' +
+            count +
+            '">' +
+            m +
+            '</mark>';
+          count++;
+          return hit;
+        });
+      },
+    );
     return { html: result, count: count };
   }
 
@@ -4927,9 +6085,18 @@
     var hitCount = 0;
     var activeHit = -1;
 
-    var jsonBtn = el('button', { class: 'modal-format-btn sel', type: 'button' }, ['JSON']);
-    var yamlBtn = el('button', { class: 'modal-format-btn', type: 'button' }, ['YAML']);
-    var formatToggle = el('div', { class: 'modal-format-toggle' }, [jsonBtn, yamlBtn]);
+    var jsonBtn = el(
+      'button',
+      { class: 'modal-format-btn sel', type: 'button' },
+      ['JSON'],
+    );
+    var yamlBtn = el('button', { class: 'modal-format-btn', type: 'button' }, [
+      'YAML',
+    ]);
+    var formatToggle = el('div', { class: 'modal-format-toggle' }, [
+      jsonBtn,
+      yamlBtn,
+    ]);
     var copySlot = el('span', { class: 'modal-copy-slot' });
     var downloadBtn = el(
       'button',
@@ -4956,22 +6123,44 @@
     var searchStatus = el('span', { class: 'modal-search-status' }, ['']);
     var searchPrevBtn = el(
       'button',
-      { class: 'modal-icon-btn', type: 'button', title: t('schemaModal.previousMatch') },
+      {
+        class: 'modal-icon-btn',
+        type: 'button',
+        title: t('schemaModal.previousMatch'),
+      },
       [iconFor('chevronDown', 'rotate-180')],
     );
     var searchNextBtn = el(
       'button',
-      { class: 'modal-icon-btn', type: 'button', title: t('schemaModal.nextMatch') },
+      {
+        class: 'modal-icon-btn',
+        type: 'button',
+        title: t('schemaModal.nextMatch'),
+      },
       [iconFor('chevronDown')],
     );
     var header = el('div', { class: 'modal-header' }, [
-      el('div', { class: 'modal-header-left' }, [el('span', { class: 'modal-title' }, [title]), formatToggle]),
-      el('div', { class: 'modal-search' }, [searchInput, searchStatus, searchPrevBtn, searchNextBtn]),
-      el('div', { class: 'modal-header-actions' }, [copySlot, downloadBtn, closeBtn]),
+      el('div', { class: 'modal-header-left' }, [
+        el('span', { class: 'modal-title' }, [title]),
+        formatToggle,
+      ]),
+      el('div', { class: 'modal-search' }, [
+        searchInput,
+        searchStatus,
+        searchPrevBtn,
+        searchNextBtn,
+      ]),
+      el('div', { class: 'modal-header-actions' }, [
+        copySlot,
+        downloadBtn,
+        closeBtn,
+      ]),
     ]);
 
     var code = el('code', {}, [t('common.loading')]);
-    var body = el('div', { class: 'modal-body' }, [el('pre', { class: 'example-json modal-json' }, [code])]);
+    var body = el('div', { class: 'modal-body' }, [
+      el('pre', { class: 'example-json modal-json' }, [code]),
+    ]);
     var dialog = el('div', { class: 'modal-dialog' }, [header, body]);
     schemaModalOverlay = el('div', { class: 'modal-overlay' }, [dialog]);
     schemaModalOverlay.addEventListener('click', function (ev) {
@@ -4985,7 +6174,9 @@
     // request-body examples already use elsewhere) — switching formats is
     // just re-rendering already-loaded data, no second request.
     function currentText() {
-      return format === 'yaml' ? toYaml(data, 0) : JSON.stringify(data, null, 2);
+      return format === 'yaml'
+        ? toYaml(data, 0)
+        : JSON.stringify(data, null, 2);
     }
 
     function setActiveHit(index) {
@@ -5007,7 +6198,11 @@
       var noMatches = hasTerm && !hitCount;
       searchPrevBtn.disabled = noMatches;
       searchNextBtn.disabled = noMatches;
-      searchStatus.textContent = !hasTerm ? '' : hitCount ? activeHit + 1 + '/' + hitCount : '0/0';
+      searchStatus.textContent = !hasTerm
+        ? ''
+        : hitCount
+          ? activeHit + 1 + '/' + hitCount
+          : '0/0';
       if (activeHit < 0) return;
       var mark = code.querySelector('[data-hit="' + activeHit + '"]');
       if (mark) {
@@ -5048,7 +6243,11 @@
     downloadBtn.addEventListener('click', function () {
       if (data === null) return;
       if (format === 'yaml') {
-        downloadText(currentText(), jsonFilename.replace(/\.json$/, '.yaml'), 'application/yaml');
+        downloadText(
+          currentText(),
+          jsonFilename.replace(/\.json$/, '.yaml'),
+          'application/yaml',
+        );
       } else {
         downloadUrl(url, jsonFilename);
       }
@@ -5090,7 +6289,9 @@
   var codegenBundlePromise = null;
   function loadCodegenBundle() {
     if (!codegenBundlePromise) {
-      codegenBundlePromise = import(exportBaseUrl() + '/codegen/browser-entry.js');
+      codegenBundlePromise = import(
+        exportBaseUrl() + '/codegen/browser-entry.js'
+      );
     }
     return codegenBundlePromise;
   }
@@ -5126,14 +6327,19 @@
         return res.json();
       })
       .then(function (rootSchema) {
-        var refNames = Object.keys(rootSchema.references || {}).filter(function (ns) {
-          return ns !== 'opra';
-        });
+        var refNames = Object.keys(rootSchema.references || {}).filter(
+          function (ns) {
+            return ns !== 'opra';
+          },
+        );
         return Promise.all(
           refNames.map(function (ns) {
             return fetch(exportUrl('schema', ns))
               .then(function (res) {
-                if (!res.ok) throw new Error(t('tsClient.failedReferenceSchema', { namespace: ns }));
+                if (!res.ok)
+                  throw new Error(
+                    t('tsClient.failedReferenceSchema', { namespace: ns }),
+                  );
                 return res.json();
               })
               .then(function (json) {
@@ -5146,7 +6352,10 @@
             referenceSchemas[pair[0]] = pair[1];
           });
           return loadCodegenBundle().then(function (mod) {
-            return mod.generateTypeScriptClientZip(rootSchema, referenceSchemas);
+            return mod.generateTypeScriptClientZip(
+              rootSchema,
+              referenceSchemas,
+            );
           });
         });
       })
@@ -5246,8 +6455,9 @@
         .catch(function (err) {
           statusEl.hidden = false;
           statusEl.className = 'tsclient-status err';
-          statusEl.textContent =
-            t('tsClient.failed', { error: err && err.message ? err.message : err });
+          statusEl.textContent = t('tsClient.failed', {
+            error: err && err.message ? err.message : err,
+          });
         })
         .finally(function () {
           downloadBtn.classList.remove('busy');
@@ -5264,7 +6474,9 @@
         // The package name is a node, not an interpolated string: it stays
         // `<code class="mono">@opra/cli</code>` wherever a translation's own
         // word order puts it.
-        tNodes('tsClient.cliUse', { package: el('code', { class: 'mono' }, ['@opra/cli']) }),
+        tNodes('tsClient.cliUse', {
+          package: el('code', { class: 'mono' }, ['@opra/cli']),
+        }),
       ),
       cmdRow,
       el('p', { class: 'tsclient-hint' }, [t('tsClient.cliNote')]),
@@ -5274,7 +6486,10 @@
       statusEl,
     ]);
 
-    var dialog = el('div', { class: 'modal-dialog tsclient-dialog' }, [header, body]);
+    var dialog = el('div', { class: 'modal-dialog tsclient-dialog' }, [
+      header,
+      body,
+    ]);
     tsClientModalOverlay = el('div', { class: 'modal-overlay' }, [dialog]);
     tsClientModalOverlay.addEventListener('click', function (ev) {
       if (ev.target === tsClientModalOverlay) closeTsClientModal();
@@ -5288,10 +6503,11 @@
    *  two siblings, which just open a read-only viewer) there's a real
    *  choice to offer here: the CLI or a direct browser download. */
   function typescriptClientMenuItem(menu) {
-    var item = el('div', { class: 'picker-item groupby-item', id: 'opra-view-tsclient' }, [
-      iconFor('download'),
-      el('span', { class: 't' }, [t('header.tsClient')]),
-    ]);
+    var item = el(
+      'div',
+      { class: 'picker-item groupby-item', id: 'opra-view-tsclient' },
+      [iconFor('download'), el('span', { class: 't' }, [t('header.tsClient')])],
+    );
     item.addEventListener('click', function (ev) {
       ev.stopPropagation();
       menu.hidden = true;
@@ -5460,7 +6676,9 @@
     var pos = 0;
     merged.forEach(function (r) {
       if (r[0] > pos) parts.push(text.slice(pos, r[0]));
-      parts.push(el('mark', { class: 'match-highlight' }, [text.slice(r[0], r[1])]));
+      parts.push(
+        el('mark', { class: 'match-highlight' }, [text.slice(r[0], r[1])]),
+      );
       pos = r[1];
     });
     if (pos < text.length) parts.push(text.slice(pos));
@@ -5527,7 +6745,9 @@
     var alloc = {};
     cats.forEach(function (cat, i) {
       var isLast = i === cats.length - 1;
-      var share = isLast ? remaining : Math.floor(remaining / (cats.length - i));
+      var share = isLast
+        ? remaining
+        : Math.floor(remaining / (cats.length - i));
       var take = Math.min(counts[cat], share);
       alloc[cat] = take;
       remaining -= take;
@@ -5559,7 +6779,8 @@
       return !searchPopup.hidden;
     }
     function open() {
-      if (openPickerMenu && openPickerMenu !== searchPopup) openPickerMenu.hidden = true;
+      if (openPickerMenu && openPickerMenu !== searchPopup)
+        openPickerMenu.hidden = true;
       openPickerMenu = searchPopup;
       searchPopup.hidden = false;
       renderResults(searchInput.value);
@@ -5614,7 +6835,12 @@
         var take = alloc[cat.type] || 0;
         if (!list || !take) return;
         searchResultsEl.appendChild(
-          el('div', { class: 'search-group-label' }, [t('search.categoryCount', { category: cat.label, count: list.length })]),
+          el('div', { class: 'search-group-label' }, [
+            t('search.categoryCount', {
+              category: cat.label,
+              count: list.length,
+            }),
+          ]),
         );
         list.slice(0, take).forEach(function (r) {
           // `r.match` (from MiniSearch) maps each *real* word it found —
@@ -5631,24 +6857,56 @@
             if (fields.indexOf('label') !== -1) labelTerms.push(term);
             if (fields.indexOf('desc') !== -1) descTerms.push(term);
           });
-          var textChildren = [el('div', { class: 'search-result-label' }, highlightTerms(r.label, labelTerms))];
+          var textChildren = [
+            el(
+              'div',
+              { class: 'search-result-label' },
+              highlightTerms(r.label, labelTerms),
+            ),
+          ];
           var excerpt = buildExcerpt(r.desc, descTerms);
           if (excerpt) {
             textChildren.push(
-              el('div', { class: 'search-result-excerpt', dir: 'auto' }, highlightTerms(excerpt, descTerms)),
+              el(
+                'div',
+                { class: 'search-result-excerpt', dir: 'auto' },
+                highlightTerms(excerpt, descTerms),
+              ),
             );
           }
-          var row = el('a', { class: 'search-result-item', href: hrefFor(state.docKey, r.route) }, [
-            el('div', { class: 'search-result-crumb' }, r.sublabel ? [r.sublabel, el('span', { class: 'search-result-crumb-arrow' }, [IS_RTL ? '‹' : '›'])] : []),
-            el('div', { class: 'search-result-text' }, textChildren),
-            r.method ? methodBadge(r.method) : null,
-          ]);
+          var row = el(
+            'a',
+            {
+              class: 'search-result-item',
+              href: hrefFor(state.docKey, r.route),
+            },
+            [
+              el(
+                'div',
+                { class: 'search-result-crumb' },
+                r.sublabel
+                  ? [
+                      r.sublabel,
+                      el('span', { class: 'search-result-crumb-arrow' }, [
+                        IS_RTL ? '‹' : '›',
+                      ]),
+                    ]
+                  : [],
+              ),
+              el('div', { class: 'search-result-text' }, textChildren),
+              r.method ? methodBadge(r.method) : null,
+            ],
+          );
           searchResultsEl.appendChild(row);
           shown++;
         });
       });
       if (!shown) {
-        searchResultsEl.appendChild(el('div', { class: 'search-popup-empty' }, [t('search.noMatches', { query: query })]));
+        searchResultsEl.appendChild(
+          el('div', { class: 'search-popup-empty' }, [
+            t('search.noMatches', { query: query }),
+          ]),
+        );
         return;
       }
       // The top row is the one Enter opens without having to press
@@ -5677,7 +6935,11 @@
         // A fresh render's own `activeIndex` (always `0`) isn't shown
         // yet — the first press just reveals it, rather than skipping
         // straight to row 1.
-        setActive(activeVisible ? Math.min(activeIndex + 1, rows.length - 1) : activeIndex);
+        setActive(
+          activeVisible
+            ? Math.min(activeIndex + 1, rows.length - 1)
+            : activeIndex,
+        );
       } else if (ev.key === 'ArrowUp') {
         ev.preventDefault();
         setActive(activeVisible ? Math.max(activeIndex - 1, 0) : activeIndex);
@@ -5722,9 +6984,17 @@
       var logoLink = el(
         'a',
         { class: 'header-logo', href: ui.logo.href || '#/ref/root/' },
-        [el('img', { src: ui.logo.src, alt: ui.logo.alt || ui.logo.label || t('header.logoAlt') })],
+        [
+          el('img', {
+            src: ui.logo.src,
+            alt: ui.logo.alt || ui.logo.label || t('header.logoAlt'),
+          }),
+        ],
       );
-      if (ui.logo.label) logoLink.appendChild(el('span', { class: 'header-logo-label' }, [ui.logo.label]));
+      if (ui.logo.label)
+        logoLink.appendChild(
+          el('span', { class: 'header-logo-label' }, [ui.logo.label]),
+        );
       headerChildren.push(logoLink);
       headerChildren.push(el('span', { class: 'header-divider' }));
     }
@@ -5757,13 +7027,36 @@
       });
       return item;
     }
-    exportMenu.appendChild(viewMenuItem('opra-view-schema', 'schema', 'book', t('header.opraSchema')));
-    exportMenu.appendChild(viewMenuItem('opra-view-openapi', 'openapi', 'globe', t('header.openapiSchema')));
-    exportMenu.appendChild(el('div', { class: 'group-label', id: 'opra-view-tsclient-label' }, [t('header.downloadGroup')]));
+    exportMenu.appendChild(
+      viewMenuItem(
+        'opra-view-schema',
+        'schema',
+        'book',
+        t('header.opraSchema'),
+      ),
+    );
+    exportMenu.appendChild(
+      viewMenuItem(
+        'opra-view-openapi',
+        'openapi',
+        'globe',
+        t('header.openapiSchema'),
+      ),
+    );
+    exportMenu.appendChild(
+      el('div', { class: 'group-label', id: 'opra-view-tsclient-label' }, [
+        t('header.downloadGroup'),
+      ]),
+    );
     exportMenu.appendChild(typescriptClientMenuItem(exportMenu));
     var exportBtn = el(
       'button',
-      { class: 'header-export-btn', id: 'opra-export-btn', type: 'button', title: t('header.export') },
+      {
+        class: 'header-export-btn',
+        id: 'opra-export-btn',
+        type: 'button',
+        title: t('header.export'),
+      },
       [iconFor('eye'), el('span', {}, [t('header.export')])],
     );
     exportBtn.addEventListener('click', function (ev) {
@@ -5771,15 +7064,24 @@
       exportMenu.hidden = !exportMenu.hidden;
       openPickerMenu = exportMenu.hidden ? null : exportMenu;
     });
-    headerRight.push(el('div', { class: 'header-export-wrap' }, [exportBtn, exportMenu]));
+    headerRight.push(
+      el('div', { class: 'header-export-wrap' }, [exportBtn, exportMenu]),
+    );
     var langSelectEl = languageSelector(ui);
     if (langSelectEl) headerRight.push(langSelectEl);
+    // Not on a page that already *is* the studio — `studio.js` puts the way
+    // back in the same place instead.
+    if (ui.studioParam && !ui.authoring) headerRight.push(editDocsButton(ui));
     headerRight.push(themeToggleButton());
     // The results popup lives inside `.search` itself (which is already
     // `position: relative`) so it anchors directly under the box, not as
     // a separate centered overlay — `initSearchPopup` (see above) wires
     // up everything else once these three exist.
-    var globalSearchInput = el('input', { id: 'opra-search', type: 'search', placeholder: t('header.searchPlaceholder') });
+    var globalSearchInput = el('input', {
+      id: 'opra-search',
+      type: 'search',
+      placeholder: t('header.searchPlaceholder'),
+    });
     var searchResultsEl = el('div', { class: 'search-popup-results' });
     var searchPopup = el('div', { class: 'search-popup' }, [searchResultsEl]);
     searchPopup.hidden = true;
@@ -5801,14 +7103,25 @@
     // with the list scrolling independently beneath it (see `.sidebar-nav`
     // in CSS).
     var navList = el('nav', { class: 'sidebar-nav', id: 'opra-nav' });
-    var sidebarFilterInput = el('input', { id: 'opra-sidebar-filter', type: 'search', placeholder: t('sidebar.filterPlaceholder') });
+    var sidebarFilterInput = el('input', {
+      id: 'opra-sidebar-filter',
+      type: 'search',
+      placeholder: t('sidebar.filterPlaceholder'),
+    });
     // Clears the filter without needing to select-and-delete the text by
     // hand — hidden whenever the box is already empty (toggled alongside
     // the sync logic below), so it only ever appears once there's
     // something to clear.
-    var sidebarFilterClear = el('button', { class: 'sidebar-filter-clear', type: 'button', title: t('sidebar.clearFilter'), hidden: true }, [
-      iconFor('close'),
-    ]);
+    var sidebarFilterClear = el(
+      'button',
+      {
+        class: 'sidebar-filter-clear',
+        type: 'button',
+        title: t('sidebar.clearFilter'),
+        hidden: true,
+      },
+      [iconFor('close')],
+    );
     sidebarFilterClear.addEventListener('click', function (e) {
       e.preventDefault();
       sidebarFilterInput.value = '';
@@ -5826,14 +7139,28 @@
     // participates in, so opening this one closes that one and vice versa,
     // and the shared document-level click handler closes whichever is open
     // without each menu needing its own listener for that.
-    var groupByBtn = el('button', { class: 'sidebar-groupby-btn', id: 'opra-groupby-btn', type: 'button', title: t('sidebar.viewOptions'), hidden: true }, [
-      iconFor('eye'),
-    ]);
+    var groupByBtn = el(
+      'button',
+      {
+        class: 'sidebar-groupby-btn',
+        id: 'opra-groupby-btn',
+        type: 'button',
+        title: t('sidebar.viewOptions'),
+        hidden: true,
+      },
+      [iconFor('eye')],
+    );
     var groupByMenu = el('div', { class: 'picker-menu sidebar-groupby-menu' });
     groupByMenu.hidden = true;
-    groupByMenu.appendChild(el('div', { class: 'group-label' }, [t('sidebar.groupBy')]));
+    groupByMenu.appendChild(
+      el('div', { class: 'group-label' }, [t('sidebar.groupBy')]),
+    );
     var groupByOptions = [
-      { key: 'structure', label: t('sidebar.groupByStructure'), icon: 'folder' },
+      {
+        key: 'structure',
+        label: t('sidebar.groupByStructure'),
+        icon: 'folder',
+      },
       { key: 'sections', label: t('sidebar.groupBySections'), icon: 'tag' },
     ];
     var groupByItemEls = {};
@@ -5845,11 +7172,18 @@
       // `syncGroupByUi` already sets), so selecting an option never
       // shifts the row's own width/padding the way conditionally
       // inserting the icon would.
-      var item = el('div', { class: 'picker-item groupby-item', id: 'opra-groupby-item-' + opt.key }, [
-        iconFor(opt.icon),
-        el('span', { class: 't' }, [opt.label]),
-        iconFor('check', 'groupby-check'),
-      ]);
+      var item = el(
+        'div',
+        {
+          class: 'picker-item groupby-item',
+          id: 'opra-groupby-item-' + opt.key,
+        },
+        [
+          iconFor(opt.icon),
+          el('span', { class: 't' }, [opt.label]),
+          iconFor('check', 'groupby-check'),
+        ],
+      );
       item.addEventListener('click', function (ev) {
         ev.stopPropagation();
         groupByMenu.hidden = true;
@@ -5879,7 +7213,9 @@
         var route = parentRoute + '/' + encodeURIComponent(name);
         routes.push(route);
         if (controllers[name].controllers) {
-          routes = routes.concat(collectControllerRoutes(controllers[name].controllers, route));
+          routes = routes.concat(
+            collectControllerRoutes(controllers[name].controllers, route),
+          );
         }
       });
       return routes;
@@ -5929,13 +7265,23 @@
       buildSidebar(navList, state.docKey, docs[state.docKey]);
       highlightActive(navList);
     }
-    groupByMenu.appendChild(el('div', { class: 'group-label' }, [t('sidebar.sidebarGroup')]));
-    var expandAllBtn = el('button', { class: 'picker-item sidebar-menu-action', type: 'button' }, [t('sidebar.expandAll')]);
+    groupByMenu.appendChild(
+      el('div', { class: 'group-label' }, [t('sidebar.sidebarGroup')]),
+    );
+    var expandAllBtn = el(
+      'button',
+      { class: 'picker-item sidebar-menu-action', type: 'button' },
+      [t('sidebar.expandAll')],
+    );
     expandAllBtn.addEventListener('click', function (ev) {
       ev.stopPropagation();
       setAllNavCollapsed(false);
     });
-    var collapseAllBtn = el('button', { class: 'picker-item sidebar-menu-action', type: 'button' }, [t('sidebar.collapseAll')]);
+    var collapseAllBtn = el(
+      'button',
+      { class: 'picker-item sidebar-menu-action', type: 'button' },
+      [t('sidebar.collapseAll')],
+    );
     collapseAllBtn.addEventListener('click', function (ev) {
       ev.stopPropagation();
       setAllNavCollapsed(true);
@@ -5962,7 +7308,10 @@
       // Structure" selected instead of leaving neither item checked.
       var effectiveGroupBy = state.groupBy || 'structure';
       groupByOptions.forEach(function (opt) {
-        groupByItemEls[opt.key].classList.toggle('sel', effectiveGroupBy === opt.key);
+        groupByItemEls[opt.key].classList.toggle(
+          'sel',
+          effectiveGroupBy === opt.key,
+        );
       });
     }
     syncGroupByUi();
@@ -5979,16 +7328,29 @@
     // not the whole interaction — "Clear All" at the top is the one
     // action that *does* close it, being a decisive "done filtering"
     // reset rather than another selection.
-    var filterBadge = el('span', { class: 'filter-badge', hidden: true }, ['0']);
+    var filterBadge = el('span', { class: 'filter-badge', hidden: true }, [
+      '0',
+    ]);
     var methodFilterBtn = el(
       'button',
-      { class: 'sidebar-groupby-btn', id: 'opra-methodfilter-btn', type: 'button', title: t('sidebar.filterOptions') },
+      {
+        class: 'sidebar-groupby-btn',
+        id: 'opra-methodfilter-btn',
+        type: 'button',
+        title: t('sidebar.filterOptions'),
+      },
       [iconFor('filter'), filterBadge],
     );
-    var methodFilterMenu = el('div', { class: 'picker-menu sidebar-groupby-menu filter-menu' });
+    var methodFilterMenu = el('div', {
+      class: 'picker-menu sidebar-groupby-menu filter-menu',
+    });
     methodFilterMenu.hidden = true;
 
-    var clearAllBtn = el('button', { class: 'picker-item filter-clear-all', type: 'button' }, [t('sidebar.clearAll')]);
+    var clearAllBtn = el(
+      'button',
+      { class: 'picker-item filter-clear-all', type: 'button' },
+      [t('sidebar.clearAll')],
+    );
     clearAllBtn.addEventListener('click', function (ev) {
       ev.stopPropagation();
       state.methodFilter = [];
@@ -6009,13 +7371,16 @@
     // how the Models section itself marks each kind) below.
     var filterItemEls = {};
     function filterGroup(stateKey, label, options) {
-      methodFilterMenu.appendChild(el('div', { class: 'group-label' }, [label]));
+      methodFilterMenu.appendChild(
+        el('div', { class: 'group-label' }, [label]),
+      );
       var idPrefix = 'opra-' + stateKey + '-';
       function item(key, content) {
-        var el_ = el('div', { class: 'picker-item groupby-item', id: idPrefix + key }, [
-          content,
-          iconFor('check', 'groupby-check'),
-        ]);
+        var el_ = el(
+          'div',
+          { class: 'picker-item groupby-item', id: idPrefix + key },
+          [content, iconFor('check', 'groupby-check')],
+        );
         el_.addEventListener('click', function (ev) {
           ev.stopPropagation();
           if (key === 'ALL') {
@@ -6033,7 +7398,9 @@
         filterItemEls[idPrefix + key] = el_;
         return el_;
       }
-      methodFilterMenu.appendChild(item('ALL', el('span', { class: 't' }, [t('sidebar.allMethods')])));
+      methodFilterMenu.appendChild(
+        item('ALL', el('span', { class: 't' }, [t('sidebar.allMethods')])),
+      );
       options.forEach(function (opt) {
         methodFilterMenu.appendChild(item(opt.key, opt.content));
       });
@@ -6083,19 +7450,26 @@
     // checked exactly when nothing else in *that* group is selected.
     function syncFilterUi() {
       var methodCount = (state.methodFilter && state.methodFilter.length) || 0;
-      var modelCount = (state.modelKindFilter && state.modelKindFilter.length) || 0;
+      var modelCount =
+        (state.modelKindFilter && state.modelKindFilter.length) || 0;
       var total = methodCount + modelCount;
       methodFilterBtn.classList.toggle('active', total > 0);
       filterBadge.hidden = total === 0;
       filterBadge.textContent = String(total);
-      filterItemEls['opra-methodFilter-ALL'].classList.toggle('sel', !methodCount);
+      filterItemEls['opra-methodFilter-ALL'].classList.toggle(
+        'sel',
+        !methodCount,
+      );
       METHOD_FILTER_OPTIONS.forEach(function (m) {
         filterItemEls['opra-methodFilter-' + m].classList.toggle(
           'sel',
           !!(methodCount && state.methodFilter.indexOf(m) !== -1),
         );
       });
-      filterItemEls['opra-modelKindFilter-ALL'].classList.toggle('sel', !modelCount);
+      filterItemEls['opra-modelKindFilter-ALL'].classList.toggle(
+        'sel',
+        !modelCount,
+      );
       MODEL_KIND_FILTER_OPTIONS.forEach(function (kind) {
         filterItemEls['opra-modelKindFilter-' + kind].classList.toggle(
           'sel',
@@ -6108,8 +7482,14 @@
     var sidebar = el('div', { class: 'sidebar' }, [
       el('div', { class: 'sidebar-filter' }, [
         el('div', { class: 'sidebar-groupby-wrap' }, [groupByBtn, groupByMenu]),
-        el('div', { class: 'sidebar-groupby-wrap' }, [methodFilterBtn, methodFilterMenu]),
-        el('div', { class: 'search sidebar-filter-search' }, [sidebarFilterInput, sidebarFilterClear]),
+        el('div', { class: 'sidebar-groupby-wrap' }, [
+          methodFilterBtn,
+          methodFilterMenu,
+        ]),
+        el('div', { class: 'search sidebar-filter-search' }, [
+          sidebarFilterInput,
+          sidebarFilterClear,
+        ]),
       ]),
       navList,
     ]);
@@ -6164,7 +7544,11 @@
          * page never renders. Resolved against the document currently on
          * screen, the same one the block being edited was rendered from. */
         preview: function (text) {
-          return mdBlock(docs[state.docKey] || docs.root, text, 'studio-preview');
+          return mdBlock(
+            docs[state.docKey] || docs.root,
+            text,
+            'studio-preview',
+          );
         },
         /* So the toolbar's callout menu can offer each admonition under the
          * icon it will actually render with. */

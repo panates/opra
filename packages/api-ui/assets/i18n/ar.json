@@ -23,7 +23,8 @@
     "thisDocument": "هذا المستند",
     "references": "المراجع",
     "documentLanguages": "لغات المستند",
-    "interfaceOnly": "الواجهة فقط"
+    "interfaceOnly": "الواجهة فقط",
+    "editDocs": "تحرير التوثيق"
   },
   "sidebar": {
     "overview": "نظرة عامة",
@@ -294,6 +295,8 @@
       "code": "شفرة",
       "link": "تسمية",
       "callout": "أمر يستحق التنويه."
-    }
+    },
+    "exit": "تم",
+    "exitHint": "إنهاء التحرير والعودة إلى القراءة"
   }
 }

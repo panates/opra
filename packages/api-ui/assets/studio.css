@@ -7,6 +7,36 @@
    the stylesheet were somehow included.
    ========================================================================== */
 
+/* The way back to reading, when there is one — a studio served from inside
+   an application sits at the same url as the page it edits, so leaving is a
+   button and not a closed tab. Filled rather than outlined: it is the one
+   control here that ends the session, and the header's other buttons are all
+   quiet by design. */
+.studio-exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  margin-inline-end: 8px;
+  padding: 4px 11px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.studio-exit:hover {
+  filter: brightness(1.08);
+}
+
+.studio-exit .studio-icon {
+  display: inline-flex;
+}
+
 /* The language every edit on this page lands in, beside the document's title.
    Accent-tinted rather than neutral: it is the one piece of header chrome that
    isn't part of the published page, and it is worth noticing — the prose

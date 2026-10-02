@@ -23,7 +23,8 @@
     "thisDocument": "এই নথি",
     "references": "রেফারেন্স",
     "documentLanguages": "নথির ভাষাসমূহ",
-    "interfaceOnly": "শুধু ইন্টারফেস"
+    "interfaceOnly": "শুধু ইন্টারফেস",
+    "editDocs": "ডকুমেন্টেশন সম্পাদনা করুন"
   },
   "sidebar": {
     "overview": "সারসংক্ষেপ",
@@ -268,6 +269,8 @@
       "code": "কোড",
       "link": "লেবেল",
       "callout": "উল্লেখ করার মতো কিছু।"
-    }
+    },
+    "exit": "সম্পন্ন",
+    "exitHint": "সম্পাদনা বন্ধ করে পড়ায় ফিরে যান"
   }
 }

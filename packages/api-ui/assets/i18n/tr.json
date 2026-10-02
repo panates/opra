@@ -23,7 +23,8 @@
     "thisDocument": "Bu doküman",
     "references": "Referanslar",
     "documentLanguages": "Belge dilleri",
-    "interfaceOnly": "Yalnızca arayüz"
+    "interfaceOnly": "Yalnızca arayüz",
+    "editDocs": "Dokümantasyonu düzenle"
   },
   "sidebar": {
     "overview": "Genel bakış",
@@ -268,6 +269,8 @@
       "code": "kod",
       "link": "etiket",
       "callout": "Dikkat çekmeye değer bir şey."
-    }
+    },
+    "exit": "Bitir",
+    "exitHint": "Düzenlemeyi bitir ve okumaya dön"
   }
 }

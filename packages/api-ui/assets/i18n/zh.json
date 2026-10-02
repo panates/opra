@@ -23,7 +23,8 @@
     "thisDocument": "本文档",
     "references": "引用文档",
     "documentLanguages": "文档语言",
-    "interfaceOnly": "仅界面语言"
+    "interfaceOnly": "仅界面语言",
+    "editDocs": "编辑文档"
   },
   "sidebar": {
     "overview": "概览",
@@ -257,6 +258,8 @@
       "code": "代码",
       "link": "标签",
       "callout": "值得特别说明的内容。"
-    }
+    },
+    "exit": "完成",
+    "exitHint": "结束编辑并返回阅读"
   }
 }

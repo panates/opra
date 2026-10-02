@@ -23,7 +23,8 @@
     "thisDocument": "این سند",
     "references": "ارجاع‌ها",
     "documentLanguages": "زبان‌های سند",
-    "interfaceOnly": "فقط رابط کاربری"
+    "interfaceOnly": "فقط رابط کاربری",
+    "editDocs": "ویرایش مستندات"
   },
   "sidebar": {
     "overview": "نمای کلی",
@@ -268,6 +269,8 @@
       "code": "کد",
       "link": "برچسب",
       "callout": "چیزی که ارزش یادآوری دارد."
-    }
+    },
+    "exit": "پایان",
+    "exitHint": "پایان ویرایش و بازگشت به خواندن"
   }
 }

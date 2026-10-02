@@ -89,10 +89,12 @@ export namespace ApiUiSchemaBuilder {
       const info = out.info as Record<string, unknown>;
       info._docKey = ['info'];
       info._docFields = ['title', 'description', 'termsOfService'];
+      info._docOwner = document.id;
       if (info.license) {
         const license = info.license as Record<string, unknown>;
         license._docKey = ['info', 'license'];
         license._docFields = ['content'];
+        license._docOwner = document.id;
       }
     }
 
@@ -206,22 +208,28 @@ class BuildContext {
       // A key is only meaningful against the bundle of the document that
       // *declares* the element (see `findTexts`), and a reference document
       // brings its own translation store. The root page embeds those nodes —
-      // a type imported from `cm:` gets a page here like any other — so they
-      // have to be marked, or the studio would write their text into the root
-      // document's bundle where nothing will ever read it.
-      if (!this.owns(element)) target._docForeign = true;
+      // a type imported from `cm:` gets a page here like any other — so each
+      // one says which document's bundle its text belongs in, and the studio
+      // writes through that document's own store. Stamped on every node
+      // rather than only the foreign ones: "absent means this one" would
+      // have to be resolved against the tree being walked, and the root tree
+      // is precisely the one that holds nodes from several documents.
+      const owner = this.documentOf(element);
+      if (owner) target._docOwner = owner.id;
     }
     return out;
   }
 
-  /** Whether `element` belongs to the document being built, rather than one
-   *  of its references. Detached elements (an anonymous type built outside
-   *  any document) have nothing to look up either way. */
-  private owns(element: DocumentElement): boolean {
+  /** The document that declares `element`, which is where its texts are
+   *  looked up and therefore the only place an edit may be written. Not
+   *  always the one being built: the root page embeds types imported from a
+   *  reference. `undefined` for a detached element (an anonymous type built
+   *  outside any document), which has nothing to look up either way. */
+  private documentOf(element: DocumentElement): ApiDocument | undefined {
     try {
-      return element.node.getDocument() === this.document;
+      return element.node.getDocument();
     } catch {
-      return false;
+      return undefined;
     }
   }
 
@@ -675,7 +683,7 @@ function mapHttpRequestBody(b: HttpRequestBody, ctx: BuildContext) {
    * printing one sentence twice on the page, and offering the studio two
    * places to write a single text where the second save would quietly
    * overwrite the first. The body owns it. */
-  const bodyKey = b.docKeySegments.join(' ');
+  const bodyKey = b.docKeySegments.join('\0');
   return ctx.translate(
     b,
     omitUndefined({
@@ -683,7 +691,7 @@ function mapHttpRequestBody(b: HttpRequestBody, ctx: BuildContext) {
       required: b.required || undefined,
       content: b.content.length
         ? b.content.map(m =>
-            mapHttpMediaType(m, ctx, m.docKeySegments.join(' ') !== bodyKey),
+            mapHttpMediaType(m, ctx, m.docKeySegments.join('\0') !== bodyKey),
           )
         : undefined,
     }),

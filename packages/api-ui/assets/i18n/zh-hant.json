@@ -23,7 +23,8 @@
     "thisDocument": "本文件",
     "references": "參照文件",
     "documentLanguages": "文件語言",
-    "interfaceOnly": "僅介面語言"
+    "interfaceOnly": "僅介面語言",
+    "editDocs": "編輯文件"
   },
   "sidebar": {
     "overview": "總覽",
@@ -257,6 +258,8 @@
       "code": "程式碼",
       "link": "標籤",
       "callout": "值得特別說明的內容。"
-    }
+    },
+    "exit": "完成",
+    "exitHint": "結束編輯並返回閱讀"
   }
 }

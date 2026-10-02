@@ -23,6 +23,27 @@
   var api;
   var docs;
 
+  /** The documents on this page whose prose can actually be written, by id —
+   *  the root and any reference whose translation store implements `save`
+   *  (see `ApiUiOptions.authoring.documents`). Every block of prose names
+   *  its owner, and one whose owner is absent here is shown read-only.
+   *
+   *  The lock is a fact about storage, not a flag: a document whose bundles
+   *  came from somewhere unwritable has no way to express the write. */
+  var writable = Object.create(null);
+  (authoring.documents || []).forEach(function (entry) {
+    writable[entry.id] = entry;
+  });
+
+  /** How a key belonging to `owner` is labelled: a reference's keys are
+   *  prefixed with the namespace it is reached under, because `types.Customer`
+   *  in two documents is two different texts and nothing else on the row
+   *  would say which one is in front of you. */
+  function nsOf(owner) {
+    var entry = writable[owner];
+    return (entry && entry.ns) || '';
+  }
+
   /** The editor's own strings, from the same per-language dictionary as the
    *  rest of the interface — so choosing a language in the badge translates
    *  the editor with it. Everything here is under `studio.*`, which the
@@ -42,7 +63,7 @@
    *  *bundle*, whose shape deliberately doesn't match the flattened tree the
    *  page renders (types collapse into one map, parameters are merged down
    *  from ancestors), so this searches rather than walks a path. */
-  function findNode(root, key) {
+  function findNode(root, key, owner) {
     var wanted = JSON.stringify(key);
     var found = null;
     (function walk(value) {
@@ -51,7 +72,14 @@
         for (var i = 0; i < value.length && !found; i++) walk(value[i]);
         return;
       }
-      if (value._docKey && JSON.stringify(value._docKey) === wanted) {
+      // The owner is part of the identity, not decoration: a reference's
+      // `types.Customer` and the root's own would otherwise be the same key,
+      // and the first one the walk reached would win.
+      if (
+        value._docKey &&
+        JSON.stringify(value._docKey) === wanted &&
+        (!owner || value._docOwner === owner)
+      ) {
         found = value;
         return;
       }
@@ -70,11 +98,19 @@
    *
    * Filled in by `start()`, not here: the server appends it in a script tag
    * just before `</body>`, which runs after this file does. Null when the
-   * page wasn't served by the studio at all. */
-  var bundle = null;
+   * page wasn't served by the studio at all.
+   *
+   * One per document, keyed by id: the root page embeds nodes from its
+   * references, and a key is only ever meaningful against the bundle of the
+   * document that declares it. */
+  var bundles = null;
 
-  function bundleValue(key, field) {
-    var node = bundle;
+  function bundleOf(owner) {
+    return (bundles && bundles[owner]) || null;
+  }
+
+  function bundleValue(owner, key, field) {
+    var node = bundleOf(owner);
     for (var i = 0; i < key.length && node; i++) {
       node = typeof node[key[i]] === 'object' ? node[key[i]] : null;
     }
@@ -82,9 +118,9 @@
     return typeof value === 'string' ? value : '';
   }
 
-  function setBundleValue(key, field, value) {
-    if (!bundle) return;
-    var node = bundle;
+  function setBundleValue(owner, key, field, value) {
+    if (!bundles) return;
+    var node = bundles[owner] || (bundles[owner] = {});
     for (var i = 0; i < key.length; i++) {
       if (!node[key[i]] || typeof node[key[i]] !== 'object') node[key[i]] = {};
       node = node[key[i]];
@@ -94,14 +130,17 @@
 
   // ---------- saving ----------
 
-  function save(key, field, value) {
+  function save(owner, key, field, value) {
     return fetch(authoring.saveUrl, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       // The language travels with every save rather than the server holding a
       // "current" one: two tabs on two languages is how translating actually
-      // goes, and a server-side current would cross them.
+      // goes, and a server-side current would cross them. So does the owning
+      // document: the server writes through *its* translation store, which is
+      // the only place anything will ever read the text back from.
       body: JSON.stringify({
+        owner: owner,
         key: key,
         field: field,
         value: value,
@@ -140,6 +179,7 @@
     callout:
       '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H9l-5 4z"/><path d="M12 7.3v3.4M12 13.2h.01"/>',
     caret: '<path d="m8 10 4 4 4-4"/>',
+    check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
     pencil:
       '<path d="M4 20.5h4L20 8.5a2.8 2.8 0 0 0-4-4L4 16.5z"/><path d="m14.5 6 3.5 3.5"/>',
   };
@@ -320,12 +360,13 @@
     if (openEditor) closeEditor();
     var key = JSON.parse(target.getAttribute('data-doc-key'));
     var field = target.getAttribute('data-doc-field');
-    var node = findNode(docs, key);
+    var owner = target.getAttribute('data-doc-owner');
+    var node = findNode(docs, key, owner);
     // The bundle's own text, not the page's: editing `tr` on an entry that
     // file has never carried should open empty, not pre-filled with the
     // English the renderer fell back to.
-    var current = bundle
-      ? bundleValue(key, field)
+    var current = bundles
+      ? bundleValue(owner, key, field)
       : (node && node[field]) || '';
 
     var wrap = document.createElement('div');
@@ -342,8 +383,14 @@
     head.className = 'studio-head';
     var path = document.createElement('span');
     path.className = 'studio-path mono';
-    var segments = key.concat(field);
-    path.title = segments.join(' › ');
+    // Prefixed with the reference's namespace when the text belongs to
+    // another document: an edit that leaves this document is not something
+    // to discover afterwards in a diff.
+    var ns = nsOf(owner);
+    var segments = (ns ? [ns + ':'] : []).concat(key, field);
+    var entry = writable[owner];
+    path.title =
+      segments.join(' › ') + (entry && entry.file ? '  →  ' + entry.file : '');
     /* The ancestors are context and the field is the answer to "what am I
      * editing", so when the column is too narrow for all of it the ellipsis
      * has to eat the front — hence the two spans, one that shrinks and one
@@ -603,13 +650,13 @@
       status.textContent = msg('saving');
       status.className = 'studio-status';
       saveBtn.disabled = true;
-      save(key, field, value).then(
+      save(owner, key, field, value).then(
         function () {
           // The node the renderer reads *is* the node we just persisted to,
           // so re-rendering shows exactly what a fresh page load would; the
           // bundle mirror keeps the checklist and the next editor honest.
           if (node) node[field] = value;
-          setBundleValue(key, field, value);
+          setBundleValue(owner, key, field, value);
           clearTimeout(previewTimer);
           teardown.forEach(function (fn) {
             fn();
@@ -648,7 +695,12 @@
         block.classList.add('studio-empty');
         block.textContent = msg('empty');
       }
-      if (block.hasAttribute('data-doc-foreign')) {
+      // Read-only when nothing on the server can write this text back: the
+      // owning document's store implements no `save`, so there is nowhere
+      // for the edit to go. Not "this came from a reference" — a reference
+      // with a writable store is edited here like anything else, through
+      // that store.
+      if (!writable[block.getAttribute('data-doc-owner')]) {
         block.classList.add('studio-readonly');
         block.title = msg('foreign');
         return;
@@ -699,8 +751,13 @@
     var declared = window.__OPRA_STUDIO_SLOTS__;
     var allowed = declared ? Object.create(null) : null;
     if (declared) {
-      declared.forEach(function (path) {
-        allowed[path] = true;
+      // Keyed by owning document, because the same path in two documents is
+      // two different texts — and one of them may be declared while the
+      // other is not.
+      Object.keys(declared).forEach(function (owner) {
+        declared[owner].forEach(function (path) {
+          allowed[owner + ' ' + path] = true;
+        });
       });
     }
     (function walk(value) {
@@ -709,17 +766,20 @@
         value.forEach(walk);
         return;
       }
-      if (value._docKey && value._docFields && !value._docForeign) {
+      if (value._docKey && value._docFields && writable[value._docOwner]) {
         value._docFields.forEach(function (field) {
-          var id = JSON.stringify(value._docKey.concat(field));
+          var owner = value._docOwner;
+          var id = owner + ' ' + JSON.stringify(value._docKey.concat(field));
           if (seen[id]) return;
           if (allowed && !allowed[id]) return;
           seen[id] = true;
           slots.push({
             key: value._docKey,
+            owner: owner,
+            ns: nsOf(owner),
             field: field,
-            filled: bundle
-              ? !!bundleValue(value._docKey, field).trim()
+            filled: bundles
+              ? !!bundleValue(owner, value._docKey, field).trim()
               : !!(value[field] && String(value[field]).trim()),
           });
         });
@@ -762,11 +822,17 @@
     missing.forEach(function (slot) {
       var node = root;
       root.count++;
-      slot.key.forEach(function (segment) {
+      /* A reference's rows hang under a heading named for the namespace it
+       * is reached through. It is a display segment only — it belongs to no
+       * bundle, so each node keeps the real key alongside it rather than
+       * rebuilding one from the path it is drawn at. */
+      var prefix = slot.ns ? [slot.ns + ':'] : [];
+      prefix.concat(slot.key).forEach(function (segment, i) {
         if (!node.children[segment]) {
           node.children[segment] = {
             name: segment,
-            key: node.key.concat(segment),
+            key: slot.key.slice(0, Math.max(0, i + 1 - prefix.length)),
+            owner: slot.owner,
             children: {},
             order: [],
             fields: [],
@@ -812,13 +878,13 @@
       container.appendChild(row);
       container.appendChild(branch);
       node.fields.forEach(function (field) {
-        branch.appendChild(todoLeaf(node.key, field, depth + 1));
+        branch.appendChild(todoLeaf(node.key, node.owner, field, depth + 1));
       });
       renderBranch(node, branch, depth + 1);
     });
   }
 
-  function todoLeaf(key, field, depth) {
+  function todoLeaf(key, owner, field, depth) {
     var row = document.createElement('div');
     row.className = 'studio-todo-item';
     row.style.paddingInlineStart = 6 + depth * 11 + 'px';
@@ -843,7 +909,7 @@
     pencil.appendChild(icon('pencil', 13));
     pencil.addEventListener('click', function (ev) {
       ev.stopPropagation();
-      revealSlot(key, field);
+      revealSlot(owner, key, field);
     });
     row.appendChild(pencil);
     var leaf = document.createElement('span');
@@ -857,9 +923,9 @@
    * consumed by the render that lands there. */
   var pendingOpen = null;
 
-  function revealSlot(key, field) {
+  function revealSlot(owner, key, field) {
     var before = location.hash;
-    pendingOpen = { key: key, field: field };
+    pendingOpen = { owner: owner, key: key, field: field };
     api.goTo(key);
     /* Already on that page: the hash didn't change, so nothing re-renders and
      * nothing would ever consume it. The block is right here. */
@@ -874,6 +940,7 @@
     if (!pendingOpen) return;
     var wanted = JSON.stringify(pendingOpen.key);
     var field = pendingOpen.field;
+    var owner = pendingOpen.owner;
     pendingOpen = null;
     var blocks = document.querySelectorAll('[data-doc-key]');
     for (var i = 0; i < blocks.length; i++) {
@@ -881,7 +948,8 @@
       if (
         block.getAttribute('data-doc-key') === wanted &&
         block.getAttribute('data-doc-field') === field &&
-        !block.hasAttribute('data-doc-foreign')
+        block.getAttribute('data-doc-owner') === owner &&
+        writable[owner]
       ) {
         block.scrollIntoView({ block: 'center' });
         openFor(block);
@@ -1151,7 +1219,9 @@
          * bundle the editor writes to all change together, and the server is
          * the only thing that knows how. The hash comes along so you land on
          * the page you were reading, in the other language. */
-        location.href = '?lang=' + encodeURIComponent(tag) + location.hash;
+        var url = new URL(location.href);
+        url.searchParams.set('lang', tag);
+        location.href = url.toString();
       });
       menu.appendChild(item);
     });
@@ -1166,14 +1236,44 @@
     holder.appendChild(menu);
   }
 
+  /** The way back to reading, beside the controls that brought you here.
+   *
+   *  Only when the server said this page has a reader's form to return to
+   *  (`ui.studioParam`) — `oprimp docs:studio` serves nothing but the studio,
+   *  so there is nowhere to go and no button. Re-checked after every render
+   *  and idempotent: `app.js` rebuilds the header, and this must neither
+   *  vanish nor accumulate. */
+  function exitButton() {
+    if (!ui.studioParam) return;
+    var right = document.querySelector('.header-right');
+    if (!right || right.querySelector('.studio-exit')) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'studio-exit';
+    btn.title = msg('exitHint');
+    btn.appendChild(icon('check', 14));
+    btn.appendChild(document.createTextNode(msg('exit')));
+    btn.addEventListener('click', function () {
+      /* Drops the parameter and keeps everything else — the language, the
+       * scope segment, and the `#/...` you were editing. You come back to
+       * the page you were on, reading it. */
+      var url = new URL(location.href);
+      url.searchParams.delete(ui.studioParam);
+      location.href = url.toString();
+    });
+    right.insertBefore(btn, right.firstChild);
+  }
+
   function start() {
     api = window.__OPRA_STUDIO_HOST__;
     if (!api) return;
     docs = api.docs;
-    bundle = window.__OPRA_STUDIO_BUNDLE__ || null;
+    bundles = window.__OPRA_STUDIO_BUNDLE__ || null;
     document.documentElement.classList.add('studio-on');
     badgeLanguage();
+    exitButton();
     api.onRendered(badgeLanguage);
+    api.onRendered(exitButton);
     api.onRendered(decorate);
     // After `decorate`, so the block it opens is already an editable one.
     api.onRendered(openPendingSlot);

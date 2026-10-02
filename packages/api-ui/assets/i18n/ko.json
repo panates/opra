@@ -23,7 +23,8 @@
     "thisDocument": "이 문서",
     "references": "참조 문서",
     "documentLanguages": "문서 언어",
-    "interfaceOnly": "화면 표시만"
+    "interfaceOnly": "화면 표시만",
+    "editDocs": "문서 편집"
   },
   "sidebar": {
     "overview": "개요",
@@ -257,6 +258,8 @@
       "code": "코드",
       "link": "레이블",
       "callout": "짚고 넘어갈 만한 내용."
-    }
+    },
+    "exit": "완료",
+    "exitHint": "편집을 끝내고 읽기로 돌아가기"
   }
 }

@@ -23,7 +23,8 @@
     "thisDocument": "Dette dokument",
     "references": "Referencer",
     "documentLanguages": "Dokumentsprog",
-    "interfaceOnly": "Kun grænsefladen"
+    "interfaceOnly": "Kun grænsefladen",
+    "editDocs": "Rediger dokumentation"
   },
   "sidebar": {
     "overview": "Oversigt",
@@ -268,6 +269,8 @@
       "code": "kode",
       "link": "etiket",
       "callout": "Noget der er værd at fremhæve."
-    }
+    },
+    "exit": "Færdig",
+    "exitHint": "Afslut redigering og vend tilbage til læsning"
   }
 }

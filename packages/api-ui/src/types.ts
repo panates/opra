@@ -56,13 +56,47 @@ export interface ApiUiOptions {
    *  selector can group them apart from the interface-only ones. Filled in
    *  automatically by `expressApiUi`. */
   docLanguages?: string[];
+  /**
+   * Publishes the documentation studio alongside the page: a request
+   * carrying `studioParam` is served as a writing surface instead, and the
+   * header grows a button that gets you there.
+   *
+   * **Off by default, and deliberately an application's explicit decision.**
+   * This is a write endpoint with no authentication of its own, saving into
+   * whatever the document's translation store writes to — so it belongs
+   * behind the same consideration as any other administrative route.
+   *
+   * Two things bound it regardless. A studio can only exist for a document
+   * whose `TranslationStore` implements `save`, so a deployment reading its
+   * bundles from somewhere unwritable cannot have one at all; and enabling
+   * it here throws immediately when that is not the case, at startup,
+   * rather than failing at the first click.
+   *
+   * @default false
+   */
+  studio?: boolean;
+  /**
+   * The query parameter that switches this page between reading and writing
+   * (`?edit=1`), and the single fact the page needs to offer either
+   * direction: the header's edit button adds it, the studio's way back
+   * removes it. Filled in by `expressApiUi` when `studio` is on; absent
+   * otherwise, and then neither button exists.
+   *
+   * A parameter rather than a pair of urls, because the page builds both
+   * from its own location — neither the mount path nor the `#/...` the
+   * reader is currently on has to be reconstructed on the server, and a
+   * reader keeps their place when they start editing.
+   *
+   * **Not a security boundary.** The absence of a button hides nothing; the
+   * server's own check on the request is what decides whether a studio is
+   * served.
+   */
+  studioParam?: string;
   /** Turns the page into a documentation *writing* surface: every block of
    *  prose becomes editable in place, with the page itself as the preview.
    *
-   *  Set only by `oprimp docs:studio`. `expressApiUi` never passes it — a
-   *  page that can write to the filesystem has no business being mounted in
-   *  an application, and keeping this out of the served handler is what makes
-   *  that impossible rather than merely discouraged. */
+   *  Set by `oprimp docs:studio` and by `expressApiUi` when `studio` is
+   *  enabled and the request asks for it. */
   authoring?: {
     /** Where the client POSTs `{ key, field, value }`. */
     saveUrl: string;
@@ -83,6 +117,24 @@ export interface ApiUiOptions {
     /** Tags to suggest there, already filtered to ones without a bundle. Not
      *  a closed list: the field still accepts any valid tag. */
     addLanguageOptions?: string[];
+    /** Every document on this page whose prose can actually be written —
+     *  the root and any reference whose `TranslationStore` implements
+     *  `save`. A block of prose names its owner (`_docOwner`), and one whose
+     *  owner isn't here renders read-only.
+     *
+     *  This is the lock, and it is deliberately a statement about storage
+     *  rather than a flag: a document whose bundles came from somewhere
+     *  unwritable cannot be edited because the write cannot be expressed. */
+    documents?: {
+      /** `ApiDocument#id`, matching a node's `_docOwner`. */
+      id: string;
+      /** The namespace it is reached under (`cm`), shown beside a key that
+       *  belongs to a reference so it is obvious an edit is leaving this
+       *  document. Absent for the root. */
+      ns?: string;
+      /** Where its bundle for the edited language lives, for the tooltip. */
+      file?: string;
+    }[];
   };
   /** The full list of scope keys a reader can switch between (e.g.
    *  `['api', 'db']`) — the same OPRA document can expose different

@@ -23,7 +23,8 @@
     "thisDocument": "Tài liệu này",
     "references": "Tham chiếu",
     "documentLanguages": "Ngôn ngữ của tài liệu",
-    "interfaceOnly": "Chỉ giao diện"
+    "interfaceOnly": "Chỉ giao diện",
+    "editDocs": "Chỉnh sửa tài liệu"
   },
   "sidebar": {
     "overview": "Tổng quan",
@@ -257,6 +258,8 @@
       "code": "mã",
       "link": "nhãn",
       "callout": "Điều đáng lưu ý."
-    }
+    },
+    "exit": "Xong",
+    "exitHint": "Dừng chỉnh sửa và quay lại đọc"
   }
 }

@@ -23,7 +23,8 @@
     "thisDocument": "یہ دستاویز",
     "references": "حوالہ جات",
     "documentLanguages": "دستاویز کی زبانیں",
-    "interfaceOnly": "صرف انٹرفیس"
+    "interfaceOnly": "صرف انٹرفیس",
+    "editDocs": "دستاویزات میں ترمیم کریں"
   },
   "sidebar": {
     "overview": "جائزہ",
@@ -268,6 +269,8 @@
       "code": "کوڈ",
       "link": "لیبل",
       "callout": "وہ بات جو توجہ کے قابل ہے۔"
-    }
+    },
+    "exit": "مکمل",
+    "exitHint": "ترمیم ختم کریں اور پڑھنے پر واپس جائیں"
   }
 }

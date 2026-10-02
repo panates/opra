@@ -2,6 +2,7 @@ import type { ApiDocument } from '@opra/common';
 import type { RequestHandler, Response } from 'express';
 import { ApiUiFactory } from '../api-ui.factory.js';
 import { buildClientCodegenBundle } from '../client-codegen-bundle.js';
+import { DocsStudio } from '../studio/docs-studio.js';
 import type { ApiUiOptions } from '../types.js';
 import { resolveUiLanguage, UI_LANGUAGES } from '../ui-i18n.js';
 
@@ -9,6 +10,9 @@ const SCOPE_ROUTE = /^\/([^/]+)(\/.*)?$/;
 const SCHEMA_ROUTE = /^\/schema\/([^/]+)\.json$/;
 const OPENAPI_ROUTE = /^\/openapi\/([^/]+)\.json$/;
 const CODEGEN_ROUTE = /^\/codegen\/([^/]+\.js)$/;
+
+/** The query parameter that asks for the studio instead of the page. */
+const STUDIO_PARAM = 'edit';
 
 function sendJson(res: Response, value: unknown): void {
   res.type('application/json').send(JSON.stringify(value, null, 2));
@@ -57,6 +61,15 @@ export function expressApiUi(
   const htmlByScope = new Map<string, string>();
   let docsByKey: Map<string, ApiDocument> | undefined;
 
+  /* Built here rather than on the first request that asks for it: a studio
+   * is only possible for a document whose translation store can be written
+   * to, and an application that asked for one and cannot have one should be
+   * told while it is starting up - not by the first person who clicks the
+   * button. */
+  const studio = options?.studio
+    ? new DocsStudio(document, { scope: defaultScope })
+    : undefined;
+
   function getDocsByKey(): Map<string, ApiDocument> {
     if (!docsByKey) {
       docsByKey = new Map([['root', document]]);
@@ -100,6 +113,18 @@ export function expressApiUi(
   }
 
   return (req, res) => {
+    /* Before anything else parses the path: the studio's own routes would
+     * otherwise be read as a scope segment. Writing is the studio's entirely
+     * - this handler only decides that one exists. */
+    if (
+      studio &&
+      req.method === 'POST' &&
+      (req.url === DocsStudio.SAVE_ROUTE ||
+        req.url === DocsStudio.ADD_LANGUAGE_ROUTE)
+    ) {
+      studio.handle(req, res);
+      return;
+    }
     let reqPath = req.path;
     let scope = options?.scope;
     /* Documentation language comes from `?lang=` only — never from
@@ -232,6 +257,34 @@ export function expressApiUi(
      * the document's own bundles, so for an untranslated document `lang` is
      * always '' and the first reader's interface language would otherwise be
      * handed to everyone after them. */
+    /* Rendered fresh every time and never cached, which is the point of the
+     * tool: an edit has to show up on the next request. The reader's page a
+     * few lines below is the opposite - it depends on nothing but the
+     * document and these options, so it is rendered once. */
+    if (studio && req.query?.[STUDIO_PARAM] !== undefined) {
+      studio
+        .langFor(req.url)
+        .then(editing =>
+          studio.render(editing, {
+            ...options,
+            scope,
+            studioParam: STUDIO_PARAM,
+            ...languageLists(options?.languages),
+            basePath: req.baseUrl,
+          }),
+        )
+        .then(html =>
+          res
+            .type('text/html')
+            .setHeader('Cache-Control', 'no-store')
+            .send(html),
+        )
+        .catch((e: Error) => {
+          res.status(500).type('text/plain').send(e.message);
+        });
+      return;
+    }
+
     const htmlCacheKey = `${scope || ''}|${lang || ''}|${uiLang}`;
     let html = htmlByScope.get(htmlCacheKey);
     if (!html) {
@@ -253,6 +306,10 @@ export function expressApiUi(
         // every process and platform, rather than following bundle-load
         // order. An explicit `options.languages` narrows the menu.
         ...languageLists(options?.languages),
+        /* Only when a studio actually exists: this is what puts the edit
+         * button in the header, and a button that leads nowhere is worse
+         * than no button. */
+        studioParam: studio ? STUDIO_PARAM : undefined,
         basePath: req.baseUrl,
       });
       htmlByScope.set(htmlCacheKey, html);

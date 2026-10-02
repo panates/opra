@@ -1,10 +1,14 @@
 import 'reflect-metadata';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import {
   ApiDocument,
   ApiDocumentFactory,
   ApiField,
   ComplexType,
   OpraSchema,
+  TranslationFileStore,
 } from '@opra/common';
 import { expect } from 'expect';
 import express from 'express';
@@ -373,9 +377,6 @@ describe('api-ui:expressApiUi (codegen bundle)', () => {
     // a real browser loading this bundle wouldn't have that problem
     // either, so a plain child process is both the fix and the more
     // realistic way to exercise it.
-    const fs = await import('node:fs');
-    const os = await import('node:os');
-    const path = await import('node:path');
     const { execFileSync } = await import('node:child_process');
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opra-codegen-test-'));
     try {
@@ -420,5 +421,107 @@ fs.writeFileSync('./output.zip', Buffer.from(zipBytes));
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('api-ui:expressApiUi studio', () => {
+  let dir: string;
+  let doc: ApiDocument;
+  let app: express.Express;
+
+  beforeEach(async () => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opra-studio-express-'));
+    doc = await ApiDocumentFactory.createDocument({
+      spec: OpraSchema.SpecVersion,
+      info: { title: 'TestApi', version: 'v1' },
+      types: [Customer],
+      translationStore: new TranslationFileStore(dir),
+    });
+    app = express();
+    app.use('/reference', expressApiUi(doc, { studio: true }));
+  });
+
+  afterEach(() => fs.rmSync(dir, { force: true, recursive: true }));
+
+  it('Should refuse to publish a studio for a document it cannot write', async () => {
+    const plain = await ApiDocumentFactory.createDocument({
+      spec: OpraSchema.SpecVersion,
+      info: { title: 'Unstored' },
+      types: [Customer],
+    });
+    // At mount time, not at the first click: an application that asked for a
+    // studio and cannot have one should hear about it while it is starting.
+    expect(() => expressApiUi(plain, { studio: true })).toThrow(
+      /no translation store/,
+    );
+  });
+
+  it('Should leave the reader page exactly as it was', async () => {
+    const res = await supertest(app).get('/reference');
+    expect(res.status).toBe(200);
+    // Nothing of the studio ships to a reader - not its code, not its
+    // stylesheet, not the authoring stamps on the schema.
+    expect(res.text).not.toContain('The authoring layer');
+    expect(res.text).not.toContain('CodeMirror');
+    // The embedded payload only - `app.js` is inlined into this page too,
+    // and its own source names every one of these.
+    const from = res.text.indexOf('window.__OPRA_DOCS__');
+    const payload = res.text.slice(from, res.text.indexOf('</script>', from));
+    expect(payload).not.toContain('_docKey');
+    expect(payload).not.toContain('_docOwner');
+    // Only the one fact the header's button needs.
+    expect(res.text).toContain('"studioParam":"edit"');
+  });
+
+  it('Should serve the studio when the request asks for it', async () => {
+    const res = await supertest(app).get('/reference?edit=1');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('The authoring layer');
+    expect(res.text).toContain('__OPRA_STUDIO_BUNDLE__');
+    // Never cached: the point of the tool is seeing an edit immediately.
+    expect(res.headers['cache-control']).toContain('no-store');
+  });
+
+  it('Should write an edit through the document own store', async () => {
+    const saved = await supertest(app)
+      // Relative to where the handler is mounted, like every other route it
+      // serves.
+      .post('/reference/_studio/save')
+      .send({
+        owner: doc.id,
+        key: ['types', 'Customer'],
+        field: 'description',
+        value: 'A customer (edited)',
+        lang: 'en',
+      });
+    expect(saved.status).toBe(200);
+    expect(saved.body).toEqual({ ok: true });
+    expect(
+      JSON.parse(fs.readFileSync(path.join(dir, 'en.json'), 'utf-8')).types
+        .Customer.description,
+    ).toStrictEqual('A customer (edited)');
+  });
+
+  it('Should serve neither the studio nor its routes when it is off', async () => {
+    const plain = express();
+    plain.use('/reference', expressApiUi(doc));
+    // `?edit=1` is an unknown query parameter and nothing more.
+    const page = await supertest(plain).get('/reference?edit=1');
+    expect(page.text).not.toContain('The authoring layer');
+    expect(page.text).not.toContain('"studioParam":"edit"');
+    /* The handler answers any unmatched path with the page itself - its
+     * navigation is entirely `location.hash`-based - so what matters here is
+     * not the status but that the request is a page view and writes nothing. */
+    const save = await supertest(plain)
+      .post('/reference/_studio/save')
+      .send({
+        owner: doc.id,
+        key: ['types', 'Customer'],
+        field: 'description',
+        value: 'A customer (edited)',
+        lang: 'en',
+      });
+    expect(save.body.ok).toBeUndefined();
+    expect(fs.existsSync(path.join(dir, 'en.json'))).toBe(false);
   });
 });

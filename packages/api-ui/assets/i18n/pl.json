@@ -23,7 +23,8 @@
     "thisDocument": "Ten dokument",
     "references": "Odwołania",
     "documentLanguages": "Języki dokumentu",
-    "interfaceOnly": "Tylko interfejs"
+    "interfaceOnly": "Tylko interfejs",
+    "editDocs": "Edytuj dokumentację"
   },
   "sidebar": {
     "overview": "Przegląd",
@@ -272,6 +273,8 @@
       "code": "kod",
       "link": "etykieta",
       "callout": "Coś, na co warto zwrócić uwagę."
-    }
+    },
+    "exit": "Gotowe",
+    "exitHint": "Zakończ edycję i wróć do czytania"
   }
 }

@@ -23,7 +23,8 @@
     "thisDocument": "Bu sənəd",
     "references": "İstinadlar",
     "documentLanguages": "Sənədin dilləri",
-    "interfaceOnly": "Yalnız interfeys"
+    "interfaceOnly": "Yalnız interfeys",
+    "editDocs": "Sənədləşməni redaktə et"
   },
   "sidebar": {
     "overview": "Ümumi baxış",
@@ -268,6 +269,8 @@
       "code": "kod",
       "link": "etiket",
       "callout": "Diqqətə layiq bir şey."
-    }
+    },
+    "exit": "Hazırdır",
+    "exitHint": "Redaktəni bitir və oxumağa qayıt"
   }
 }

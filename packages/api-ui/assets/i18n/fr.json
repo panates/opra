@@ -23,7 +23,8 @@
     "thisDocument": "Ce document",
     "references": "Références",
     "documentLanguages": "Langues du document",
-    "interfaceOnly": "Interface seulement"
+    "interfaceOnly": "Interface seulement",
+    "editDocs": "Modifier la documentation"
   },
   "sidebar": {
     "overview": "Vue d'ensemble",
@@ -268,6 +269,8 @@
       "code": "code",
       "link": "libellé",
       "callout": "Quelque chose qui mérite d'être signalé."
-    }
+    },
+    "exit": "Terminé",
+    "exitHint": "Arrêter la modification et revenir à la lecture"
   }
 }

@@ -23,7 +23,8 @@
     "thisDocument": "Dokumen ini",
     "references": "Rujukan",
     "documentLanguages": "Bahasa dokumen",
-    "interfaceOnly": "Antara muka sahaja"
+    "interfaceOnly": "Antara muka sahaja",
+    "editDocs": "Edit dokumentasi"
   },
   "sidebar": {
     "overview": "Gambaran keseluruhan",
@@ -257,6 +258,8 @@
       "code": "kod",
       "link": "label",
       "callout": "Sesuatu yang wajar ditonjolkan."
-    }
+    },
+    "exit": "Selesai",
+    "exitHint": "Berhenti menyunting dan kembali membaca"
   }
 }

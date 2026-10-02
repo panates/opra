@@ -23,7 +23,8 @@
     "thisDocument": "המסמך הזה",
     "references": "הפניות",
     "documentLanguages": "שפות המסמך",
-    "interfaceOnly": "הממשק בלבד"
+    "interfaceOnly": "הממשק בלבד",
+    "editDocs": "עריכת התיעוד"
   },
   "sidebar": {
     "overview": "סקירה כללית",
@@ -279,6 +280,8 @@
       "code": "קוד",
       "link": "תווית",
       "callout": "משהו שראוי להדגיש."
-    }
+    },
+    "exit": "סיום",
+    "exitHint": "סיום העריכה וחזרה לקריאה"
   }
 }

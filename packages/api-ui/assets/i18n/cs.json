@@ -23,7 +23,8 @@
     "thisDocument": "Tento dokument",
     "references": "Odkazy",
     "documentLanguages": "Jazyky dokumentu",
-    "interfaceOnly": "Pouze rozhraní"
+    "interfaceOnly": "Pouze rozhraní",
+    "editDocs": "Upravit dokumentaci"
   },
   "sidebar": {
     "overview": "Přehled",
@@ -272,6 +273,8 @@
       "code": "kód",
       "link": "popisek",
       "callout": "Něco, co stojí za pozornost."
-    }
+    },
+    "exit": "Hotovo",
+    "exitHint": "Ukončit úpravy a vrátit se ke čtení"
   }
 }

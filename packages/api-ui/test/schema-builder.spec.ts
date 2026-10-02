@@ -297,6 +297,45 @@ describe('api-ui:ApiUiSchemaBuilder (translations)', () => {
     expect(body.content[0]._docKey).toBeUndefined();
   });
 
+  it('Should say which document every key belongs to', async () => {
+    @ComplexType({ description: 'A shared thing' })
+    class Shared {
+      @ApiField()
+      declare id: string;
+    }
+
+    const reference = await ApiDocumentFactory.createDocument({
+      spec: OpraSchema.SpecVersion,
+      info: { title: 'Shared' },
+      types: [Shared],
+    });
+    // Reached through a field of a type the root declares - which is how an
+    // imported type gets a page on the root document in the first place.
+    @ComplexType({ description: 'A holder' })
+    class Holder {
+      @ApiField({ type: Shared })
+      declare shared: Shared;
+    }
+
+    const root = await ApiDocumentFactory.createDocument({
+      spec: OpraSchema.SpecVersion,
+      info: { title: 'Root' },
+      references: { sh: reference },
+      types: [Holder],
+    });
+    const schema: any = ApiUiSchemaBuilder.build(root, { authoring: true });
+    // An imported type gets a page on the root document like any other, but
+    // its texts are only ever looked up in the bundle of the document that
+    // *declares* it - so an edit has to be routed by this, not by which page
+    // it was made on.
+    expect(schema.types.Shared._docOwner).toStrictEqual(reference.id);
+    expect(schema.types.Holder._docOwner).toStrictEqual(root.id);
+    // Including the one place that doesn't go through `applyTranslations`:
+    // "absent means the document being built" would have to be resolved
+    // against a tree that holds nodes from several of them.
+    expect(schema.info._docOwner).toStrictEqual(root.id);
+  });
+
   it('Should still key a media type of its own when the body declares several', () => {
     const body = (upload as any).requestBody;
     expect(body.content).toHaveLength(2);

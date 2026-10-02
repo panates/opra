@@ -23,7 +23,8 @@
     "thisDocument": "このドキュメント",
     "references": "参照ドキュメント",
     "documentLanguages": "ドキュメントの言語",
-    "interfaceOnly": "画面表示のみ"
+    "interfaceOnly": "画面表示のみ",
+    "editDocs": "ドキュメントを編集"
   },
   "sidebar": {
     "overview": "概要",
@@ -257,6 +258,8 @@
       "code": "コード",
       "link": "ラベル",
       "callout": "注目に値することがら。"
-    }
+    },
+    "exit": "完了",
+    "exitHint": "編集を終了して閲覧に戻る"
   }
 }

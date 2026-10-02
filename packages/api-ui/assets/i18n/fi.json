@@ -23,7 +23,8 @@
     "thisDocument": "Tämä dokumentti",
     "references": "Viittaukset",
     "documentLanguages": "Dokumentin kielet",
-    "interfaceOnly": "Vain käyttöliittymä"
+    "interfaceOnly": "Vain käyttöliittymä",
+    "editDocs": "Muokkaa dokumentaatiota"
   },
   "sidebar": {
     "overview": "Yleiskatsaus",
@@ -268,6 +269,8 @@
       "code": "koodi",
       "link": "nimike",
       "callout": "Jotain huomionarvoista."
-    }
+    },
+    "exit": "Valmis",
+    "exitHint": "Lopeta muokkaus ja palaa lukemiseen"
   }
 }

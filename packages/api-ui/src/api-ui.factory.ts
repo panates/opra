@@ -33,12 +33,16 @@ export namespace ApiUiFactory {
     const refDocuments = Array.from(document.references.values());
     namespaces.forEach((ns, i) => {
       if (ns === 'opra') return; // the framework's own builtin reference
-      // No `authoring` for a reference: the studio writes to one document's
-      // bundle, and a reference brings its own translation store. Its pages
-      // still render, they just carry no edit affordances.
+      // A reference is stamped for authoring like the root is. It brings its
+      // own translation store, and an edit to one of its texts is written
+      // through that store rather than into the root's bundle — which is
+      // what `_docOwner` on every node is for. Whether the affordance is
+      // actually offered is then a question about that document's store
+      // (`authoring.documents`), not about which tree the node is in.
       refs[ns] = ApiUiSchemaBuilder.build(refDocuments[i], {
         scope: options?.scope,
         lang: options?.lang,
+        authoring: !!options?.authoring,
       });
     });
     return renderApiUiHtml(

@@ -2,7 +2,10 @@ import { omitUndefined } from '@jsopen/objects';
 import { md5 } from 'super-fast-md5';
 import type { Mutable, Type } from 'ts-gems';
 import { cloneObject, ResponsiveMap } from '../helpers/index.js';
-import type { TranslationBundle } from '../i18n/translation-store.js';
+import type {
+  TranslationBundle,
+  TranslationStore,
+} from '../i18n/translation-store.js';
 import { OpraSchema } from '../schema/index.js';
 import { DataTypeMap } from './common/data-type-map.js';
 import { DocumentElement } from './common/document-element.js';
@@ -37,6 +40,13 @@ export class ApiDocument extends DocumentElement {
    *  always looked up in the document that declares it, which is what keeps
    *  two documents from ever competing for the same key. */
   translations = new Map<string, TranslationBundle>();
+  /** Where those bundles came from, kept rather than dropped after the build
+   *  so that anything editing this document's prose writes back to the one
+   *  place it is read from. Without it the only way to name that location is
+   *  to repeat it beside the document, which is two facts that can disagree —
+   *  and the one that disagrees silently is the write. `undefined` when the
+   *  texts were handed over directly (`translations`) or there are none. */
+  translationStore?: TranslationStore;
   /** The language `export()` falls back to when the requested one has no
    *  bundle of its own. */
   defaultLanguage = 'en';

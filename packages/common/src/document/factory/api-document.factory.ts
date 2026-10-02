@@ -212,6 +212,10 @@ export class ApiDocumentFactory {
     }
     const store = init.translationStore;
     if (!store) return;
+    /* Kept on the document, not just consumed here: a bundle is read from
+     * this store and must be written back to it, and the only component that
+     * can state that without guessing is the document itself. */
+    document.translationStore = store;
     for (const lang of await store.listLanguages()) {
       const bundle = await store.load(lang);
       if (bundle) document.translations.set(lang.toLowerCase(), bundle);

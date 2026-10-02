@@ -30,6 +30,9 @@
     "@opra/client": "^1.30.0",
     "@opra/common": "^1.30.0"
   },
+  "optionalDependencies": {
+    "@swc-node/register": "^1.12.1"
+  },
   "devDependencies": {
     "@opra/api-ui": "^1.30.0",
     "expect": "^30.5.2",

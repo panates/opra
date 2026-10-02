@@ -58,7 +58,11 @@ program
     '<module>',
     'Module to import, optionally with the export to use (./api-document.js#CustomerApiDocument)',
   )
-  .argument('<outFile>', 'Translation file to write (e.g. ./docs/en.json)')
+  .argument(
+    '[outFile]',
+    "Dump the bundle to this file instead of writing it through the document's " +
+      'own translationStore (e.g. ./docs/en.json)',
+  )
   .option('--no-color', 'Disables colors in logs messages')
   .action(async (module, outFile, options) => {
     if (!options.color) colors.enabled = false;
@@ -77,11 +81,6 @@ program
     '<module>',
     'Module to import, optionally with the export to use (./api-document.js#CustomerApiDocument)',
   )
-  .option(
-    '--docs <dir>',
-    'Directory holding the translation files (e.g. ./docs)',
-    './docs',
-  )
   .option('--lang <lang>', "Bundle to edit (default: the document's own)")
   .option('--port <port>', 'Port to listen on', '7300')
   .option('--scope <scope>', 'Scope to render, for a multi-scope document')
@@ -90,7 +89,6 @@ program
     if (!options.color) colors.enabled = false;
     const { startDocsStudio } = await import('./docs-studio/studio-command.js');
     await startDocsStudio(module, {
-      docsDir: options.docs,
       lang: options.lang,
       port: Number(options.port),
       scope: options.scope,

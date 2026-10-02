@@ -119,13 +119,20 @@ export class ExpressAdapter extends HttpAdapter {
           .then(({ expressApiUi }) => {
             apiUiHandler = expressApiUi(this.document, {
               scope: this.scope,
+              studio: this.enableStudio,
               ...apiUiOptions,
             });
             apiUiHandler(_req, _res, next);
           })
-          .catch(() => {
+          .catch((e: Error) => {
+            /* The import failing and the page refusing to build are different
+             * problems with different answers - a studio enabled for a
+             * document whose translations cannot be written says so, and that
+             * sentence is the whole fix. Swallowing it behind "install the
+             * package" sent people to reinstall something they already had. */
             _res.status(501).json({
               error:
+                e?.message ||
                 'The API reference UI requires the "@opra/api-ui" package to be installed',
             });
           });

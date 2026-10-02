@@ -82,6 +82,9 @@ export abstract class HttpAdapter<
    *  `scope`/`basePath` do, since *how* a UI page gets mounted is
    *  entirely transport-specific. */
   apiUi: boolean | (ApiUiOptions & { path?: string });
+  /** Whether the reference page also publishes the documentation studio.
+   *  See `HttpAdapter.Options.enableStudio`. */
+  enableStudio: boolean;
 
   protected constructor(options?: HttpAdapter.Options) {
     super(options);
@@ -92,6 +95,28 @@ export abstract class HttpAdapter<
     this.schema = options?.schema ?? true;
     this.openapi = options?.openapi ?? false;
     this.apiUi = options?.apiUi ?? false;
+    this.enableStudio = options?.enableStudio ?? false;
+    if (this.enableStudio) {
+      if (!this.apiUi) {
+        /* The studio *is* the reference page in another mode, served from
+         * the same route. Enabling one without the other asks for an editor
+         * with nowhere to live, and silently publishing a docs page nobody
+         * asked for would be the worse of the two answers. */
+        throw new TypeError(
+          '`enableStudio` requires `apiUi` to be enabled: the documentation ' +
+            'studio is the reference page itself, served from the same route.',
+        );
+      }
+      /* Said once, at startup, where somebody is looking. This route accepts
+       * writes and saves them wherever the document's translation store
+       * writes to; that it is on should never be something discovered from a
+       * diff. */
+      console.warn(
+        '[opra] The documentation studio is enabled: this adapter publishes ' +
+          "a route that writes documentation texts to this process's own " +
+          'translation store. Do not leave it on in production.',
+      );
+    }
   }
 
   get api(): HttpApi {
@@ -1123,6 +1148,26 @@ export namespace HttpAdapter {
      * @default false
      */
     apiUi?: boolean | (ApiUiOptions & { path?: string });
+    /**
+     * Whether the reference page above also publishes the documentation
+     * studio — the same page in a writing mode, reached by a button in its
+     * header and by `?edit=1` on its own url. Requires `apiUi`, and throws
+     * when it is off: the studio is that page, not a second one.
+     *
+     * **A write endpoint with no authentication of its own.** It saves
+     * through the document's `TranslationStore`, so a document whose store
+     * cannot `save` has no studio at all and enabling this for one throws at
+     * startup rather than failing at the first click. Everything else is an
+     * application's own decision, which is why this is off by default and
+     * says so in the log when it is on.
+     *
+     * Equivalent to `apiUi: { studio: true }`; this is the same switch
+     * spelled at the adapter's own level, and an explicit `apiUi.studio`
+     * wins over it.
+     *
+     * @default false
+     */
+    enableStudio?: boolean;
   }
 
   /**

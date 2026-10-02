@@ -18,6 +18,11 @@ export type TranslatableField = 'description' | 'title' | 'deprecated';
  * skeleton can't drift from what is actually asked for at serve time.
  */
 export interface TranslationCollector {
+  /** The document being extracted. Nodes belonging to anything else - a
+   *  referenced document's types, reached through this one - are skipped, so
+   *  that a bundle only ever holds keys the same document will look up again
+   *  (see `findTexts`, which resolves against a node's *own* document). */
+  document: ApiDocument;
   /** The skeleton being built, pre-filled with whatever the source says. */
   bundle: TranslationBundle;
   /** Keys whose last segment had to be derived from something that isn't a
@@ -86,6 +91,14 @@ function collectKeys(
   extraSegments?: string[],
   extraUnstable?: boolean,
 ): void {
+  /* Every document publishes its own documentation. A referenced document's
+   * nodes are reached by this walk - an imported type is a real node in the
+   * tree being exported - but their texts belong to that document's bundle,
+   * which is also the only place `findTexts` will ever look for them. Writing
+   * them here produced keys nobody reads: an author translates
+   * `types.Customer.description` in the importing document's file and the page
+   * keeps showing what the source declared. Extract that document instead. */
+  if (!owns(collector.document, element)) return;
   const values: Record<string, string> = {};
   for (const field of fields) {
     const value = out[field];
@@ -116,6 +129,16 @@ function collectKeys(
   if (extraUnstable || element.docKeyUnstable) {
     const key = segments.join('.');
     if (!collector.unstable.includes(key)) collector.unstable.push(key);
+  }
+}
+
+/** Whether `element` belongs to `document` itself rather than to one it
+ *  references. An element detached from any document belongs to none. */
+function owns(document: ApiDocument, element: DocumentElement): boolean {
+  try {
+    return element.node.getDocument() === document;
+  } catch {
+    return false;
   }
 }
 

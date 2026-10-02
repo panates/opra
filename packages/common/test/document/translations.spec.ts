@@ -271,6 +271,34 @@ describe('common:translations', () => {
     expect(b.info.description).toStrictEqual('');
   });
 
+  it("Should not extract a reference's types into the importing bundle", async () => {
+    // Same rule the `info` above follows, and the one `findTexts` enforces on
+    // the way back: a node's texts live in the bundle of the document that
+    // declares it. Collecting an imported type here produced a key nobody
+    // reads - the author translates it and the page keeps showing the source.
+    @ComplexType({ description: 'A shared thing (source)' })
+    class Shared {
+      @ApiField({ description: 'Its name (source)' })
+      declare name: string;
+    }
+    const reference = await ApiDocumentFactory.createDocument({
+      spec: OpraSchema.SpecVersion,
+      info: { title: 'Reference doc', version: '1' },
+      types: [Shared],
+    } as any);
+    const doc = await createDocument({ references: { ref: reference } });
+
+    const b: any = extractTranslations(doc).bundle;
+    expect(b.types.Shared).toBeUndefined();
+    expect(b.types.Customer).toBeDefined();
+
+    // It is extractable - from the document that owns it.
+    const own: any = extractTranslations(reference).bundle;
+    expect(own.types.Shared.description).toStrictEqual(
+      'A shared thing (source)',
+    );
+  });
+
   it('Should report keys that have no stable identifier behind them', async () => {
     const doc = await createDocument();
     const { unstable } = extractTranslations(doc);

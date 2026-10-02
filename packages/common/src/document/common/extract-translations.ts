@@ -41,7 +41,11 @@ export function extractTranslations(
   document: ApiDocument,
   existing?: TranslationBundle,
 ): ExtractTranslationsResult {
-  const collector: TranslationCollector = { bundle: {}, unstable: [] };
+  const collector: TranslationCollector = {
+    document,
+    bundle: {},
+    unstable: [],
+  };
   document.export({ collect: collector } as any);
   const bundle = existing
     ? mergeExisting(collector.bundle, existing)

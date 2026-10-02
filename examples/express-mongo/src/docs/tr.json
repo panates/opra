@@ -518,15 +518,6 @@
     "description": ""
   },
   "types": {
-    "Profile": {
-      "description": "Oturum açmış kullanıcının kendi profili"
-    },
-    "Customer": {
-      "description": "\nBu API'nin **merkezî varlığı** — diğer her şey (adresler, notlar,\ntelefon numaraları) bir `Customer` üzerine asılıdır.\n\nBir müşteri kaydı üç şeyin *karışımıdır*:\n\n1. Standart [Record](#/model/Record) künyesi — id, zaman damgaları, yumuşak silme.\n2. Paylaşılan [Person](#/model/Person) yapısı üzerinden kişisel bilgiler (ad,\n   cinsiyet, doğum tarihi).\n3. Doğrudan burada tanımlanan alanlar — hesap durumu, iletişim bilgileri ve\n   ilişkili kayıt koleksiyonları (adresler, notlar, telefon numaraları).\n\n:::info\nMüşteriler **hiçbir zaman kalıcı olarak silinmez**. Desteklenen tek kaldırma\nyolu `deleted: true` atamaktır (yumuşak silme) — böylece geçmiş siparişler,\nnotlar ve denetim izleri bozulmadan kalır.\n:::\n\nAlanların çoğu kendini açıklar, ancak birkaçı özellikle belirtmeye değer:\n\n- `rate`, sistemin başka yerlerindeki fiyatlandırma/sadakat hesaplarını belirler.\n- `country` **salt okunurdur** — sunucu tarafında `countryCode`'dan çözülür,\n  istemcinin doğrudan atayabileceği bir alan değildir.\n- `tags`, sabit bir sözlüğü olmayan serbest biçimli bir etiket listesidir;\n  serbest segmentasyon için kullanın.\n"
-    },
-    "Note": {
-      "description": "Bir müşteriye eklenmiş not"
-    },
     "CustomerCreateInput": {
       "description": ""
     }

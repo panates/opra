@@ -17,7 +17,7 @@
   "scripts": {
     "_build": "tsc",
     "start": "node @swc-node/register/esm-register src/start.ts",
-    "docs:extract": "node --import @swc-node/register/esm-register ../../packages/cli/src/oprimp-cli.ts docs:extract ./src/api-document.ts#CustomerApiDocument ./docs/en.json",
-    "docs:studio": "node --import @swc-node/register/esm-register ../../packages/cli/src/oprimp-cli.ts docs:studio ./src/api-document.ts#CustomerApiDocument --docs ./docs --scope api"
+    "docs:extract": "node --import @swc-node/register/esm-register ../../packages/cli/src/oprimp-cli.ts docs:extract ./src/api-document.ts#CustomerApiDocument",
+    "docs:studio": "node --import @swc-node/register/esm-register ../../packages/cli/src/oprimp-cli.ts docs:studio ./src/api-document.ts#CustomerApiDocument --scope api"
   }
 }

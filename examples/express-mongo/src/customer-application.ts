@@ -33,6 +33,17 @@ export class CustomerApplication {
     app.adapter = new ExpressAdapter(app.express, app.document, {
       scope: 'api',
       openapi: true,
+      // The documentation studio, reached from the pencil in the page's own
+      // header (or `?edit=1` directly). It writes through each document's
+      // `translationStore` - `src/docs` here, and `customer-mongo/src/docs`
+      // for the types imported from it - so what you edit in the browser is
+      // what `oprimp docs:extract` reads back.
+      //
+      // This is a sample application that runs on a laptop. In anything that
+      // is deployed it stays off (it is off by default, and the adapter says
+      // so in the log when it is not): the route accepts writes and has no
+      // authentication of its own.
+      enableStudio: true,
       apiUi: {
         path: '/ui',
         pageTitle: 'Customer Application',

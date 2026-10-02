@@ -11,6 +11,8 @@
     "ts-gems": "^4.0.4"
   },
   "scripts": {
-    "_build": "tsc"
+    "_build": "tsc",
+    "docs:extract": "node --import @swc-node/register/esm-register ../../../packages/cli/src/oprimp-cli.ts docs:extract ./src/models/index.ts#CustomerModelsDocument",
+    "docs:studio": "node --import @swc-node/register/esm-register ../../../packages/cli/src/oprimp-cli.ts docs:studio ./src/models/index.ts#CustomerModelsDocument"
   }
 }

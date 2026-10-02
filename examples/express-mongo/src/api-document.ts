@@ -39,12 +39,19 @@ export namespace CustomerApiDocument {
       types: [CustomerCreateInput],
       // Every human-readable text this API publishes — descriptions,
       // operation titles, the terms of service, even the license text —
-      // lives in `docs/<lang>.json`, keyed by the same tree the schema
+      // lives in `src/docs/<lang>.json`, keyed by the same tree the schema
       // itself has, rather than inline in the declarations below. Requests
       // pick one with `?lang=` (`GET $schema?lang=tr`, `/ui?lang=tr`);
       // `oprimp docs:extract` keeps the files in sync with this document.
+      //
+      // The bundles sit *inside* `src`, and the path below is relative to
+      // this module rather than to the process' working directory, so the
+      // same two lines resolve from the sources and from a build output —
+      // where `src/` is gone and this file is the package root's
+      // `api-document.js`. A `../docs` reaching over `src` would only ever
+      // have worked in one of those two places.
       translationStore: new TranslationFileStore(
-        path.join(import.meta.dirname, '../docs'),
+        path.join(import.meta.dirname, './docs'),
       ),
       references: {
         cm: () => CustomerModelsDocument.create(),

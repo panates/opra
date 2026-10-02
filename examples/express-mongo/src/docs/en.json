@@ -518,15 +518,6 @@
     "description": ""
   },
   "types": {
-    "Profile": {
-      "description": "The signed-in user's own profile"
-    },
-    "Customer": {
-      "description": "\nThe **central entity** of this API — everything else (addresses, notes,\nphone numbers) hangs off a `Customer`.\n\nA customer record is a *mix* of three things:\n\n1. Standard [Record](#/model/Record) bookkeeping — id, timestamps, soft-delete.\n2. Personal details, via the shared [Person](#/model/Person) shape (name,\n   gender, birth date).\n3. Fields declared directly here — account status, contact info, and the\n   collections of related records (addresses, notes, phone numbers).\n\n:::info\nCustomers are **never hard-deleted**. Setting `deleted: true` (soft\ndelete) is the only supported removal path — this keeps historical\norders, notes, and audit trails intact.\n:::\n\nMost fields are self-explanatory, but a few are worth calling out:\n\n- `rate` drives pricing/loyalty calculations elsewhere in the system.\n- `country` is **read-only** — it's resolved server-side from `countryCode`,\n  not something a client can set directly.\n- `tags` is a free-form label list with no fixed vocabulary; use it for\n  ad-hoc segmentation.\n"
-    },
-    "Note": {
-      "description": "A note attached to a customer"
-    },
     "CustomerCreateInput": {
       "description": ""
     }

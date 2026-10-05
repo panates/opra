@@ -10,6 +10,7 @@
     "@opra/core": "^1.31.0",
     "@opra/mongodb": "^1.31.0",
     "@opra/openapi": "^1.31.0",
+    "example-customer-mongo": "*",
     "express": "^5.2.1",
     "mongodb": "^7.7.0",
     "ts-gems": "^4.0.4"

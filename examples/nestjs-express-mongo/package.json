@@ -15,6 +15,7 @@
     "@opra/mongodb": "^1.31.0",
     "@opra/nestjs-http": "^1.31.0",
     "@opra/openapi": "^1.31.0",
+    "example-customer-mongo": "*",
     "mongodb": "^7.7.0",
     "ts-gems": "^4.0.4"
   },

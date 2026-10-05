@@ -15,7 +15,7 @@
     "test": "mocha"
   },
   "dependencies": {
-    "@jsopen/objects": "^2.3.1",
+    "@jsopen/objects": "^2.3.4",
     "reflect-metadata": "^0.2.2",
     "tslib": "^2.8.1",
     "valgen": "^7.0.3"

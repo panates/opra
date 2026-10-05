@@ -3,6 +3,7 @@ import type { StrictOmit } from 'ts-gems';
 import { OpraSchema } from '../../schema/index.js';
 import type { ApiDocument } from '../api-document.js';
 import { DocumentElement } from '../common/document-element.js';
+import { applyTranslations } from '../common/translate-doc.js';
 import { HttpMediaType } from './http-media-type.js';
 import type { HttpOperation } from './http-operation.js';
 
@@ -49,17 +50,26 @@ export class HttpRequestBody extends DocumentElement {
     super(owner);
   }
 
+  protected get docKeySegment(): string {
+    return 'requestBody';
+  }
+
   toJSON(options?: ApiDocument.ExportOptions): OpraSchema.HttpRequestBody {
-    return omitUndefined<OpraSchema.HttpRequestBody>({
-      description: this.description,
-      required: this.required,
-      maxContentSize: this.maxContentSize,
-      content: this.content.length
-        ? this.content.map(x => x.toJSON(options))
-        : [],
-      partial: this.partial,
-      allowPatchOperators: this.allowPatchOperators,
-      allowNullOptionals: this.allowNullOptionals,
-    });
+    return applyTranslations(
+      this,
+      omitUndefined<OpraSchema.HttpRequestBody>({
+        description: this.description,
+        required: this.required,
+        maxContentSize: this.maxContentSize,
+        content: this.content.length
+          ? this.content.map(x => x.toJSON(options))
+          : [],
+        partial: this.partial,
+        allowPatchOperators: this.allowPatchOperators,
+        allowNullOptionals: this.allowNullOptionals,
+      }),
+      options,
+      ['description'],
+    );
   }
 }

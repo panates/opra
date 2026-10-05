@@ -1,0 +1,22 @@
+extends: '@panates/rman-preset'
+
+# All packages release together, under one version and one `v*` tag.
+group: true
+
+version:
+  # Bump every package in the group, not only the ones that changed.
+  cascade: group
+
+changelog:
+  # One changelog for the whole release, at the repository root. The default
+  # (`package`) is the wrong unit here: every package bumps together, so most
+  # own no commit in a given release and their entry is skipped entirely.
+  groupBy: group
+  # Start the changelog at the 1.x line; v0.x is pre-release history.
+  startingAt: v1.0.0
+
+# Skip building example projects
+'[example-*]':
+  run:
+    build:
+      skip: true

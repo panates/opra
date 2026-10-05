@@ -71,7 +71,7 @@ export async function generateHttpController(
   classBlock.doc = `/** 
  * ${wrapJSDocString(controller.description || '')}
  * @class ${className}
- * @apiUrl ${path.posix.join(this.serviceUrl, controller.getFullUrl())}
+ * @apiUrl ${path.posix.join(this.serviceUrl || '', controller.getFullUrl())}
  */`;
   classBlock.head = `\nexport class ${className} extends HttpControllerNode {\n\t`;
   classBlock.properties = '';
@@ -141,7 +141,7 @@ constructor(client: OpraHttpClient) {`;
       if (i) operationBlock.doc.regExParameters = block;
     }
     operationBlock.doc.tail = `
- * @apiUrl ${path.posix.join(this.serviceUrl, operation.getFullUrl())}    
+ * @apiUrl ${path.posix.join(this.serviceUrl || '', operation.getFullUrl())}    
  */\n`;
 
     operationBlock.head = `${operation.name}(`;

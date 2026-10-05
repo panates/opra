@@ -1,0 +1,526 @@
+{
+  "info": {
+    "title": "Müşteri Uygulaması",
+    "description": "Opra ile MongoDB destekli, tam donanımlı bir HTTP kaynak sunucusunun nasıl kurulacağını gösteren örnek bir API.\n\nBu servis, gerçek bir uygulamada ihtiyaç duyacağınız birkaç deseni bir araya getirir: çerez tabanlı kimlik doğrulama, oturum açmış kullanıcı için kendi profilini yöneten bir uç nokta ve müşterileri notlarıyla birlikte yöneten tam bir CRUD arayüzü.\n\n### İçeriği\n\n- **Kimlik doğrulama** — `Auth` altında `login`/`logout` uç noktaları ve kimliği doğrulanmış kullanıcının kendi kaydı için iç içe bir `MyProfile` kaynağı.\n- **Müşteriler** — `Customer` kaynağı için tam CRUD; kalıcı silme yerine yumuşak etkinleştirme/devre dışı bırakma sağlayan ayrı bir `setStatus` işlemi de dahil.\n- **Notlar** — her müşterinin altında iç içe bir koleksiyon; kendi `Notes` controller'ı üzerinden kullanılır.\n- **Zengin şema** — enum'lar, dizi kısıtları, regex ile doğrulanan metinler ve yerelleştirilmiş alanlar; hepsi aşağıdaki `Customer Models Document` referansında belgelenmiştir.\n\n:::tip\nVeri modelinin tamamını HTTP yüzeyinden bağımsız olarak incelemek için **Customer Models Document** referansına geçin (sol üstteki seçici ya da aşağıdaki *Reference documents* bölümü).\n:::",
+    "termsOfService": "Bu örnek API'yi kullanarak, yalnızca gösterim amacıyla \"olduğu gibi\" sunulduğunu; erişilebilirliği, doğruluğu veya belirli bir amaca uygunluğu konusunda hiçbir garanti verilmediğini ve gerçek müşteri verilerinin hiçbir zaman gönderilmemesi gerektiğini kabul etmiş olursunuz.",
+    "license": {
+      "content": "MIT License\n\nCopyright (c) 2020-present Panates\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
+    }
+  },
+  "api": {
+    "servers": {
+      "local": {
+        "description": "Yerel geliştirme sunucusu"
+      }
+    },
+    "sections": {
+      "Account": {
+        "description": "Oturum açma ve kendi profilini yönetme"
+      },
+      "Customers": {
+        "description": "Müşteri kayıtlarının yönetimi"
+      },
+      "Notes": {
+        "description": "Bir müşterinin kendi notları"
+      }
+    },
+    "controllers": {
+      "Auth": {
+        "description": "Oturum açma ve kapatma uç noktaları.\n\nBu bilinçli olarak sade tutulmuş bir örnektir — oturuma dayanmak yerine doğrudan `accessToken` başlığını okuyan uç noktalar için aşağıdaki **MyProfile**'a bakın.\n\n- `login` — bir `user`/`password` çifti alır\n- `logout` — mevcut oturumu sonlandırır",
+        "operations": {
+          "login": {
+            "title": "Oturum aç",
+            "description": "Kullanıcıyı kullanıcı adı ve parolayla oturuma alır.\n\n- `user` — hesabın kullanıcı adı\n- `password` — hesabın parolası\n\n:::note\nBu örnek uç nokta gerçek bir erişim jetonu yerine düz bir onay mesajı döndürür — bu API'nin başka yerlerinde kimliği doğrulanmış bir isteğin nasıl temsil edildiğini görmek için **MyProfile**'a bakın.\n:::",
+            "parameters": {
+              "user": {
+                "description": "Oturum açmak için kullanılacak kullanıcı adı"
+              },
+              "password": {
+                "description": "Kullanıcının parolası"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": ""
+              }
+            }
+          },
+          "logout": {
+            "title": "Oturumu kapat",
+            "description": "Mevcut kullanıcının oturumunu kapatır.\n\n`login` ile aynı biçimde düz bir onay mesajı döndürür.",
+            "responses": {
+              "200": {
+                "description": ""
+              }
+            }
+          }
+        },
+        "controllers": {
+          "MyProfile": {
+            "description": "Oturum açmış kullanıcının kendi profili.\n\n**Customer**'ın aksine bu kaynağın yolunda bir id yoktur — buradaki her işlem bunun yerine bir `accessToken` başlığı gerektirir.\n\n- `get` — mevcut profili okur\n- `create` — yeni bir profil oluşturur\n- `update` — profili kısmi olarak günceller\n- `delete` — profili kaldırır",
+            "operations": {
+              "create": {
+                "title": "Profilimi oluştur",
+                "description": "Oturum açmış kullanıcının profilini oluşturur.\n\n`_id` alanı olmadan bir `Profile` verisi alır; bu alan sunucu tarafından atanır.",
+                "parameters": {
+                  "projection": {
+                    "description": "Döndürülecek alanları belirler"
+                  }
+                },
+                "responses": {
+                  "201": {
+                    "description": "İşlem başarılı. Oluşturulan kaydı içeren \"payload\" alanıyla birlikte bir OperationResult döndürür."
+                  },
+                  "422": {
+                    "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                }
+              },
+              "delete": {
+                "title": "Profilimi sil",
+                "description": "Oturum açmış kullanıcının profilini siler.",
+                "responses": {
+                  "200": {
+                    "description": "İşlem başarılı. \"affected\" alanını içeren bir OperationResult döndürür."
+                  },
+                  "422": {
+                    "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+                  }
+                }
+              },
+              "get": {
+                "title": "Profilimi getir",
+                "description": "Oturum açmış kullanıcının profilini döndürür.",
+                "parameters": {
+                  "projection": {
+                    "description": "Döndürülecek alanları belirler"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "İşlem başarılı. İstenen kaydı içeren \"payload\" alanıyla birlikte bir OperationResult döndürür."
+                  },
+                  "204": {
+                    "description": "İşlem başarılı ancak herhangi bir kayıt bulunamadı"
+                  },
+                  "422": {
+                    "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+                  }
+                }
+              },
+              "update": {
+                "description": "Oturum açmış kullanıcının profilini günceller.\n\nYalnızca istek gövdesinde bulunan alanlar değişir; gönderilmeyen alanlar mevcut değerlerini korur.",
+                "parameters": {
+                  "projection": {
+                    "description": "Döndürülecek alanları belirler"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "İşlem başarılı. Güncellenen kaydı içeren \"payload\" alanıyla birlikte bir OperationResult döndürür."
+                  },
+                  "204": {
+                    "description": "İşlem başarılı ancak herhangi bir kayıt bulunamadı"
+                  },
+                  "422": {
+                    "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                },
+                "title": "Profilimi güncelle"
+              }
+            },
+            "parameters": {
+              "accessToken": {
+                "description": "Oturum açmış kullanıcının erişim jetonu"
+              }
+            }
+          }
+        }
+      },
+      "Customer": {
+        "description": "Id ile adreslenen tek bir müşteri.\n\nBuradaki her işlem, yol parametresi `customerId` ile belirlenen tam olarak bir `Customer` kaydını hedefler. İç içe **Notes** controller'ı ise o müşterinin kendi notlarını yönetir.",
+        "operations": {
+          "get": {
+            "title": "Bir müşteri getir",
+            "description": "Tek bir müşteriyi id'sine göre döndürür.",
+            "parameters": {
+              "projection": {
+                "description": "Döndürülecek alanları belirler"
+              },
+              "xId": {
+                "description": "Serbest tanımlı bir sorgu parametresi örneği"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "İşlem başarılı. İstenen kaydı içeren \"payload\" alanıyla birlikte bir OperationResult döndürür."
+              },
+              "204": {
+                "description": "İşlem başarılı ancak herhangi bir kayıt bulunamadı"
+              },
+              "422": {
+                "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+              }
+            }
+          },
+          "delete": {
+            "title": "Bir müşteri sil",
+            "description": "Tek bir müşteriyi id'sine göre siler.\n\nKaydı tamamen kaldırmadan bir müşteriyi devre dışı bırakmak için `setStatus`'a bakın.",
+            "responses": {
+              "200": {
+                "description": "İşlem başarılı. \"affected\" alanını içeren bir OperationResult döndürür."
+              },
+              "422": {
+                "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+              }
+            }
+          },
+          "update": {
+            "title": "Bir müşteri güncelle",
+            "description": "Tek bir müşteriyi id'sine göre günceller.\n\nKısmi bir `Customer` verisi alır — yalnızca gönderilen alanlar değişir.",
+            "parameters": {
+              "projection": {
+                "description": "Döndürülecek alanları belirler"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "İşlem başarılı. Güncellenen kaydı içeren \"payload\" alanıyla birlikte bir OperationResult döndürür."
+              },
+              "204": {
+                "description": "İşlem başarılı ancak herhangi bir kayıt bulunamadı"
+              },
+              "422": {
+                "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+              }
+            },
+            "requestBody": {
+              "description": ""
+            }
+          },
+          "setStatus": {
+            "description": "Bir müşterinin etkin/gizli durumunu ayarlar.\n\nSilmeye alternatif bir yol:\n\n- `active` — müşteri normal şekilde gösterilir\n- `hidden` — müşteri, verisi silinmeden varsayılan listelemelerin dışında tutulur\n\n:::note\nBu işlem bir yanıt gövdesi döndürmez — değişikliğin kabul edildiğini durum kodundan doğrulayın.\n:::",
+            "parameters": {
+              "status": {
+                "description": "Atanacak yeni durum"
+              }
+            },
+            "title": "Müşteri durumunu ayarla"
+          },
+          "updateAvatar": {
+            "requestBody": {
+              "content": {
+                "application/json": {
+                  "description": "Dosya yüklemeden, avatarı bir URL ile ayarlar."
+                },
+                "multipart/form-data": {
+                  "description": "Avatar görselini doğrudan yükler.",
+                  "multipartFields": {
+                    "image": {
+                      "description": "Görsel dosyasının kendisi."
+                    },
+                    "caption": {
+                      "description": "Avatarın altında gösterilecek isteğe bağlı açıklama."
+                    }
+                  }
+                }
+              },
+              "description": "Yeni avatar — bunu bir URL referansı ya da yüklenen bir dosya olarak verin; istemciniz için hangisi uygunsa onu seçin."
+            },
+            "title": "Avatarı güncelle",
+            "description": "Müşterinin avatarını günceller — ya halihazırda barındırılan bir görseli göstererek (`application/json`) ya da görsel dosyasını doğrudan yükleyerek (`multipart/form-data`).\n\n:::tip\nBu işlem esas olarak birden fazla alternatif gösterimi olan bir istek gövdesini göstermek için vardır — karşılaştırmak için aşağıdaki **Request body** bölümündeki sekmeleri açın.\n:::",
+            "responses": {
+              "200": {
+                "description": ""
+              }
+            }
+          }
+        },
+        "controllers": {
+          "Notes": {
+            "description": "Bir müşterinin notları.\n\nBuradaki her işlem, yoldaki `customerId` ile belirlenen üst **Customer** kaydıyla sınırlıdır — bir notun `_id` değeri yalnızca o müşteri içinde benzersizdir, API'nin tamamında değil.",
+            "operations": {
+              "get": {
+                "title": "Bir not getir",
+                "description": "Müşterinin tek bir notunu id'sine göre döndürür.",
+                "parameters": {
+                  "projection": {
+                    "description": "Döndürülecek alanları belirler"
+                  },
+                  "_id": {
+                    "description": "Notun id'si"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "İşlem başarılı. İstenen kaydı içeren \"payload\" alanıyla birlikte bir OperationResult döndürür."
+                  },
+                  "204": {
+                    "description": "İşlem başarılı ancak herhangi bir kayıt bulunamadı"
+                  },
+                  "422": {
+                    "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+                  }
+                }
+              },
+              "delete": {
+                "description": "Müşterinin tek bir notunu id'sine göre siler.",
+                "parameters": {
+                  "_id": {
+                    "description": "Notun id'si"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "İşlem başarılı. \"affected\" alanını içeren bir OperationResult döndürür."
+                  },
+                  "422": {
+                    "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+                  }
+                },
+                "title": "Bir not sil"
+              },
+              "update": {
+                "description": "Müşterinin tek bir notunu id'sine göre günceller.\n\nYalnızca istek gövdesinde bulunan alanlar değişir.",
+                "parameters": {
+                  "projection": {
+                    "description": "Döndürülecek alanları belirler"
+                  },
+                  "_id": {
+                    "description": "Notun id'si"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "İşlem başarılı. Güncellenen kaydı içeren \"payload\" alanıyla birlikte bir OperationResult döndürür."
+                  },
+                  "204": {
+                    "description": "İşlem başarılı ancak herhangi bir kayıt bulunamadı"
+                  },
+                  "422": {
+                    "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                },
+                "title": "Bir not güncelle"
+              },
+              "create": {
+                "title": "Not oluştur",
+                "description": "Müşteri için yeni bir not oluşturur.\n\n`_id` alanı olmadan bir `Note` verisi alır; bu alan sunucu tarafından atanır.",
+                "parameters": {
+                  "projection": {
+                    "description": "Döndürülecek alanları belirler"
+                  }
+                },
+                "responses": {
+                  "201": {
+                    "description": "İşlem başarılı. Oluşturulan kaydı içeren \"payload\" alanıyla birlikte bir OperationResult döndürür."
+                  },
+                  "422": {
+                    "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                }
+              },
+              "findMany": {
+                "title": "Notları listele",
+                "description": "Müşterinin notlarını döndürür.\n\n`_id`, `title`, `text` ve `rank` alanlarına göre filtrelenebilir; `_id` veya `title` ile sıralanabilir (varsayılan `_id`).\n\n:::tip\nEşleşen toplam kayıt sayısını da almak için `count=true` gönderin — sayfalama kurarken işinize yarar.\n:::",
+                "parameters": {
+                  "limit": {
+                    "description": "Döndürülecek kayıt sayısını belirler"
+                  },
+                  "skip": {
+                    "description": "Döndürülecek kayıt sayısını belirler"
+                  },
+                  "count": {
+                    "description": "Etkinleştirildiğinde eşleşen tüm kayıtları sayar"
+                  },
+                  "projection": {
+                    "description": "Döndürülecek alanları belirler"
+                  },
+                  "sort": {
+                    "description": "Sıralama alanlarını belirler"
+                  },
+                  "filter": {
+                    "description": "Filtre alanlarını belirler"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "İşlem başarılı. Kayıt listesini içeren \"payload\" alanıyla birlikte bir OperationResult döndürür."
+                  },
+                  "422": {
+                    "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+                  }
+                }
+              },
+              "deleteMany": {
+                "description": "Müşterinin bir filtreyle eşleşen birden fazla notunu siler.\n\n`_id` veya `rank` alanlarına göre filtrelenebilir.",
+                "parameters": {
+                  "filter": {
+                    "description": "Filtre alanlarını belirler"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "İşlem başarılı. \"affected\" alanını içeren bir OperationResult döndürür."
+                  },
+                  "422": {
+                    "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+                  }
+                },
+                "title": "Notları sil"
+              },
+              "updateMany": {
+                "description": "Müşterinin bir filtreyle eşleşen birden fazla notunu günceller.\n\n`_id` veya `rank` alanlarına göre filtrelenebilir — eşleşen her not aynı güncelleme verisini alır.",
+                "parameters": {
+                  "filter": {
+                    "description": "Filtre alanlarını belirler"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "İşlem başarılı. \"affected\" alanını içeren bir OperationResult döndürür."
+                  },
+                  "422": {
+                    "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                },
+                "title": "Notları güncelle"
+              }
+            }
+          }
+        },
+        "types": {
+          "AvatarUrlInput": {
+            "description": "Dosya yüklemek yerine, halihazırda barındırılan bir görseli göstererek müşteri avatarını ayarlar",
+            "fields": {
+              "url": {
+                "description": "Görselin herkese açık URL'i"
+              }
+            }
+          }
+        },
+        "parameters": {
+          "customerId": {
+            "description": "Müşterinin id'si"
+          }
+        }
+      },
+      "Customers": {
+        "description": "Müşteri koleksiyonu.\n\nMüşterileri bütün olarak yönetmenin giriş noktası — yenilerini burada oluşturun ya da bir filtreyle mevcut olanları listeleyin/toplu güncelleyin/toplu silin. Tek bir müşterinin kendi işlemleri (**Notes** dahil) **Customer** altındadır.",
+        "operations": {
+          "create": {
+            "title": "Müşteri oluştur",
+            "description": "Yeni bir müşteri oluşturur.\n\nBir `CustomerCreateInput` verisi alır — `Customer` ile aynı yapıdadır, yalnızca sunucu tarafından atanan `_id` alanı yoktur.",
+            "parameters": {
+              "projection": {
+                "description": "Döndürülecek alanları belirler"
+              }
+            },
+            "responses": {
+              "201": {
+                "description": "İşlem başarılı. Oluşturulan kaydı içeren \"payload\" alanıyla birlikte bir OperationResult döndürür."
+              },
+              "422": {
+                "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+              }
+            },
+            "requestBody": {
+              "description": ""
+            }
+          },
+          "findMany": {
+            "title": "Müşterileri listele",
+            "description": "Verilen filtreyle eşleşen müşterileri döndürür.\n\n`_id`, `givenName`, `familyName`, `gender`, `uid`, `address.countryCode`, `deleted`, `active`, `birthDate` ve `rate` alanlarına göre filtrelenebilir; `_id`, `givenName`, `familyName`, `gender` veya `address.countryCode` ile sıralanabilir (varsayılan `givenName`).\n\n:::tip\nEşleşen toplam kayıt sayısını da almak için `count=true` gönderin — sayfalama kurarken işinize yarar.\n:::",
+            "parameters": {
+              "limit": {
+                "description": "Döndürülecek kayıt sayısını belirler"
+              },
+              "skip": {
+                "description": "Döndürülecek kayıt sayısını belirler"
+              },
+              "count": {
+                "description": "Etkinleştirildiğinde eşleşen tüm kayıtları sayar"
+              },
+              "projection": {
+                "description": "Döndürülecek alanları belirler"
+              },
+              "filter": {
+                "description": "Filtre alanlarını belirler"
+              },
+              "sort": {
+                "description": "Sıralama alanlarını belirler"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "İşlem başarılı. Kayıt listesini içeren \"payload\" alanıyla birlikte bir OperationResult döndürür."
+              },
+              "422": {
+                "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+              }
+            }
+          },
+          "deleteMany": {
+            "description": "Bir filtreyle eşleşen birden fazla müşteriyi siler.\n\n`_id` alanına göre filtrelenebilir. Müşterileri kaydını silmeden devre dışı bırakmak için her biri üzerinde `setStatus` kullanın.",
+            "parameters": {
+              "filter": {
+                "description": "Filtre alanlarını belirler"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "İşlem başarılı. \"affected\" alanını içeren bir OperationResult döndürür."
+              },
+              "422": {
+                "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+              }
+            },
+            "title": "Müşterileri sil"
+          },
+          "updateMany": {
+            "description": "Bir filtreyle eşleşen birden fazla müşteriyi günceller.\n\n`_id` alanına göre filtrelenebilir — eşleşen her müşteri aynı güncelleme verisini alır.",
+            "parameters": {
+              "filter": {
+                "description": "Filtre alanlarını belirler"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "İşlem başarılı. \"affected\" alanını içeren bir OperationResult döndürür."
+              },
+              "422": {
+                "description": "İstek biçim olarak geçerliydi ancak bir veya birden fazla hata nedeniyle işlenemedi."
+              }
+            },
+            "requestBody": {
+              "description": ""
+            },
+            "title": "Müşterileri güncelle"
+          }
+        }
+      }
+    },
+    "description": ""
+  },
+  "types": {
+    "CustomerCreateInput": {
+      "description": ""
+    }
+  },
+  "description": ""
+}

@@ -9,6 +9,7 @@ import {
   type Application,
   type NextFunction,
   type Request,
+  type RequestHandler,
   type Response,
   Router,
 } from 'express';
@@ -79,11 +80,64 @@ export class ExpressAdapter extends HttpAdapter {
     this.app.use(this.basePath, router);
 
     /* Add an endpoint that returns document schema */
-    router.get('/\\$schema', (_req, _res, next) => {
-      this.createContext(_req, _res)
-        .then(ctx => this.sendDocumentSchema(ctx).catch(next))
-        .catch(next);
-    });
+    if (this.schema) {
+      router.get('/\\$schema', (_req, _res, next) => {
+        this.createContext(_req, _res)
+          .then(ctx => this.sendDocumentSchema(ctx).catch(next))
+          .catch(next);
+      });
+    }
+
+    /* Add an endpoint that returns an OpenAPI mapping of the document —
+     * lazily loads `@opra/openapi` (see `sendOpenApiDocument`), so this
+     * costs nothing when `this.openapi` is left disabled (the default). */
+    if (this.openapi) {
+      router.get('/\\$openapi', (_req, _res, next) => {
+        this.createContext(_req, _res)
+          .then(ctx => this.sendOpenApiDocument(ctx).catch(next))
+          .catch(next);
+      });
+    }
+
+    /* Mount the interactive API reference UI (`@opra/api-ui`) — lazily
+     * imported on the *first actual request* to this path, not here at
+     * construction time, since `expressApiUi()` needs to run synchronously
+     * to produce an Express handler but the import itself is async. Once
+     * resolved, the real handler is cached in `apiUiHandler` and every
+     * later request (to this or any of its own sub-routes, e.g.
+     * `$docs/schema/root.json`) is served directly. */
+    if (this.apiUi) {
+      const { path: apiUiPath, ...apiUiOptions } =
+        typeof this.apiUi === 'object' ? this.apiUi : {};
+      let apiUiHandler: RequestHandler | undefined;
+      router.use(apiUiPath || '/$docs', (_req, _res, next) => {
+        if (apiUiHandler) {
+          apiUiHandler(_req, _res, next);
+          return;
+        }
+        import('@opra/api-ui')
+          .then(({ expressApiUi }) => {
+            apiUiHandler = expressApiUi(this.document, {
+              scope: this.scope,
+              studio: this.enableStudio,
+              ...apiUiOptions,
+            });
+            apiUiHandler(_req, _res, next);
+          })
+          .catch((e: Error) => {
+            /* The import failing and the page refusing to build are different
+             * problems with different answers - a studio enabled for a
+             * document whose translations cannot be written says so, and that
+             * sentence is the whole fix. Swallowing it behind "install the
+             * package" sent people to reinstall something they already had. */
+            _res.status(501).json({
+              error:
+                e?.message ||
+                'The API reference UI requires the "@opra/api-ui" package to be installed',
+            });
+          });
+      });
+    }
 
     /* Add an endpoint that returns document schema */
     router.post('/\\$bundle', (_req, _res, next) => {
@@ -109,7 +163,15 @@ export class ExpressAdapter extends HttpAdapter {
       ) => {
         currentPath = nodePath.posix.join(currentPath, controller.path);
         for (const operation of controller.operations.values()) {
-          const routePath = currentPath + (operation.path || '');
+          /* `mergePath` operations continue the controller's own last path
+           * segment rather than starting a new one (`Customers` +
+           * `@:customerId`), which is why this can't always be a plain
+           * `join`; everything else is a child segment and needs the
+           * separator a bare concatenation doesn't add. Same rule as
+           * `HttpOperation#getFullUrl()` and the NestJS adapter. */
+          const routePath = operation.mergePath
+            ? currentPath + (operation.path || '')
+            : nodePath.posix.join(currentPath, operation.path || '');
           const controllerInstance = this._controllerInstances.get(controller);
           const operationHandler = controllerInstance[operation.name];
           if (!operationHandler) continue;

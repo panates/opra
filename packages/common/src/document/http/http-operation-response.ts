@@ -76,6 +76,25 @@ export class HttpOperationResponse extends HttpMediaType {
     }
   }
 
+  /** Responses live in an array and have no name — the status code is
+   *  their identity. A range or a multi-status response (or two responses
+   *  sharing a status but differing in content type) is exactly the case
+   *  `docKey` exists for. */
+  /** A response keys off its status code, which is always declared — the
+   *  media-type rule it would otherwise inherit (keyed by an optional
+   *  `contentType`) doesn't apply here. */
+  override get docKeyUnstable(): boolean {
+    return false;
+  }
+
+  protected get docKeySegment(): string[] {
+    if (this.docKey) return ['responses', this.docKey];
+    const codes = this.statusCode.map(x =>
+      x.start === x.end ? String(x.start) : `${x.start}-${x.end}`,
+    );
+    return ['responses', codes.join(',') || '0'];
+  }
+
   toJSON(
     options?: ApiDocument.ExportOptions,
   ): OpraSchema.HttpOperationResponse {

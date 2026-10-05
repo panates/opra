@@ -1,0 +1,526 @@
+{
+  "info": {
+    "title": "客户应用",
+    "description": "一个 Opra 示例 API，演示如何基于 MongoDB 构建功能完整的 HTTP 资源服务器。\n\n该服务把实际应用中常见的若干模式组合在一起：基于 Cookie 的身份认证、供已登录用户自助访问的个人资料端点，以及管理客户及其备注的完整 CRUD 接口。\n\n### 包含内容\n\n- **身份认证** — `Auth` 下的 `login`/`logout` 端点，以及用于已认证用户自身记录的嵌套资源 `MyProfile`。\n- **客户** — `Customer` 资源的完整 CRUD，并提供专门的 `setStatus` 操作，以软性启用/停用代替硬删除。\n- **备注** — 每个客户下的嵌套集合，通过其自己的 `Notes` 控制器操作。\n- **丰富的模式** — 枚举、数组约束、正则校验的字符串与本地化字段，均记录在下方的 `Customer Models Document` 引用文档中。\n\n:::tip\n切换到 **Customer Models Document** 引用文档（左上角的选择器，或下方的 *Reference documents* 部分），即可脱离 HTTP 层单独浏览完整数据模型。\n:::",
+    "termsOfService": "使用本示例 API 即表示你同意：它仅用于演示目的，按\"现状\"提供，不对可用性、准确性或特定用途的适用性作任何保证，并且绝不应向其提交真实的客户数据。",
+    "license": {
+      "content": "MIT License\n\nCopyright (c) 2020-present Panates\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
+    }
+  },
+  "api": {
+    "servers": {
+      "local": {
+        "description": "本地开发服务器"
+      }
+    },
+    "sections": {
+      "Account": {
+        "description": "登录并管理你自己的个人资料"
+      },
+      "Customers": {
+        "description": "管理客户记录"
+      },
+      "Notes": {
+        "description": "某个客户自己的备注"
+      }
+    },
+    "controllers": {
+      "Auth": {
+        "description": "用于登录与退出的身份认证端点。\n\n这是一个刻意精简的示例 — 若想了解直接读取 `accessToken` 请求头而不依赖会话的端点，请参见下方的 **MyProfile**。\n\n- `login` — 接收一组 `user`/`password`\n- `logout` — 结束当前会话",
+        "operations": {
+          "login": {
+            "title": "登录",
+            "description": "使用用户名和密码让用户登录。\n\n- `user` — 账户的用户名\n- `password` — 账户的密码\n\n:::note\n该示例端点返回的是一条简单的确认消息，而不是真正的访问令牌 — 关于本 API 其他部分如何表示已认证的请求，请参见 **MyProfile**。\n:::",
+            "parameters": {
+              "user": {
+                "description": "用于登录的用户名"
+              },
+              "password": {
+                "description": "用户的密码"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": ""
+              }
+            }
+          },
+          "logout": {
+            "title": "退出登录",
+            "description": "让当前用户退出登录。\n\n与 `login` 一样，返回一条简单的确认消息。",
+            "responses": {
+              "200": {
+                "description": ""
+              }
+            }
+          }
+        },
+        "controllers": {
+          "MyProfile": {
+            "description": "当前登录用户自己的个人资料。\n\n与 **Customer** 不同，该资源的路径中不带 id — 这里的每个操作都改为要求一个 `accessToken` 请求头。\n\n- `get` — 读取当前资料\n- `create` — 创建新的资料\n- `update` — 部分更新资料\n- `delete` — 删除资料",
+            "operations": {
+              "create": {
+                "title": "创建我的个人资料",
+                "description": "创建当前登录用户的个人资料。\n\n接收不含 `_id` 的 `Profile` 数据，该字段由服务器分配。",
+                "parameters": {
+                  "projection": {
+                    "description": "决定返回哪些字段"
+                  }
+                },
+                "responses": {
+                  "201": {
+                    "description": "操作成功。返回的 OperationResult 中，\"payload\" 字段包含已创建的资源。"
+                  },
+                  "422": {
+                    "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                }
+              },
+              "delete": {
+                "title": "删除我的个人资料",
+                "description": "删除当前登录用户的个人资料。",
+                "responses": {
+                  "200": {
+                    "description": "操作成功。返回包含 \"affected\" 字段的 OperationResult。"
+                  },
+                  "422": {
+                    "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+                  }
+                }
+              },
+              "get": {
+                "title": "获取我的个人资料",
+                "description": "返回当前登录用户的个人资料。",
+                "parameters": {
+                  "projection": {
+                    "description": "决定返回哪些字段"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "操作成功。返回的 OperationResult 中，\"payload\" 字段包含所请求的资源。"
+                  },
+                  "204": {
+                    "description": "操作成功，但未找到任何资源"
+                  },
+                  "422": {
+                    "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+                  }
+                }
+              },
+              "update": {
+                "description": "更新当前登录用户的个人资料。\n\n只有请求体中出现的字段会被修改，未提供的字段保持原值。",
+                "parameters": {
+                  "projection": {
+                    "description": "决定返回哪些字段"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "操作成功。返回的 OperationResult 中，\"payload\" 字段包含已更新的资源。"
+                  },
+                  "204": {
+                    "description": "操作成功，但未找到任何资源"
+                  },
+                  "422": {
+                    "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                },
+                "title": "更新我的个人资料"
+              }
+            },
+            "parameters": {
+              "accessToken": {
+                "description": "当前登录用户的访问令牌"
+              }
+            }
+          }
+        }
+      },
+      "Customer": {
+        "description": "通过 id 定位的单个客户。\n\n此处的每个操作都恰好作用于一条由路径参数 `customerId` 标识的 `Customer` 记录。嵌套的 **Notes** 控制器负责管理该客户自己的备注。",
+        "operations": {
+          "get": {
+            "title": "获取单个客户",
+            "description": "按 id 返回单个客户。",
+            "parameters": {
+              "projection": {
+                "description": "决定返回哪些字段"
+              },
+              "xId": {
+                "description": "临时查询参数的示例"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "操作成功。返回的 OperationResult 中，\"payload\" 字段包含所请求的资源。"
+              },
+              "204": {
+                "description": "操作成功，但未找到任何资源"
+              },
+              "422": {
+                "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+              }
+            }
+          },
+          "delete": {
+            "title": "删除单个客户",
+            "description": "按 id 删除单个客户。\n\n若只想停用客户而不彻底删除其记录，请参见 `setStatus`。",
+            "responses": {
+              "200": {
+                "description": "操作成功。返回包含 \"affected\" 字段的 OperationResult。"
+              },
+              "422": {
+                "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+              }
+            }
+          },
+          "update": {
+            "title": "更新单个客户",
+            "description": "按 id 更新单个客户。\n\n接收部分 `Customer` 数据 — 只有提供的字段会被修改。",
+            "parameters": {
+              "projection": {
+                "description": "决定返回哪些字段"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "操作成功。返回的 OperationResult 中，\"payload\" 字段包含已更新的资源。"
+              },
+              "204": {
+                "description": "操作成功，但未找到任何资源"
+              },
+              "422": {
+                "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+              }
+            },
+            "requestBody": {
+              "description": ""
+            }
+          },
+          "setStatus": {
+            "description": "设置客户的启用/隐藏状态。\n\n删除操作的替代方案：\n\n- `active` — 客户正常显示\n- `hidden` — 客户从默认列表中排除，但数据不会被删除\n\n:::note\n该操作不返回响应体 — 请通过状态码确认更改是否已被接受。\n:::",
+            "parameters": {
+              "status": {
+                "description": "要设置的新状态"
+              }
+            },
+            "title": "设置客户状态"
+          },
+          "updateAvatar": {
+            "requestBody": {
+              "content": {
+                "application/json": {
+                  "description": "通过 URL 设置头像，无需上传文件。"
+                },
+                "multipart/form-data": {
+                  "description": "直接上传头像图片。",
+                  "multipartFields": {
+                    "image": {
+                      "description": "图片文件本身。"
+                    },
+                    "caption": {
+                      "description": "显示在头像下方的可选说明文字。"
+                    }
+                  }
+                }
+              },
+              "description": "新的头像 — 可以提供图片 URL，也可以直接上传文件；选择更适合你的客户端的那种方式。"
+            },
+            "title": "更新头像",
+            "description": "更新客户的头像 — 既可以指向一张已托管的图片（`application/json`），也可以直接上传图片文件（`multipart/form-data`）。\n\n:::tip\n该操作主要用于演示具有多种可选表示形式的请求体 — 打开下方 **Request body** 中的各个标签页进行对比。\n:::",
+            "responses": {
+              "200": {
+                "description": ""
+              }
+            }
+          }
+        },
+        "controllers": {
+          "Notes": {
+            "description": "某个客户的备注。\n\n此处的每个操作都限定在由路径中的 `customerId` 标识的父级 **Customer** 之内 — 备注的 `_id` 只在该客户范围内唯一，而非在整个 API 中唯一。",
+            "operations": {
+              "get": {
+                "title": "获取单条备注",
+                "description": "按 id 返回该客户的单条备注。",
+                "parameters": {
+                  "projection": {
+                    "description": "决定返回哪些字段"
+                  },
+                  "_id": {
+                    "description": "备注的 id"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "操作成功。返回的 OperationResult 中，\"payload\" 字段包含所请求的资源。"
+                  },
+                  "204": {
+                    "description": "操作成功，但未找到任何资源"
+                  },
+                  "422": {
+                    "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+                  }
+                }
+              },
+              "delete": {
+                "description": "按 id 删除该客户的单条备注。",
+                "parameters": {
+                  "_id": {
+                    "description": "备注的 id"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "操作成功。返回包含 \"affected\" 字段的 OperationResult。"
+                  },
+                  "422": {
+                    "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+                  }
+                },
+                "title": "删除单条备注"
+              },
+              "update": {
+                "description": "按 id 更新该客户的单条备注。\n\n只有请求体中出现的字段会被修改。",
+                "parameters": {
+                  "projection": {
+                    "description": "决定返回哪些字段"
+                  },
+                  "_id": {
+                    "description": "备注的 id"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "操作成功。返回的 OperationResult 中，\"payload\" 字段包含已更新的资源。"
+                  },
+                  "204": {
+                    "description": "操作成功，但未找到任何资源"
+                  },
+                  "422": {
+                    "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                },
+                "title": "更新单条备注"
+              },
+              "create": {
+                "title": "创建备注",
+                "description": "为该客户创建一条新备注。\n\n接收不含 `_id` 的 `Note` 数据，该字段由服务器分配。",
+                "parameters": {
+                  "projection": {
+                    "description": "决定返回哪些字段"
+                  }
+                },
+                "responses": {
+                  "201": {
+                    "description": "操作成功。返回的 OperationResult 中，\"payload\" 字段包含已创建的资源。"
+                  },
+                  "422": {
+                    "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                }
+              },
+              "findMany": {
+                "title": "列出备注",
+                "description": "返回该客户的备注。\n\n可按 `_id`、`title`、`text` 和 `rank` 过滤；可按 `_id` 或 `title` 排序（默认 `_id`）。\n\n:::tip\n传入 `count=true` 还可获得匹配总数 — 这在构建分页时很有用。\n:::",
+                "parameters": {
+                  "limit": {
+                    "description": "决定返回的记录数量"
+                  },
+                  "skip": {
+                    "description": "决定返回的记录数量"
+                  },
+                  "count": {
+                    "description": "启用后统计所有匹配的记录总数"
+                  },
+                  "projection": {
+                    "description": "决定返回哪些字段"
+                  },
+                  "sort": {
+                    "description": "决定排序字段"
+                  },
+                  "filter": {
+                    "description": "决定过滤条件"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "操作成功。返回的 OperationResult 中，\"payload\" 字段包含资源列表。"
+                  },
+                  "422": {
+                    "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+                  }
+                }
+              },
+              "deleteMany": {
+                "description": "删除该客户中与过滤条件匹配的多条备注。\n\n可按 `_id` 或 `rank` 过滤。",
+                "parameters": {
+                  "filter": {
+                    "description": "决定过滤条件"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "操作成功。返回包含 \"affected\" 字段的 OperationResult。"
+                  },
+                  "422": {
+                    "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+                  }
+                },
+                "title": "批量删除备注"
+              },
+              "updateMany": {
+                "description": "更新该客户中与过滤条件匹配的多条备注。\n\n可按 `_id` 或 `rank` 过滤 — 每条匹配的备注都会应用相同的更新数据。",
+                "parameters": {
+                  "filter": {
+                    "description": "决定过滤条件"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "操作成功。返回包含 \"affected\" 字段的 OperationResult。"
+                  },
+                  "422": {
+                    "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                },
+                "title": "批量更新备注"
+              }
+            }
+          }
+        },
+        "types": {
+          "AvatarUrlInput": {
+            "description": "通过指向一张已托管的图片来设置客户头像，而不是直接上传文件",
+            "fields": {
+              "url": {
+                "description": "图片的公开可访问 URL"
+              }
+            }
+          }
+        },
+        "parameters": {
+          "customerId": {
+            "description": "客户的 id"
+          }
+        }
+      },
+      "Customers": {
+        "description": "客户集合。\n\n整体管理客户的入口 — 在这里创建新客户，或使用过滤条件列出/批量更新/批量删除已有客户。单个客户自身的操作（包括其 **Notes**）位于 **Customer** 之下。",
+        "operations": {
+          "create": {
+            "title": "创建客户",
+            "description": "创建一个新客户。\n\n接收 `CustomerCreateInput` 数据 — 结构与 `Customer` 相同，但不含由服务器分配的 `_id`。",
+            "parameters": {
+              "projection": {
+                "description": "决定返回哪些字段"
+              }
+            },
+            "responses": {
+              "201": {
+                "description": "操作成功。返回的 OperationResult 中，\"payload\" 字段包含已创建的资源。"
+              },
+              "422": {
+                "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+              }
+            },
+            "requestBody": {
+              "description": ""
+            }
+          },
+          "findMany": {
+            "title": "列出客户",
+            "description": "返回与给定过滤条件匹配的客户。\n\n可按 `_id`、`givenName`、`familyName`、`gender`、`uid`、`address.countryCode`、`deleted`、`active`、`birthDate` 和 `rate` 过滤；可按 `_id`、`givenName`、`familyName`、`gender` 或 `address.countryCode` 排序（默认 `givenName`）。\n\n:::tip\n传入 `count=true` 还可获得匹配总数 — 这在构建分页时很有用。\n:::",
+            "parameters": {
+              "limit": {
+                "description": "决定返回的记录数量"
+              },
+              "skip": {
+                "description": "决定返回的记录数量"
+              },
+              "count": {
+                "description": "启用后统计所有匹配的记录总数"
+              },
+              "projection": {
+                "description": "决定返回哪些字段"
+              },
+              "filter": {
+                "description": "决定过滤条件"
+              },
+              "sort": {
+                "description": "决定排序字段"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "操作成功。返回的 OperationResult 中，\"payload\" 字段包含资源列表。"
+              },
+              "422": {
+                "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+              }
+            }
+          },
+          "deleteMany": {
+            "description": "删除与过滤条件匹配的多个客户。\n\n可按 `_id` 过滤。若只想停用客户而不删除其记录，请对每个客户使用 `setStatus`。",
+            "parameters": {
+              "filter": {
+                "description": "决定过滤条件"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "操作成功。返回包含 \"affected\" 字段的 OperationResult。"
+              },
+              "422": {
+                "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+              }
+            },
+            "title": "批量删除客户"
+          },
+          "updateMany": {
+            "description": "更新与过滤条件匹配的多个客户。\n\n可按 `_id` 过滤 — 每个匹配的客户都会应用相同的更新数据。",
+            "parameters": {
+              "filter": {
+                "description": "决定过滤条件"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "操作成功。返回包含 \"affected\" 字段的 OperationResult。"
+              },
+              "422": {
+                "description": "请求格式正确，但由于一个或多个错误而无法处理该操作。"
+              }
+            },
+            "requestBody": {
+              "description": ""
+            },
+            "title": "批量更新客户"
+          }
+        }
+      }
+    },
+    "description": ""
+  },
+  "types": {
+    "CustomerCreateInput": {
+      "description": ""
+    }
+  },
+  "description": ""
+}

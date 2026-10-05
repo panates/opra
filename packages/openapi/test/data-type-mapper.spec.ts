@@ -30,6 +30,9 @@ class Animal {
 
   @ApiField()
   declare color?: Color;
+
+  @(ApiField({ readonly: true }).Override('db', { readonly: false }))
+  declare id: string;
 }
 
 @ComplexType({ description: 'A dog' })
@@ -147,6 +150,17 @@ describe('openapi:data-type mapping', () => {
       type: 'array',
       items: { $ref: '#/components/schemas/Dog' },
     });
+  });
+
+  it('Should apply a field.Override() for the requested scope, not just its base metadata', () => {
+    const noScope = OpenApiDocumentFactory.generate(doc);
+    expect(noScope.components!.schemas!.Animal.properties!.id.readOnly).toBe(
+      true,
+    );
+    const dbScope = OpenApiDocumentFactory.generate(doc, { scope: 'db' });
+    expect(
+      dbScope.components!.schemas!.Animal.properties!.id.readOnly,
+    ).toBeUndefined();
   });
 
   it('Should reuse a single $ref for a type referenced multiple times', () => {

@@ -2,14 +2,14 @@ import { toString, type Validator, vg } from 'valgen';
 import { DATATYPE_METADATA, DECODER, ENCODER } from '../../constants.js';
 import { SimpleType } from '../simple-type.js';
 
-@SimpleType({
+@(SimpleType({
   name: 'string',
   description: 'A sequence of characters',
   nameMappings: {
     js: 'string',
     json: 'string',
   },
-})
+}).Example(' '))
 export class StringType {
   constructor(properties?: Partial<StringType>) {
     if (properties) Object.assign(this, properties);
@@ -31,7 +31,7 @@ export class StringType {
   minLength?: number;
 
   @SimpleType.Attribute({
-    description: 'Minimum number of characters',
+    description: 'Maximum number of characters',
   })
   maxLength?: number;
 

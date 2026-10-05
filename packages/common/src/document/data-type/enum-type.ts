@@ -7,6 +7,7 @@ import { OpraSchema } from '../../schema/index.js';
 import type { ApiDocument } from '../api-document.js';
 import type { DocumentElement } from '../common/document-element.js';
 import { DocumentInitContext } from '../common/document-init-context.js';
+import { applyTranslations } from '../common/translate-doc.js';
 import { DATATYPE_METADATA, DECORATOR } from '../constants.js';
 import { DataType } from './data-type.js';
 
@@ -153,11 +154,25 @@ class EnumTypeClass extends DataType {
     const baseName = this.base
       ? this.node.getDataTypeNameWithNs(this.base)
       : undefined;
+    const attributes = cloneObject(this.ownAttributes);
+    if (options?.lang) {
+      // Only each value's `description` is prose — the value keys
+      // themselves are data and stay untouched.
+      for (const [key, info] of Object.entries(attributes)) {
+        applyTranslations(
+          this,
+          info as any,
+          options,
+          ['description'],
+          ['values', key],
+        );
+      }
+    }
     return omitUndefined<OpraSchema.EnumType>({
       ...superJson,
       kind: this.kind,
       base: baseName,
-      attributes: cloneObject(this.ownAttributes),
+      attributes,
     });
   }
 

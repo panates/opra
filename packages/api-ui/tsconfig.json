@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig-base.json",
+  "include": ["src"],
+  "exclude": ["build"],
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "./build",
+    "paths": {
+      "@opra/common": ["../common/src/index.js"],
+      "@opra/openapi": ["../openapi/src/index.js"]
+    }
+  },
+  "references": [{ "path": "../common" }, { "path": "../openapi" }]
+}

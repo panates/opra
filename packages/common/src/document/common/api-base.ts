@@ -4,6 +4,7 @@ import type { ApiDocument } from '../api-document.js';
 import { CLASS_NAME_PATTERN } from '../constants.js';
 import { DocumentElement } from './document-element.js';
 import type { DocumentInitContext } from './document-init-context.js';
+import { applyTranslations } from './translate-doc.js';
 
 export namespace ApiBase {
   export interface InitArguments extends Pick<
@@ -26,13 +27,17 @@ export abstract class ApiBase extends DocumentElement {
     this.description = init.description;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   toJSON(options?: ApiDocument.ExportOptions): OpraSchema.Api {
-    return omitUndefined<OpraSchema.Api>({
-      transport: this.transport,
-      name: this.name,
-      description: this.description,
-    });
+    return applyTranslations(
+      this,
+      omitUndefined<OpraSchema.Api>({
+        transport: this.transport,
+        name: this.name,
+        description: this.description,
+      }),
+      options,
+      ['description'],
+    );
   }
 
   protected async _initialize(

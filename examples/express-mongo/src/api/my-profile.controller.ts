@@ -2,17 +2,24 @@ import { HttpController, HttpOperation, OmitType } from '@opra/common';
 import { HttpContext } from '@opra/http';
 import { MongoAdapter } from '@opra/mongodb';
 import { MyProfileService, Profile } from 'example-customer-mongo';
-import { Db } from 'mongodb';
+import type { CustomerApplication } from '../customer-application.js';
 
-@(HttpController().Header('accessToken', 'string'))
+@(HttpController({}).Header('accessToken', {
+  type: 'string',
+}))
 export class MyProfileController {
-  service: MyProfileService;
+  protected _service?: MyProfileService;
 
-  constructor(readonly db: Db) {
-    this.service = new MyProfileService({ db });
+  constructor(readonly app: CustomerApplication) {}
+
+  get service() {
+    if (!this._service)
+      this._service = new MyProfileService({ db: this.app.db });
+    return this._service;
   }
 
   @HttpOperation.Entity.Create(Profile, {
+    sections: ['Account'],
     requestBody: {
       type: OmitType(Profile, ['_id']),
     },
@@ -22,19 +29,25 @@ export class MyProfileController {
     return this.service.for(context).create(data, options);
   }
 
-  @HttpOperation.Entity.Delete(Profile)
+  @HttpOperation.Entity.Delete(Profile, {
+    sections: ['Account'],
+  })
   async delete(context: HttpContext) {
     const { options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).delete(options);
   }
 
-  @HttpOperation.Entity.Get(Profile)
+  @HttpOperation.Entity.Get(Profile, {
+    sections: ['Account'],
+  })
   async get(context: HttpContext) {
     const { options } = await MongoAdapter.parseRequest(context);
     return this.service.for(context).find(options);
   }
 
-  @HttpOperation.Entity.Update(Profile)
+  @HttpOperation.Entity.Update(Profile, {
+    sections: ['Account'],
+  })
   async update(context: HttpContext) {
     const { data, options } = await MongoAdapter.parseRequest(context);
     return this.service.for(context).update(data, options);

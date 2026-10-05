@@ -17,6 +17,10 @@ export namespace MQApi {
  * @class MQApi
  */
 export class MQApi extends ApiBase {
+  protected get docKeySegment(): string {
+    return 'api';
+  }
+
   // noinspection JSUnusedGlobalSymbols
   protected _controllerReverseMap: WeakMap<Type, MQController | null> =
     new WeakMap();
@@ -66,8 +70,8 @@ export class MQApi extends ApiBase {
     return controller?.operations.get(operationName);
   }
 
-  toJSON(): OpraSchema.MQApi {
-    const schema = super.toJSON();
+  toJSON(options?: ApiDocument.ExportOptions): OpraSchema.MQApi {
+    const schema = super.toJSON(options);
     const out: OpraSchema.MQApi = {
       ...schema,
       transport: this.transport,
@@ -75,7 +79,7 @@ export class MQApi extends ApiBase {
       controllers: {},
     };
     for (const v of this.controllers.values()) {
-      out.controllers[v.name] = v.toJSON();
+      out.controllers[v.name] = v.toJSON(options);
     }
     return out;
   }

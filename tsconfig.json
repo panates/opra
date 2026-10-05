@@ -1,8 +1,30 @@
 {
   "references": [
-    { "path": "./packages/*" },
-    { "path": "./examples/*" },
-    { "path": "./support/*" }
+    { "path": "./packages/angular" },
+    { "path": "./packages/api-ui" },
+    { "path": "./packages/cli" },
+    { "path": "./packages/client" },
+    { "path": "./packages/common" },
+    { "path": "./packages/core" },
+    { "path": "./packages/elastic" },
+    { "path": "./packages/http" },
+    { "path": "./packages/kafka" },
+    { "path": "./packages/mongodb" },
+    { "path": "./packages/nestjs" },
+    { "path": "./packages/nestjs-http" },
+    { "path": "./packages/nestjs-kafka" },
+    { "path": "./packages/nestjs-rabbitmq" },
+    { "path": "./packages/nestjs-socketio" },
+    { "path": "./packages/openapi" },
+    { "path": "./packages/rabbitmq" },
+    { "path": "./packages/socketio" },
+    { "path": "./packages/sqb" },
+    { "path": "./packages/testing" },
+    { "path": "./examples/express-elastic" },
+    { "path": "./examples/express-mongo" },
+    { "path": "./examples/express-sqb" },
+    { "path": "./examples/nestjs-express-mongo" },
+    { "path": "./examples/ws-chat" }
   ],
   "compilerOptions": {
     "noEmit": true

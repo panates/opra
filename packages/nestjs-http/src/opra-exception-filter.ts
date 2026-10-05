@@ -23,7 +23,10 @@ export class OpraExceptionFilter extends BaseExceptionFilter {
    * @param host - The arguments host.
    */
   catch(exception: any, host: ArgumentsHost) {
-    const ctx = host.switchToHttp().getRequest().opraContext;
+    /* `.raw` for Fastify, where the middleware that built this context ran
+     * on the `node:http` request rather than on the wrapper a handler sees. */
+    const req = host.switchToHttp().getRequest();
+    const ctx = req?.opraContext ?? req?.raw?.opraContext;
     if (ctx) {
       const adapter = this.moduleRef.get(OpraHttpNestjsAdapter);
       ctx.errors.push(exception);

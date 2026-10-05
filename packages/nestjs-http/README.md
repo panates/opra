@@ -82,5 +82,5 @@ Available under [MIT](LICENSE) license.
 [downloads-url]: https://npmjs.org/package/@opra/nestjs-http
 [ci-test-image]: https://github.com/panates/opra/actions/workflows/test.yml/badge.svg
 [ci-test-url]: https://github.com/panates/opra/actions/workflows/test.yml
-[coveralls-image]: https://coveralls.io/repos/github/panates/opra/badge.svg?branch=main
+[coveralls-image]: https://coveralls.io/repos/github/panates/opra/badge.svg?branch=dev
 [coveralls-url]: https://coveralls.io/github/panates/opra?branch=main

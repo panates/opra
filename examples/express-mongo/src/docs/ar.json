@@ -1,0 +1,526 @@
+{
+  "info": {
+    "title": "تطبيق العملاء",
+    "description": "واجهة برمجية نموذجية تعتمد على Opra، توضّح كيفية بناء خادم موارد HTTP متكامل مدعوم بـ MongoDB.\n\nتجمع هذه الخدمة عدّة أنماط ستحتاجها غالبًا في تطبيق حقيقي: مصادقة قائمة على ملفات تعريف الارتباط، ونقطة وصول يديرها المستخدم لملفه الشخصي بعد تسجيل الدخول، وواجهة CRUD كاملة لإدارة العملاء مع ملاحظاتهم.\n\n### ما الذي تتضمّنه\n\n- **المصادقة** — نقطتا `login`/`logout` ضمن `Auth`، إضافة إلى مورد متداخل `MyProfile` لسجلّ المستخدم المُصادق عليه.\n- **العملاء** — عمليات CRUD كاملة لمورد `Customer`، بما في ذلك عملية `setStatus` مخصّصة للتفعيل/الإخفاء بدل الحذف النهائي.\n- **الملاحظات** — مجموعة متداخلة تحت كل عميل، تُدار عبر مُتحكّم `Notes` الخاص بها.\n- **مخطّط غني** — تعدادات، وقيود على المصفوفات، ونصوص مُتحقَّق منها بتعبيرات نمطية، وحقول مُترجمة؛ جميعها موثّقة في مرجع `Customer Models Document` أدناه.\n\n:::tip\nانتقل إلى مرجع **Customer Models Document** (المُحدِّد أعلى اليسار، أو قسم *Reference documents* أدناه) لتصفّح نموذج البيانات كاملًا بمعزل عن واجهة HTTP.\n:::",
+    "termsOfService": "باستخدامك لهذه الواجهة النموذجية فإنك توافق على أنها مقدَّمة لأغراض العرض التوضيحي فقط، \"كما هي\"، دون أي ضمان للتوافر أو الدقّة أو الملاءمة لغرض معيّن، وعلى ألّا تُرسَل إليها بيانات عملاء حقيقية إطلاقًا.",
+    "license": {
+      "content": "MIT License\n\nCopyright (c) 2020-present Panates\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
+    }
+  },
+  "api": {
+    "servers": {
+      "local": {
+        "description": "خادم التطوير المحلي"
+      }
+    },
+    "sections": {
+      "Account": {
+        "description": "تسجيل الدخول وإدارة ملفك الشخصي"
+      },
+      "Customers": {
+        "description": "إدارة سجلات العملاء"
+      },
+      "Notes": {
+        "description": "ملاحظات العميل الخاصة"
+      }
+    },
+    "controllers": {
+      "Auth": {
+        "description": "نقاط المصادقة لتسجيل الدخول والخروج.\n\nهذا مثال مبسّط عن قصد — راجع **MyProfile** أدناه للاطلاع على النقاط التي تقرأ ترويسة `accessToken` مباشرة بدل الاعتماد على جلسة.\n\n- `login` — يقبل زوج `user`/`password`\n- `logout` — يُنهي الجلسة الحالية",
+        "operations": {
+          "login": {
+            "title": "تسجيل الدخول",
+            "description": "يُسجّل دخول المستخدم باسم مستخدم وكلمة مرور.\n\n- `user` — اسم المستخدم للحساب\n- `password` — كلمة مرور الحساب\n\n:::note\nتُعيد هذه النقطة النموذجية رسالة تأكيد بسيطة بدل رمز وصول حقيقي — راجع **MyProfile** لمعرفة كيفية تمثيل الطلب المُصادق عليه في بقيّة هذه الواجهة.\n:::",
+            "parameters": {
+              "user": {
+                "description": "اسم المستخدم لتسجيل الدخول"
+              },
+              "password": {
+                "description": "كلمة مرور المستخدم"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": ""
+              }
+            }
+          },
+          "logout": {
+            "title": "تسجيل الخروج",
+            "description": "يُسجّل خروج المستخدم الحالي.\n\nيُعيد رسالة تأكيد بسيطة، مثل `login` تمامًا.",
+            "responses": {
+              "200": {
+                "description": ""
+              }
+            }
+          }
+        },
+        "controllers": {
+          "MyProfile": {
+            "description": "الملف الشخصي للمستخدم الذي سجّل الدخول.\n\nخلافًا لـ **Customer**، لا يتضمّن مسار هذا المورد معرّفًا — بل تتطلّب كل عملية هنا ترويسة `accessToken`.\n\n- `get` — يقرأ الملف الحالي\n- `create` — يُنشئ ملفًا جديدًا\n- `update` — يُحدّث الملف جزئيًا\n- `delete` — يحذف الملف",
+            "operations": {
+              "create": {
+                "title": "إنشاء ملفي الشخصي",
+                "description": "يُنشئ الملف الشخصي للمستخدم الذي سجّل الدخول.\n\nيقبل حمولة `Profile` دون الحقل `_id`، إذ يُسنده الخادم.",
+                "parameters": {
+                  "projection": {
+                    "description": "يحدّد الحقول المُعادة"
+                  }
+                },
+                "responses": {
+                  "201": {
+                    "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي الحقل \"payload\" على المورد الذي تمّ إنشاؤه."
+                  },
+                  "422": {
+                    "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                }
+              },
+              "delete": {
+                "title": "حذف ملفي الشخصي",
+                "description": "يحذف الملف الشخصي للمستخدم الذي سجّل الدخول.",
+                "responses": {
+                  "200": {
+                    "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي على الحقل \"affected\"."
+                  },
+                  "422": {
+                    "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+                  }
+                }
+              },
+              "get": {
+                "title": "جلب ملفي الشخصي",
+                "description": "يُعيد الملف الشخصي للمستخدم الذي سجّل الدخول.",
+                "parameters": {
+                  "projection": {
+                    "description": "يحدّد الحقول المُعادة"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي الحقل \"payload\" على المورد المطلوب."
+                  },
+                  "204": {
+                    "description": "تمّت العملية بنجاح لكن لم يُعثر على أي مورد"
+                  },
+                  "422": {
+                    "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+                  }
+                }
+              },
+              "update": {
+                "description": "يُحدّث الملف الشخصي للمستخدم الذي سجّل الدخول.\n\nتتغيّر فقط الحقول الموجودة في جسم الطلب؛ أمّا الحقول المحذوفة فتحتفظ بقيمتها الحالية.",
+                "parameters": {
+                  "projection": {
+                    "description": "يحدّد الحقول المُعادة"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي الحقل \"payload\" على المورد بعد التحديث."
+                  },
+                  "204": {
+                    "description": "تمّت العملية بنجاح لكن لم يُعثر على أي مورد"
+                  },
+                  "422": {
+                    "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                },
+                "title": "تحديث ملفي الشخصي"
+              }
+            },
+            "parameters": {
+              "accessToken": {
+                "description": "رمز الوصول للمستخدم الذي سجّل الدخول"
+              }
+            }
+          }
+        }
+      },
+      "Customer": {
+        "description": "عميل واحد يُحدَّد بالمعرّف.\n\nكل عملية هنا تستهدف سجلّ `Customer` واحدًا بالضبط، يُعرَّف بمعامل المسار `customerId`. أمّا المُتحكّم المتداخل **Notes** فيُدير ملاحظات ذلك العميل.",
+        "operations": {
+          "get": {
+            "title": "جلب عميل",
+            "description": "يُعيد عميلًا واحدًا حسب المعرّف.",
+            "parameters": {
+              "projection": {
+                "description": "يحدّد الحقول المُعادة"
+              },
+              "xId": {
+                "description": "مثال على معامل استعلام مخصّص"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي الحقل \"payload\" على المورد المطلوب."
+              },
+              "204": {
+                "description": "تمّت العملية بنجاح لكن لم يُعثر على أي مورد"
+              },
+              "422": {
+                "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+              }
+            }
+          },
+          "delete": {
+            "title": "حذف عميل",
+            "description": "يحذف عميلًا واحدًا حسب المعرّف.\n\nلتعطيل عميل دون إزالة سجلّه بالكامل، راجع `setStatus`.",
+            "responses": {
+              "200": {
+                "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي على الحقل \"affected\"."
+              },
+              "422": {
+                "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+              }
+            }
+          },
+          "update": {
+            "title": "تحديث عميل",
+            "description": "يُحدّث عميلًا واحدًا حسب المعرّف.\n\nيقبل حمولة `Customer` جزئية — تتغيّر الحقول المُرسلة فقط.",
+            "parameters": {
+              "projection": {
+                "description": "يحدّد الحقول المُعادة"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي الحقل \"payload\" على المورد بعد التحديث."
+              },
+              "204": {
+                "description": "تمّت العملية بنجاح لكن لم يُعثر على أي مورد"
+              },
+              "422": {
+                "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+              }
+            },
+            "requestBody": {
+              "description": ""
+            }
+          },
+          "setStatus": {
+            "description": "يضبط حالة العميل بين مُفعّل/مُخفى.\n\nبديل عن الحذف:\n\n- `active` — يظهر العميل بشكل طبيعي\n- `hidden` — يُستبعد العميل من القوائم الافتراضية دون حذف بياناته\n\n:::note\nلا تُعيد هذه العملية جسم استجابة — تحقّق من رمز الحالة للتأكّد من قبول التغيير.\n:::",
+            "parameters": {
+              "status": {
+                "description": "الحالة الجديدة المراد تعيينها"
+              }
+            },
+            "title": "تعيين حالة العميل"
+          },
+          "updateAvatar": {
+            "requestBody": {
+              "content": {
+                "application/json": {
+                  "description": "يعيّن الصورة الرمزية عبر رابط، دون رفع ملف."
+                },
+                "multipart/form-data": {
+                  "description": "يرفع صورة الأفاتار مباشرة.",
+                  "multipartFields": {
+                    "image": {
+                      "description": "ملف الصورة نفسه."
+                    },
+                    "caption": {
+                      "description": "تعليق اختياري يظهر أسفل الصورة الرمزية."
+                    }
+                  }
+                }
+              },
+              "description": "الصورة الرمزية الجديدة — قدّمها كرابط أو كملف مرفوع؛ اختر البديل الأنسب لتطبيقك."
+            },
+            "title": "تحديث الصورة الرمزية",
+            "description": "يُحدّث الصورة الرمزية للعميل — إمّا بالإشارة إلى صورة مُستضافة مسبقًا (`application/json`) أو برفع ملف الصورة مباشرة (`multipart/form-data`).\n\n:::tip\nتوجد هذه العملية أساسًا لتوضيح جسم طلب له أكثر من تمثيل بديل — افتح التبويبات ضمن **Request body** أدناه للمقارنة بينها.\n:::",
+            "responses": {
+              "200": {
+                "description": ""
+              }
+            }
+          }
+        },
+        "controllers": {
+          "Notes": {
+            "description": "ملاحظات عميل مُعيّن.\n\nكل عملية هنا مقيّدة بالـ **Customer** الأب المُحدَّد بـ `customerId` في المسار — ومعرّف الملاحظة `_id` فريد داخل ذلك العميل فقط، لا على مستوى الواجهة كاملة.",
+            "operations": {
+              "get": {
+                "title": "جلب ملاحظة",
+                "description": "يُعيد ملاحظة واحدة للعميل حسب المعرّف.",
+                "parameters": {
+                  "projection": {
+                    "description": "يحدّد الحقول المُعادة"
+                  },
+                  "_id": {
+                    "description": "معرّف الملاحظة"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي الحقل \"payload\" على المورد المطلوب."
+                  },
+                  "204": {
+                    "description": "تمّت العملية بنجاح لكن لم يُعثر على أي مورد"
+                  },
+                  "422": {
+                    "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+                  }
+                }
+              },
+              "delete": {
+                "description": "يحذف ملاحظة واحدة للعميل حسب المعرّف.",
+                "parameters": {
+                  "_id": {
+                    "description": "معرّف الملاحظة"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي على الحقل \"affected\"."
+                  },
+                  "422": {
+                    "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+                  }
+                },
+                "title": "حذف ملاحظة"
+              },
+              "update": {
+                "description": "يُحدّث ملاحظة واحدة للعميل حسب المعرّف.\n\nتتغيّر فقط الحقول الموجودة في جسم الطلب.",
+                "parameters": {
+                  "projection": {
+                    "description": "يحدّد الحقول المُعادة"
+                  },
+                  "_id": {
+                    "description": "معرّف الملاحظة"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي الحقل \"payload\" على المورد بعد التحديث."
+                  },
+                  "204": {
+                    "description": "تمّت العملية بنجاح لكن لم يُعثر على أي مورد"
+                  },
+                  "422": {
+                    "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                },
+                "title": "تحديث ملاحظة"
+              },
+              "create": {
+                "title": "إنشاء ملاحظة",
+                "description": "يُنشئ ملاحظة جديدة للعميل.\n\nيقبل حمولة `Note` دون الحقل `_id`، إذ يُسنده الخادم.",
+                "parameters": {
+                  "projection": {
+                    "description": "يحدّد الحقول المُعادة"
+                  }
+                },
+                "responses": {
+                  "201": {
+                    "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي الحقل \"payload\" على المورد الذي تمّ إنشاؤه."
+                  },
+                  "422": {
+                    "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                }
+              },
+              "findMany": {
+                "title": "سرد الملاحظات",
+                "description": "يُعيد ملاحظات العميل.\n\nيمكن التصفية حسب `_id` و`title` و`text` و`rank`، والترتيب حسب `_id` أو `title` (الافتراضي `_id`).\n\n:::tip\nأرسل `count=true` للحصول أيضًا على إجمالي عدد النتائج المطابقة — وهو مفيد لبناء التصفّح الصفحي.\n:::",
+                "parameters": {
+                  "limit": {
+                    "description": "يحدّد عدد السجلات المُعادة"
+                  },
+                  "skip": {
+                    "description": "يحدّد عدد السجلات المُعادة"
+                  },
+                  "count": {
+                    "description": "عند تفعيله يحسب إجمالي السجلات المطابقة"
+                  },
+                  "projection": {
+                    "description": "يحدّد الحقول المُعادة"
+                  },
+                  "sort": {
+                    "description": "يحدّد حقول الترتيب"
+                  },
+                  "filter": {
+                    "description": "يحدّد حقول التصفية"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي الحقل \"payload\" على قائمة الموارد."
+                  },
+                  "422": {
+                    "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+                  }
+                }
+              },
+              "deleteMany": {
+                "description": "يحذف عدّة ملاحظات للعميل مطابقة لمُرشِّح.\n\nيمكن التصفية حسب `_id` أو `rank`.",
+                "parameters": {
+                  "filter": {
+                    "description": "يحدّد حقول التصفية"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي على الحقل \"affected\"."
+                  },
+                  "422": {
+                    "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+                  }
+                },
+                "title": "حذف عدة ملاحظات"
+              },
+              "updateMany": {
+                "description": "يُحدّث عدّة ملاحظات للعميل مطابقة لمُرشِّح.\n\nيمكن التصفية حسب `_id` أو `rank` — وتتلقّى كل ملاحظة مطابقة الحمولة نفسها.",
+                "parameters": {
+                  "filter": {
+                    "description": "يحدّد حقول التصفية"
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي على الحقل \"affected\"."
+                  },
+                  "422": {
+                    "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+                  }
+                },
+                "requestBody": {
+                  "description": ""
+                },
+                "title": "تحديث عدة ملاحظات"
+              }
+            }
+          }
+        },
+        "types": {
+          "AvatarUrlInput": {
+            "description": "يضبط الصورة الرمزية للعميل بالإشارة إلى صورة مُستضافة مسبقًا بدل رفع ملف",
+            "fields": {
+              "url": {
+                "description": "رابط الصورة المتاح للعموم"
+              }
+            }
+          }
+        },
+        "parameters": {
+          "customerId": {
+            "description": "معرّف العميل"
+          }
+        }
+      },
+      "Customers": {
+        "description": "مجموعة العملاء.\n\nنقطة الدخول لإدارة العملاء ككل — أنشئ عملاء جددًا هنا، أو اسرد/حدّث/احذف الموجودين دفعةً واحدة باستخدام مُرشِّح. أمّا عمليات عميل بعينه (بما فيها **Notes**) فتوجد ضمن **Customer**.",
+        "operations": {
+          "create": {
+            "title": "إنشاء عميل",
+            "description": "يُنشئ عميلًا جديدًا.\n\nيقبل حمولة `CustomerCreateInput` — بالبنية نفسها لـ `Customer`، دون الحقل `_id` الذي يُسنده الخادم.",
+            "parameters": {
+              "projection": {
+                "description": "يحدّد الحقول المُعادة"
+              }
+            },
+            "responses": {
+              "201": {
+                "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي الحقل \"payload\" على المورد الذي تمّ إنشاؤه."
+              },
+              "422": {
+                "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+              }
+            },
+            "requestBody": {
+              "description": ""
+            }
+          },
+          "findMany": {
+            "title": "سرد العملاء",
+            "description": "يُعيد العملاء المطابقين للمُرشِّح المُعطى.\n\nيمكن التصفية حسب `_id` و`givenName` و`familyName` و`gender` و`uid` و`address.countryCode` و`deleted` و`active` و`birthDate` و`rate`، والترتيب حسب `_id` أو `givenName` أو `familyName` أو `gender` أو `address.countryCode` (الافتراضي `givenName`).\n\n:::tip\nأرسل `count=true` للحصول أيضًا على إجمالي عدد النتائج المطابقة — وهو مفيد لبناء التصفّح الصفحي.\n:::",
+            "parameters": {
+              "limit": {
+                "description": "يحدّد عدد السجلات المُعادة"
+              },
+              "skip": {
+                "description": "يحدّد عدد السجلات المُعادة"
+              },
+              "count": {
+                "description": "عند تفعيله يحسب إجمالي السجلات المطابقة"
+              },
+              "projection": {
+                "description": "يحدّد الحقول المُعادة"
+              },
+              "filter": {
+                "description": "يحدّد حقول التصفية"
+              },
+              "sort": {
+                "description": "يحدّد حقول الترتيب"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي الحقل \"payload\" على قائمة الموارد."
+              },
+              "422": {
+                "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+              }
+            }
+          },
+          "deleteMany": {
+            "description": "يحذف عدّة عملاء مطابقين لمُرشِّح.\n\nيمكن التصفية حسب `_id`. ولتعطيل العملاء دون حذف سجلّاتهم، استخدم `setStatus` مع كل واحد منهم.",
+            "parameters": {
+              "filter": {
+                "description": "يحدّد حقول التصفية"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي على الحقل \"affected\"."
+              },
+              "422": {
+                "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+              }
+            },
+            "title": "حذف عدة عملاء"
+          },
+          "updateMany": {
+            "description": "يُحدّث عدّة عملاء مطابقين لمُرشِّح.\n\nيمكن التصفية حسب `_id` — ويتلقّى كل عميل مطابق الحمولة نفسها.",
+            "parameters": {
+              "filter": {
+                "description": "يحدّد حقول التصفية"
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "تمّت العملية بنجاح. تُعيد OperationResult يحتوي على الحقل \"affected\"."
+              },
+              "422": {
+                "description": "كان الطلب صحيح البنية لكن تعذّر تنفيذ العملية بسبب خطأ واحد أو أكثر."
+              }
+            },
+            "requestBody": {
+              "description": ""
+            },
+            "title": "تحديث عدة عملاء"
+          }
+        }
+      }
+    },
+    "description": ""
+  },
+  "types": {
+    "CustomerCreateInput": {
+      "description": ""
+    }
+  },
+  "description": ""
+}

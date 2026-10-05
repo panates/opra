@@ -4,9 +4,9 @@ import { Person } from './person.js';
 import { Record } from './record.js';
 
 @ComplexType({
-  description: 'Profile information',
+  description: "The signed-in user's own profile",
 })
 export class Profile extends MixinType([Record, Person]) {
-  @ApiField()
+  @ApiField({ description: 'Postal address of the profile owner' })
   declare address?: Address;
 }

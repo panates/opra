@@ -32,7 +32,7 @@ export async function generateHttpApi(this: TsGenerator, api: HttpApi) {
   classBlock.doc = `/** 
  * ${wrapJSDocString(api.description || '')}
  * @class ${className}
- * @url ${path.posix.join(this.serviceUrl, '$schema')}
+ * @url ${path.posix.join(this.serviceUrl || '', '$schema')}
  */`;
   classBlock.head = `\nexport class ${className} {\n\t`;
   classBlock.properties = 'readonly [kClient]: OpraHttpClient;';

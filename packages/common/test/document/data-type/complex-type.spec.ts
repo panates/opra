@@ -1,5 +1,6 @@
 import { ApiDocument, parseFieldsProjection } from '@opra/common';
 import { expect } from 'expect';
+import type { Field } from '../../../src/schema/data-type/field.interface.js';
 import { TestHttpApiDocument } from '../../_support/test-http-api/index.js';
 
 describe('common:ComplexType', () => {
@@ -103,16 +104,21 @@ describe('common:ComplexType', () => {
     expect(x).toBeDefined();
     expect(x).toStrictEqual({
       kind: 'ComplexType',
-      description: 'Country information',
+      description: expect.any(String),
       fields: {
         code: {
-          type: 'string',
+          type: 'CountryCode',
+          description: expect.any(String),
         },
         name: {
           type: 'string',
+          description: expect.any(String),
+          examples: ['United States', 'Türkiye', 'Germany'],
         },
         phoneCode: {
           type: 'string',
+          description: expect.any(String),
+          examples: ['+1', '+90', '+49'],
         },
       },
     });
@@ -127,6 +133,24 @@ describe('common:ComplexType', () => {
     x = dt!.toJSON({ scope: 'db' });
     expect(x).toBeDefined();
     expect(x.fields!.dbField).toBeDefined();
+  });
+
+  it('Should toJSON(scope) apply a field.Override() for that scope, not just its base metadata', async () => {
+    // `createdAt` is declared directly on `Record` (the base type every
+    // model in this fixture extends) — `customer.toJSON()`'s own `fields`
+    // only lists fields *declared at that level* (inherited ones are
+    // referenced via `base` instead, not repeated), so this needs
+    // `Record` itself to actually exercise `ComplexType.toJSON()`'s own
+    // field loop rather than `getField()`'s already-correct resolution.
+    const dt = doc.node.getComplexType('Record');
+    expect(dt).toBeDefined();
+    // `readonly: true` everywhere, `.Override('db', { readonly: false })`
+    // makes it writable specifically in the "db" scope.
+    const noScope = dt!.toJSON();
+    expect(typeof noScope.fields!.createdAt).toEqual('object');
+    expect((noScope.fields!.createdAt as Field).readonly).toStrictEqual(true);
+    const dbScope = dt!.toJSON({ scope: 'db' });
+    expect((dbScope.fields!.createdAt as Field).readonly).toBeUndefined();
   });
 
   describe('_generateSchema()', () => {
@@ -157,6 +181,7 @@ describe('common:ComplexType', () => {
         phoneNumbers: 'isUndefined',
         country: 'isUndefined',
         hasBranch: 'optional',
+        identityDocument: 'isUndefined',
         tags: 'optional',
         dbField: 'isUndefined',
       });
@@ -191,6 +216,7 @@ describe('common:ComplexType', () => {
         tags: 'optional',
         dbField: 'optional',
         hasBranch: 'optional',
+        identityDocument: 'isUndefined',
       });
     });
 

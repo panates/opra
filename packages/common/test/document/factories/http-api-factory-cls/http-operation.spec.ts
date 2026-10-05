@@ -7,7 +7,7 @@ import {
   HttpStatusRange,
   MimeTypes,
 } from '@opra/common';
-import { Country } from 'example-customer-mongo/models';
+import { Country, CountryCodeType } from 'example-customer-mongo/models';
 import { expect } from 'expect';
 
 describe('common:HttpApiFactory - HttpOperation (Class)', () => {
@@ -24,7 +24,7 @@ describe('common:HttpApiFactory - HttpOperation (Class)', () => {
     }
 
     const doc = await ApiDocumentFactory.createDocument({
-      types: [Country],
+      types: [Country, CountryCodeType],
       api: {
         transport: 'http',
         name: 'TestService',
@@ -55,7 +55,7 @@ describe('common:HttpApiFactory - HttpOperation (Class)', () => {
     }
 
     const doc = await ApiDocumentFactory.createDocument({
-      types: [Country],
+      types: [Country, CountryCodeType],
       api: {
         transport: 'http',
         name: 'TestService',
@@ -86,7 +86,7 @@ describe('common:HttpApiFactory - HttpOperation (Class)', () => {
     }
 
     const doc = await ApiDocumentFactory.createDocument({
-      types: [Country],
+      types: [Country, CountryCodeType],
       api: {
         transport: 'http',
         name: 'TestService',
@@ -117,7 +117,7 @@ describe('common:HttpApiFactory - HttpOperation (Class)', () => {
     }
 
     const doc = await ApiDocumentFactory.createDocument({
-      types: [Country],
+      types: [Country, CountryCodeType],
       api: {
         transport: 'http',
         name: 'TestService',
@@ -148,7 +148,7 @@ describe('common:HttpApiFactory - HttpOperation (Class)', () => {
     }
 
     const doc = await ApiDocumentFactory.createDocument({
-      types: [Country],
+      types: [Country, CountryCodeType],
       api: {
         transport: 'http',
         name: 'TestService',
@@ -187,7 +187,7 @@ describe('common:HttpApiFactory - HttpOperation (Class)', () => {
     }
 
     const doc = await ApiDocumentFactory.createDocument({
-      types: [Country],
+      types: [Country, CountryCodeType],
       api: {
         transport: 'http',
         name: 'TestService',
@@ -230,7 +230,7 @@ describe('common:HttpApiFactory - HttpOperation (Class)', () => {
     }
 
     const doc = await ApiDocumentFactory.createDocument({
-      types: [Country],
+      types: [Country, CountryCodeType],
       api: {
         transport: 'http',
         name: 'TestService',

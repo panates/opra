@@ -3,14 +3,14 @@ import { DECODER, ENCODER } from '../../constants.js';
 import { SimpleType } from '../simple-type.js';
 import { NumberType } from './number.type.js';
 
-@SimpleType({
+@(SimpleType({
   name: 'integer',
   description: 'An integer number',
   nameMappings: {
     js: 'number',
     json: 'number',
   },
-})
+}).Example(42))
 export class IntegerType extends NumberType {
   constructor(properties?: Partial<IntegerType>) {
     super(properties);

@@ -81,7 +81,11 @@ export class OpraHttpCoreModule implements OnModuleDestroy, NestModule {
         httpAdapterHost: HttpAdapterHost,
         apiConfig: OpraHttpModule.ApiConfig,
       ) => {
-        opraNestAdapter.scope = apiConfig.scope;
+        // `HttpAdapter.scope` is a required `string` (defaulted to "api"
+        // in its own constructor) — only override that default when the
+        // module was actually configured with one of its own.
+        if (apiConfig.scope !== undefined)
+          opraNestAdapter.scope = apiConfig.scope;
         opraNestAdapter.logger =
           opraNestAdapter.logger || new Logger(apiConfig.name);
         (opraNestAdapter as any)._document =

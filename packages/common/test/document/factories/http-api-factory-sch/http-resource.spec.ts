@@ -1,6 +1,6 @@
 import { ApiDocumentFactory, OpraSchema } from '@opra/common';
 import assert from 'assert';
-import { Country } from 'example-customer-mongo/models';
+import { Country, CountryCodeType } from 'example-customer-mongo/models';
 import { expect } from 'expect';
 
 describe('common:HttpApiFactory - HttpResource (Schema)', () => {
@@ -11,7 +11,7 @@ describe('common:HttpApiFactory - HttpResource (Schema)', () => {
       path: 'custompath',
     };
     const doc = await ApiDocumentFactory.createDocument({
-      types: [Country],
+      types: [Country, CountryCodeType],
       api: {
         transport: 'http',
         name: 'TestService',
@@ -41,7 +41,7 @@ describe('common:HttpApiFactory - HttpResource (Schema)', () => {
       ],
     };
     const doc = await ApiDocumentFactory.createDocument({
-      types: [Country],
+      types: [Country, CountryCodeType],
       api: {
         transport: 'http',
         name: 'TestService',
@@ -68,7 +68,7 @@ describe('common:HttpApiFactory - HttpResource (Schema)', () => {
       controllers: { cities },
     };
     const doc = await ApiDocumentFactory.createDocument({
-      types: [Country],
+      types: [Country, CountryCodeType],
       api: {
         transport: 'http',
         name: 'TestService',

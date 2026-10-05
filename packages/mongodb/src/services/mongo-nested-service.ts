@@ -1,5 +1,6 @@
 import { omit } from '@jsopen/objects';
 import {
+  ArrayType,
   ComplexType,
   NotAcceptableError,
   ResourceNotAvailableError,
@@ -252,7 +253,11 @@ export class MongoNestedService<
   /**
    * Constructs a new instance
    *
-   * @param dataType - The data type of the array elements.
+   * @param dataType - The data type of the *document* that owns the array
+   *   field — not the element type. This service reads `fieldName` off it to
+   *   determine the element type itself (see the `dataType` getter), so
+   *   passing the element type here leaves it looking for the field on the
+   *   wrong type and failing with "Field (...) does not exist".
    * @param fieldName - The name of the field in the document representing the array.
    * @param [options] - The options for the array service.
    * @constructor
@@ -276,7 +281,12 @@ export class MongoNestedService<
    * @throws {@link NotAcceptableError} If the data type is not a ComplexType.
    */
   override get dataType(): ComplexType {
-    const t = super.dataType.getField(this.fieldName, this.scope).type;
+    // The field is declared as `ArrayType(Note)` (e.g. `notes: Note[]`) —
+    // its own `.type` is the array wrapper, not the item type directly;
+    // unwrap it (however many `[]` layers deep) before checking, same as
+    // the client-side schema viewer already does for display.
+    let t = super.dataType.getField(this.fieldName, this.scope).type;
+    while (t instanceof ArrayType) t = t.type;
     if (!(t instanceof ComplexType))
       throw new NotAcceptableError(
         `Data type "${t.name}" is not a ComplexType`,

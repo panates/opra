@@ -70,13 +70,20 @@ export abstract class HttpClientBase<TRequestOptions = {}, TResponseExt = {}> {
    * @returns A promise that resolves to an ApiDocument.
    * @throws {@link Error} if there is an issue fetching or parsing the document.
    */
-  async fetchDocument(options?: { documentId?: string }): Promise<ApiDocument> {
+  async fetchDocument(options?: {
+    documentId?: string;
+    /** Language to fetch the documentation texts in — applied to every
+     *  reference fetched below too, so one document never comes back in a
+     *  mix of languages. */
+    lang?: string;
+  }): Promise<ApiDocument> {
     const documentMap: Record<string, any> = {};
     const getDocument = async (documentId?: string) => {
       const req = this.request('$schema', {
         headers: new Headers({ accept: 'application/json' }),
       });
       if (documentId) req.param('id', documentId);
+      if (options?.lang) req.param('lang', options.lang);
       const body = await req.getBody().catch(e => {
         updateErrorMessage(
           e,

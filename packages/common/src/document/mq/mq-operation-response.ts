@@ -1,7 +1,9 @@
 import { omitUndefined } from '@jsopen/objects';
 import type { Combine, Type, TypeThunkAsync } from 'ts-gems';
 import { OpraSchema } from '../../schema/index.js';
+import type { ApiDocument } from '../api-document.js';
 import { DocumentElement } from '../common/document-element.js';
+import { applyTranslations } from '../common/translate-doc.js';
 import { DataType } from '../data-type/data-type.js';
 import type { MQHeader } from './mq-header.js';
 import type { MQOperation } from './mq-operation.js';
@@ -42,6 +44,10 @@ export namespace MQOperationResponse {
  * @class MQOperationResponse
  */
 export class MQOperationResponse extends DocumentElement {
+  protected get docKeySegment(): string {
+    return 'response';
+  }
+
   declare readonly owner: MQOperation;
   channel?: string | RegExp | (string | RegExp)[];
   description?: string;
@@ -86,21 +92,26 @@ export class MQOperationResponse extends DocumentElement {
     }
   }
 
-  toJSON(): OpraSchema.MQOperationResponse {
-    const out = omitUndefined<OpraSchema.MQOperationResponse>({
-      description: this.description,
-      channel: this.channel,
-      type: this.type.name ? this.type.name : this.type.toJSON(),
-      keyType: this.keyType
-        ? this.keyType.name
+  toJSON(options?: ApiDocument.ExportOptions): OpraSchema.MQOperationResponse {
+    const out = applyTranslations(
+      this,
+      omitUndefined<OpraSchema.MQOperationResponse>({
+        description: this.description,
+        channel: this.channel,
+        type: this.type.name ? this.type.name : this.type.toJSON(options),
+        keyType: this.keyType
           ? this.keyType.name
-          : this.keyType.toJSON()
-        : undefined,
-    });
+            ? this.keyType.name
+            : this.keyType.toJSON(options)
+          : undefined,
+      }),
+      options,
+      ['description'],
+    );
     if (this.headers.length) {
       out.headers = [];
       for (const prm of this.headers) {
-        out.headers.push(prm.toJSON());
+        out.headers.push(prm.toJSON(options));
       }
     }
     return out;

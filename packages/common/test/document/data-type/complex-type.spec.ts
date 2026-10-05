@@ -1,5 +1,6 @@
 import { ApiDocument, parseFieldsProjection } from '@opra/common';
 import { expect } from 'expect';
+import type { Field } from '../../../src/schema/data-type/field.interface.js';
 import { TestHttpApiDocument } from '../../_support/test-http-api/index.js';
 
 describe('common:ComplexType', () => {
@@ -146,9 +147,10 @@ describe('common:ComplexType', () => {
     // `readonly: true` everywhere, `.Override('db', { readonly: false })`
     // makes it writable specifically in the "db" scope.
     const noScope = dt!.toJSON();
-    expect(noScope.fields!.createdAt.readonly).toStrictEqual(true);
+    expect(typeof noScope.fields!.createdAt).toEqual('object');
+    expect((noScope.fields!.createdAt as Field).readonly).toStrictEqual(true);
     const dbScope = dt!.toJSON({ scope: 'db' });
-    expect(dbScope.fields!.createdAt.readonly).toBeUndefined();
+    expect((dbScope.fields!.createdAt as Field).readonly).toBeUndefined();
   });
 
   describe('_generateSchema()', () => {

@@ -1,6 +1,20 @@
 # Changelog
 
-<!-- rman:documented-up-to 2043e2cf8bf832b5f55162702a9bb643e76b1a10 -->
+<!-- rman:documented-up-to c7bcc8b304e51d398d431df6b41789688396ebda -->
+
+## v1.31.1 (2026-10-05)
+
+### 🧹 Chores
+
+- sync lockfile (4d34169)
+- **examples:** Give the example projects an outDir, and declare the shared models dependency (009dc42)
+- Updated deps (4a6734c)
+
+### 💬 General Changes
+
+- Merge branch 'main' into dev (133f686)
+
+---
 
 ## v1.31.0 (2026-10-05)
 

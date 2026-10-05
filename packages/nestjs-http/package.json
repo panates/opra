@@ -39,6 +39,7 @@
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",
     "@nestjs/platform-express": "^12.1.2",
+    "@nestjs/platform-fastify": "^12.1.2",
     "@nestjs/microservices": "^12.1.2",
     "@nestjs/testing": "^12.1.2",
     "@opra/api-ui": "^1.30.0",

@@ -48,6 +48,25 @@ export namespace OpraHttpModule {
      *  Requires the optional `@opra/api-ui` package; only works when this
      *  application runs on the Express platform. @default false */
     apiUi?: HttpAdapter.Options['apiUi'];
+    /** Whether that page also publishes the documentation studio, reached
+     *  by the button in its header and by `?edit=1`. Requires `apiUi`, and
+     *  a document whose `translationStore` can be written to — see
+     *  `ApiConfig.translationStore`. A write endpoint with no
+     *  authentication of its own; off by default. @default false */
+    enableStudio?: HttpAdapter.Options['enableStudio'];
+    /**
+     * Which NestJS platform this application runs on.
+     *
+     * Only the reference UI needs to know, and only because the two routers
+     * will not accept the same wildcard: Express 5 registers `*splat` and
+     * refuses a bare `*`, Fastify registers `*` and refuses the named form.
+     * The routes are built while the module is being defined, before there
+     * is an `HttpAdapterHost` to ask, so an application running on
+     * `@nestjs/platform-fastify` states it here.
+     *
+     * @default 'express'
+     */
+    platform?: 'express' | 'fastify';
   }
 
   /**
@@ -55,7 +74,17 @@ export namespace OpraHttpModule {
    */
   export interface ApiConfig extends Pick<
     ApiDocumentFactory.InitArguments,
-    'types' | 'references' | 'info'
+    | 'types'
+    | 'references'
+    | 'info'
+    /* Where this API's documentation texts come from, and which language
+     * answers when a request asks for one there is no bundle for. Without
+     * these a module could only ever publish what its decorators declare —
+     * and `enableStudio` had nowhere to write, since the studio writes
+     * through the store the document reads from. */
+    | 'translations'
+    | 'translationStore'
+    | 'defaultLanguage'
   > {
     /** API name */
     name: string;

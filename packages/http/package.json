@@ -91,7 +91,7 @@
     "express": "^5.1.0",
     "fastify": "^5.2.1",
     "path-browserify": "^1.0.1",
-    "supertest": "^7.3.0",
+    "supertest": "^7.3.1",
     "ts-gems": "^4.0.4"
   },
   "exports": {

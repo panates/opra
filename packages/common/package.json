@@ -12,9 +12,7 @@
   "license": "MIT",
   "homepage": "https://www.oprajs.com",
   "scripts": {
-    "build": "tsc -b tsconfig-build.json && node esbuild.mjs",
-    "test": "mocha",
-    "antlr4": "java -jar ./tools/antlr-4.13.2-complete.jar -Dlanguage=TypeScript ./src/filter/antlr/OpraFilter.g4 -visitor"
+    "test": "mocha"
   },
   "dependencies": {
     "@browsery/antlr4": "^4.13.3-r7",

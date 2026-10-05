@@ -1,0 +1,5 @@
+run:
+  build:
+    after: node esbuild.mjs
+
+  antlr4: java -jar ./tools/antlr-4.13.2-complete.jar -Dlanguage=TypeScript ./src/filter/antlr/OpraFilter.g4 -visitor

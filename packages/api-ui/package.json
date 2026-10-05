@@ -36,22 +36,12 @@
     },
     "@opra/cli": {
       "optional": true
-    },
-    "@opra/openapi": {
-      "optional": true
-    },
-    "esbuild": {
-      "optional": true
     }
   },
   "optionalDependencies": {
     "express": "^4.0.0 || ^5.0.0"
   },
   "devDependencies": {
-    "@opra/cli": "^1.30.0",
-    "@opra/client": "^1.30.0",
-    "@opra/openapi": "^1.30.0",
-    "@types/express": "^5.0.6",
     "codemirror": "^6.0.2",
     "fastify": "^5.12.5",
     "esbuild": "^0.28.2",
@@ -59,7 +49,7 @@
     "express": "^5.1.0",
     "minisearch": "^7.2.0",
     "reflect-metadata": "^0.2.2",
-    "supertest": "^7.3.0"
+    "supertest": "^7.3.1"
   },
   "type": "module",
   "module": "./index.js",

@@ -34,7 +34,6 @@
     "@swc-node/register": "^1.12.1"
   },
   "devDependencies": {
-    "@opra/api-ui": "^1.30.0",
     "expect": "^30.5.2",
     "reflect-metadata": "^0.2.2"
   },
@@ -67,10 +66,5 @@
   ],
   "publishConfig": {
     "access": "public"
-  },
-  "peerDependenciesMeta": {
-    "@opra/api-ui": {
-      "optional": true
-    }
   }
 }

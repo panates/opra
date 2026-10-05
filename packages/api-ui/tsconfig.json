@@ -6,8 +6,9 @@
     "rootDir": "src",
     "outDir": "./build",
     "paths": {
-      "@opra/common": ["../common/src/index.js"]
+      "@opra/common": ["../common/src/index.js"],
+      "@opra/openapi": ["../openapi/src/index.js"]
     }
   },
-  "references": [{ "path": "../common" }]
+  "references": [{ "path": "../common" }, { "path": "../openapi" }]
 }

@@ -45,7 +45,6 @@ export class CustomerApplication {
       // authentication of its own.
       enableStudio: true,
       apiUi: {
-        path: '/ui',
         pageTitle: 'Customer Application',
         // `db`-scoped fields (soft-delete/audit columns writable instead
         // of readonly, `Customer.dbField`, the whole `Config` type — see

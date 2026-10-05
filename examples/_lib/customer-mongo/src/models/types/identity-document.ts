@@ -46,7 +46,8 @@ export class DriversLicense {
   declare issuingState: string;
 
   @ApiField({
-    description: 'License class — what the holder is permitted to drive, e.g. "B" for a standard passenger car',
+    description:
+      'License class — what the holder is permitted to drive, e.g. "B" for a standard passenger car',
     examples: ['B'],
   })
   declare licenseClass: string;

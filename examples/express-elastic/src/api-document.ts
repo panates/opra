@@ -13,7 +13,11 @@ export namespace CustomerApiDocument {
           'Sample Opra API demonstrating authentication backed by Elasticsearch',
         termsOfService: 'https://panates.com/terms-of-service',
         contact: [
-          { name: 'Panates', email: 'info@panates.com', url: 'https://panates.com' },
+          {
+            name: 'Panates',
+            email: 'info@panates.com',
+            url: 'https://panates.com',
+          },
         ],
         license: { name: 'MIT', url: 'https://opensource.org/licenses/MIT' },
       },

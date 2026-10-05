@@ -40,7 +40,6 @@ import { AppDbModule } from './app-db.module.js';
       schemaIsPublic: true,
       openapi: true,
       apiUi: {
-        path: '/docs',
         pageTitle: 'Customer Application',
         // Same two scopes `examples/express-mongo`'s own Express wiring
         // publishes — see its `customer-application.ts` for what "db"

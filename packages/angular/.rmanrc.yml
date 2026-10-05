@@ -1,0 +1,6 @@
+run:
+  build:
+    before:
+      - rman check --entry ./src/public_api.ts
+      - rman lint
+      - rman clean

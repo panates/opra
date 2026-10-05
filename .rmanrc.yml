@@ -15,18 +15,6 @@ changelog:
   # Start the changelog at the 1.x line; v0.x is pre-release history.
   startingAt: v1.0.0
 
-# `@opra/angular` is an ng-packagr library: its entry point is `src/public_api.ts`, not the
-# `src/index.ts` the preset's `check` command walks by default, so scoped to this package alone
-# that command finds nothing to check and fails. Restating `before` is the cost of pointing it
-# somewhere else - the command takes the entry as a flag, not from config.
-'[@opra/angular]':
-  run:
-    build:
-      before:
-        - rman check --entry ./src/public_api.ts
-        - rman lint
-        - rman clean
-
 # Skip building example projects
 '[example-*]':
   run:

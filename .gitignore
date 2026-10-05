@@ -58,3 +58,22 @@ lerna-debug.log*
 
 packages/*/_debug.js
 packages/*/_debug2.js
+
+# TypeScript output emitted next to its input.
+#
+# A project with no `outDir` writes each `.js`/`.d.ts` beside the `.ts` it came
+# from. `examples/tsconfig.json` was one, and its `include` takes every
+# package's sources as inputs of its own, so a single `tsc -b` of one example
+# left 1461 generated files through `packages/*/src`. That one is fixed at the
+# source (`noEmit`); this is what keeps the next stray `tsc` invocation out of
+# a commit. Nothing hand-written lives under a `src/` directory with these
+# extensions - `packages/api-ui/assets/*.js` is outside `src`, and the
+# `logerror.js` files sit at their package roots.
+
+**/src/**/*.js
+**/src/**/*.js.map
+**/src/**/*.d.ts
+**/src/**/*.d.ts.map
+examples/_lib/*/index.js
+examples/_lib/*/index.js.map
+examples/_lib/*/index.d.ts

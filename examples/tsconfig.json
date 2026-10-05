@@ -2,6 +2,19 @@
   "extends": "../tsconfig-base.json",
   "include": ["**/*.ts", "../packages/*/src/**/*.ts"],
   "compilerOptions": {
+    // These projects are type-checked, never emitted: `_build` is skipped for
+    // every `example-*` package (see `.rmanrc.yml`) and the demos run from
+    // source through a TypeScript loader.
+    //
+    // Without this they emitted, and emitted in the worst possible place. The
+    // `include` above does not merely *resolve* `@opra/...` - it pulls every
+    // package's sources in as inputs of this project - and with no `outDir`
+    // TypeScript writes each output next to its input. One `tsc -b` of a
+    // single example left 1461 generated files scattered through the packages'
+    // own `src` directories, and the next run compiled further because the
+    // `.d.ts` files it had just written made the previously unresolvable
+    // imports resolve.
+    "noEmit": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "sourceMap": true,

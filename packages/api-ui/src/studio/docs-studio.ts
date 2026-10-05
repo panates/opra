@@ -304,27 +304,49 @@ export class DocsStudio {
   }
 
   /** Collects a JSON body and turns whatever `handle` throws into the one
-   *  shape the client knows how to show. */
+   *  shape the client knows how to show.
+   *
+   *  **A body somebody already parsed is used as it stands.** Inside an
+   *  application the request has usually passed a body parser long before it
+   *  reaches here — NestJS installs one by default, and `express.json()` is
+   *  the first line of most Express apps — and a parser leaves the stream
+   *  consumed: waiting for `'data'` on it produces no chunks and no `'end'`,
+   *  so the request simply never gets an answer. Reading it from `req.body`
+   *  first is what makes this work mounted as well as it works standalone. */
   private _readBody(
     req: IncomingMessage,
     res: ServerResponse,
     handle: (body: any) => Promise<unknown>,
   ): void {
+    const parsed = (req as { body?: unknown }).body;
+    if (parsed && typeof parsed === 'object' && !Buffer.isBuffer(parsed)) {
+      this._answer(res, handle(parsed));
+      return;
+    }
     const chunks: Buffer[] = [];
     req.on('data', c => chunks.push(c as Buffer));
-    req.on('end', () => {
-      Promise.resolve()
-        .then(() => handle(JSON.parse(Buffer.concat(chunks).toString())))
-        .then(result => {
-          res.writeHead(200, { 'content-type': 'application/json' });
-          res.end(JSON.stringify({ ok: true, ...(result as object) }));
-        })
-        .catch((e: Error) => {
-          this.options.onError?.(e);
-          res.writeHead(400, { 'content-type': 'application/json' });
-          res.end(JSON.stringify({ error: e.message }));
-        });
-    });
+    req.on('end', () =>
+      this._answer(
+        res,
+        Promise.resolve().then(() =>
+          handle(JSON.parse(Buffer.concat(chunks).toString())),
+        ),
+      ),
+    );
+  }
+
+  /** The one response shape the client knows how to read, for either path. */
+  private _answer(res: ServerResponse, result: Promise<unknown>): void {
+    result
+      .then(value => {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, ...(value as object) }));
+      })
+      .catch((e: Error) => {
+        this.options.onError?.(e);
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      });
   }
 }
 

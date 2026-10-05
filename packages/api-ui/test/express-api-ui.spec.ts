@@ -502,6 +502,31 @@ describe('api-ui:expressApiUi studio', () => {
     ).toStrictEqual('A customer (edited)');
   });
 
+  it('Should save through a body the application already parsed', async () => {
+    /* `express.json()` is the first line of most applications, and NestJS
+     * installs one by default. A parser leaves the stream consumed, so
+     * waiting for `'data'` on it yields no chunks and no `'end'` - the
+     * request never gets an answer and the save hangs until it times out. */
+    const parsed = express();
+    parsed.use(express.json());
+    parsed.use('/reference', expressApiUi(doc, { studio: true }));
+    const saved = await supertest(parsed)
+      .post('/reference/_studio/save')
+      .send({
+        owner: doc.id,
+        key: ['types', 'Customer'],
+        field: 'description',
+        value: 'A customer (parsed body)',
+        lang: 'en',
+      });
+    expect(saved.status).toBe(200);
+    expect(saved.body).toEqual({ ok: true });
+    expect(
+      JSON.parse(fs.readFileSync(path.join(dir, 'en.json'), 'utf-8')).types
+        .Customer.description,
+    ).toStrictEqual('A customer (parsed body)');
+  });
+
   it('Should serve neither the studio nor its routes when it is off', async () => {
     const plain = express();
     plain.use('/reference', expressApiUi(doc));

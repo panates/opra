@@ -2,14 +2,14 @@ import { type Validator, vg } from 'valgen';
 import { DECODER, ENCODER } from '../../constants.js';
 import { SimpleType } from '../simple-type.js';
 
-@SimpleType({
+@(SimpleType({
   name: 'mobilephone',
   description: 'A Mobile Phone Number value',
   nameMappings: {
     js: 'string',
     json: 'string',
   },
-})
+}).Example('+12025550143'))
 export class MobilePhoneType {
   constructor(attributes?: Partial<MobilePhoneType>) {
     if (attributes) Object.assign(this, attributes);

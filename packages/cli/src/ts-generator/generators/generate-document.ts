@@ -1,5 +1,4 @@
 import path from 'node:path';
-import { OpraHttpClient } from '@opra/client';
 import { ApiDocument, BUILTIN, HttpApi } from '@opra/common';
 import colors from 'ansi-colors';
 import { pascalCase } from 'putil-varhelpers';
@@ -27,13 +26,27 @@ export async function generateDocument(
       const out = this._documentsMap.get(document);
       if (out) return out;
     }
+    if (!this.serviceUrl) {
+      throw new TypeError(
+        'Either "serviceUrl" or an already-built ApiDocument is required',
+      );
+    }
     this.emit(
       'log',
       colors.cyan('Fetching document schema from ') +
         colors.blueBright(this.serviceUrl),
     );
+    // Dynamically imported — not at this file's own top level — so a
+    // caller that always passes a `document` directly (the browser
+    // codegen bundle in `@opra/api-ui`, notably) never needs `@opra/client`
+    // resolvable at all, since this whole branch (and this import) is
+    // then simply never reached.
+    const { OpraHttpClient } = await import('@opra/client');
     const client = new OpraHttpClient(this.serviceUrl);
-    document = await client.fetchDocument({ documentId: document });
+    document = await client.fetchDocument({
+      documentId: document,
+      lang: this.lang,
+    });
   }
   this._document = document;
   let out = this._documentsMap.get(document.id);
@@ -80,8 +93,7 @@ export async function generateDocument(
   this._fileHeaderDocInfo = `/*
  * ${document.info.title}
  * Id: ${document.id}
- * Version: ${document.info.version}
- * ${this.serviceUrl}
+ * Version: ${document.info.version}${this.serviceUrl ? `\n * ${this.serviceUrl}` : ''}
  */`;
 
   if (document.types.size) {

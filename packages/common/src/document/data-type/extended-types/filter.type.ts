@@ -9,14 +9,14 @@ import type { ComplexType } from '../complex-type.js';
 import { DataType } from '../data-type.js';
 import { SimpleType } from '../simple-type.js';
 
-@SimpleType({
+@(SimpleType({
   name: 'filter',
   description: 'A query filter',
   nameMappings: {
     js: 'object',
     json: 'string',
   },
-})
+}).Example("name='John' and age>=18"))
 export class FilterType {
   constructor(attributes?: Partial<FilterType>) {
     if (attributes) Object.assign(this, attributes);

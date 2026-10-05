@@ -6,6 +6,7 @@ import { isAny, type Validator, vg } from 'valgen';
 import { OpraSchema } from '../../schema/index.js';
 import type { ApiDocument } from '../api-document.js';
 import { DocumentElement } from '../common/document-element.js';
+import { applyTranslations } from '../common/translate-doc.js';
 import { ArrayType } from '../data-type/array-type.js';
 import { DataType } from '../data-type/data-type.js';
 import type { HttpMultipartField } from './http-multipart-field.js';
@@ -47,7 +48,9 @@ export const HttpMediaType = function (
     _this.contentType = arr.length > 1 ? arr : arr[0];
   }
   _this.description = initArgs.description;
+  _this.docKey = initArgs.docKey;
   _this.contentEncoding = initArgs.contentEncoding;
+  _this.example = initArgs.example;
   _this.examples = initArgs.examples;
   _this.multipartFields = [];
   _this.maxParts = initArgs.maxParts;
@@ -70,6 +73,26 @@ export const HttpMediaType = function (
 class HttpMediaTypeClass extends DocumentElement {
   declare readonly owner: DocumentElement;
   declare description?: string;
+
+  /** A media type inside a request body's `content` array has no identity
+   *  of its own beyond `contentType`, which is optional — so when the body
+   *  declares just one content (by far the common case) this adds no level
+   *  at all and its texts sit directly under the body's own key. */
+  override get docKeyUnstable(): boolean {
+    const content = (this.owner as any)?.content;
+    if (Array.isArray(content) && content.length === 1) return false;
+    return !this.docKey && !this.contentType;
+  }
+
+  protected get docKeySegment(): string | string[] | undefined {
+    const content = (this.owner as any)?.content;
+    if (Array.isArray(content) && content.length === 1) return undefined;
+    const contentType = Array.isArray(this.contentType)
+      ? this.contentType[0]
+      : this.contentType;
+    return ['content', this.docKey || contentType || '0'];
+  }
+
   declare contentType?: string | string[];
   declare contentEncoding?: string;
   declare type?: DataType;
@@ -103,19 +126,24 @@ class HttpMediaTypeClass extends DocumentElement {
     const typeName = this.type
       ? this.node.getDataTypeNameWithNs(this.type)
       : undefined;
-    const out = omitUndefined<OpraSchema.HttpMediaType>({
-      description: this.description,
-      contentType: this.contentType,
-      contentEncoding: this.contentEncoding,
-      type: typeName ? typeName : this.type?.toJSON(options),
-      isArray: this.isArray,
-      example: this.example,
-      examples: this.examples,
-      maxParts: this.maxParts,
-      maxPartSize: this.maxPartSize,
-      maxFieldSize: this.maxFieldSize,
-      maxTotalSize: this.maxTotalSize,
-    });
+    const out = applyTranslations(
+      this,
+      omitUndefined<OpraSchema.HttpMediaType>({
+        description: this.description,
+        contentType: this.contentType,
+        contentEncoding: this.contentEncoding,
+        type: typeName ? typeName : this.type?.toJSON(options),
+        isArray: this.isArray,
+        example: this.example,
+        examples: this.examples,
+        maxParts: this.maxParts,
+        maxPartSize: this.maxPartSize,
+        maxFieldSize: this.maxFieldSize,
+        maxTotalSize: this.maxTotalSize,
+      }),
+      options,
+      ['description'],
+    );
     if (this.multipartFields?.length) {
       out.multipartFields = this.multipartFields.map(x => x.toJSON(options));
     }
@@ -162,12 +190,16 @@ export namespace HttpMediaType {
     type?: Type | string;
     multipartFields?: HttpMultipartField.Metadata[];
     designType?: Type;
+    /** Authoring-only; never exported. See `DocumentElement#docKey`. */
+    docKey?: string;
   }
 
   export interface Options extends Partial<
     StrictOmit<OpraSchema.HttpMediaType, 'type' | 'multipartFields'>
   > {
     type?: Type | string;
+    /** Authoring-only; never exported. See `DocumentElement#docKey`. */
+    docKey?: string;
   }
 
   export interface InitArguments extends Combine<

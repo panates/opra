@@ -1,0 +1,16 @@
+{
+  "extends": "../../../tsconfig-base.json",
+  "include": ["."],
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "noEmit": true,
+    "moduleResolution": "bundler",
+    "module": "esnext",
+    "paths": {
+      "@opra/cli": ["../../cli/src/index.js"],
+      "@opra/client": ["../../client/src/index.js"],
+      "@opra/common": ["../../common/src/index.js"]
+    }
+  }
+}

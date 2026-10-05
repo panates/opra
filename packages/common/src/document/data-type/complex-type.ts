@@ -199,7 +199,11 @@ abstract class ComplexTypeClass extends ComplexTypeBase {
       let i = 0;
       for (const field of this._fields.values()) {
         if (field.origin === this && field.inScope(options?.scope)) {
-          fields[field.name] = field.toJSON(options);
+          // `forScope()` applies any `.Override(scopePattern, ...)` for
+          // this scope (e.g. `readonly: false` in "db") before
+          // serializing — a plain `field.toJSON()` would always emit the
+          // field's base (un-overridden) values, regardless of scope.
+          fields[field.name] = field.forScope(options?.scope).toJSON(options);
           i++;
         }
       }

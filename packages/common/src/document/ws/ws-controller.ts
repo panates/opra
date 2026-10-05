@@ -3,8 +3,10 @@ import type { Combine, ThunkAsync, Type } from 'ts-gems';
 import { asMutable } from 'ts-gems';
 import { ResponsiveMap } from '../../helpers/index.js';
 import { OpraSchema } from '../../schema/index.js';
+import type { ApiDocument } from '../api-document.js';
 import { DataTypeMap } from '../common/data-type-map.js';
 import { DocumentElement } from '../common/document-element.js';
+import { applyTranslations } from '../common/translate-doc.js';
 import { CLASS_NAME_PATTERN, DECORATOR, kDataTypeMap } from '../constants.js';
 import type { EnumType } from '../data-type/enum-type.js';
 import { WSControllerDecoratorFactory } from '../decorators/ws-controller.decorator.js';
@@ -104,6 +106,10 @@ export const WSController = function (
  * @class WSController
  */
 class WSControllerClass extends DocumentElement {
+  protected get docKeySegment(): string[] {
+    return ['controllers', this.docKey || this.name];
+  }
+
   declare protected _controllerReverseMap: WeakMap<Type, WSController | null>;
   declare readonly kind: OpraSchema.WSController.Kind;
   declare readonly name: string;
@@ -123,21 +129,26 @@ class WSControllerClass extends DocumentElement {
   /**
    *
    */
-  toJSON(): OpraSchema.WSController {
-    const out = omitUndefined<OpraSchema.WSController>({
-      kind: this.kind,
-      description: this.description,
-    });
+  toJSON(options?: ApiDocument.ExportOptions): OpraSchema.WSController {
+    const out = applyTranslations(
+      this,
+      omitUndefined<OpraSchema.WSController>({
+        kind: this.kind,
+        description: this.description,
+      }),
+      options,
+      ['description'],
+    );
     if (this.operations.size) {
       out.operations = {};
       for (const v of this.operations.values()) {
-        out.operations[v.name] = v.toJSON();
+        out.operations[v.name] = v.toJSON(options);
       }
     }
     if (this.types.size) {
       out.types = {};
       for (const v of this.types.values()) {
-        out.types[v.name!] = v.toJSON();
+        out.types[v.name!] = v.toJSON(options);
       }
     }
     return out;

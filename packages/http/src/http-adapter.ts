@@ -1,6 +1,7 @@
 import * as process from 'node:process';
 import type { Readable } from 'node:stream';
 import typeIs from '@browsery/type-is';
+import type { ApiUiOptions } from '@opra/api-ui';
 import {
   ArrayType,
   BadRequestError,
@@ -26,6 +27,7 @@ import {
   safeJsonStringify,
 } from '@opra/common';
 import { kAssetCache, PlatformAdapter } from '@opra/core';
+import type { OpenApiDocumentFactory } from '@opra/openapi';
 import { parse as parseContentType } from 'content-type';
 import { splitString } from 'fast-tokenizer';
 import http from 'http';
@@ -63,17 +65,58 @@ export abstract class HttpAdapter<
   // readonly handler: HttpHandler;
   readonly transform: OpraSchema.Transport = 'http';
   readonly basePath: string;
-  scope?: string;
+  scope: string;
   interceptors: (
     HttpAdapter.InterceptorFunction | HttpAdapter.IHttpInterceptor
   )[];
+  /** Whether `$schema` (native Opra schema) is published. See
+   *  `HttpAdapter.Options.schema`. */
+  schema: boolean;
+  /** Whether `$openapi` is published, and with which options, if any.
+   *  See `HttpAdapter.Options.openapi`. */
+  openapi: boolean | OpenApiDocumentFactory.Options;
+  /** Whether the `@opra/api-ui` reference page is published, and with
+   *  which options, if any. See `HttpAdapter.Options.apiUi`. Concrete
+   *  adapters (e.g. `ExpressAdapter`) are the ones that actually mount
+   *  it — this base class only carries the option through, the same way
+   *  `scope`/`basePath` do, since *how* a UI page gets mounted is
+   *  entirely transport-specific. */
+  apiUi: boolean | (ApiUiOptions & { path?: string });
+  /** Whether the reference page also publishes the documentation studio.
+   *  See `HttpAdapter.Options.enableStudio`. */
+  enableStudio: boolean;
 
   protected constructor(options?: HttpAdapter.Options) {
     super(options);
     this.interceptors = [...(options?.interceptors || [])];
     this.basePath = options?.basePath || '/';
     if (!this.basePath.startsWith('/')) this.basePath = '/' + this.basePath;
-    this.scope = options?.scope;
+    this.scope = options?.scope ?? 'api';
+    this.schema = options?.schema ?? true;
+    this.openapi = options?.openapi ?? false;
+    this.apiUi = options?.apiUi ?? false;
+    this.enableStudio = options?.enableStudio ?? false;
+    if (this.enableStudio) {
+      if (!this.apiUi) {
+        /* The studio *is* the reference page in another mode, served from
+         * the same route. Enabling one without the other asks for an editor
+         * with nowhere to live, and silently publishing a docs page nobody
+         * asked for would be the worse of the two answers. */
+        throw new TypeError(
+          '`enableStudio` requires `apiUi` to be enabled: the documentation ' +
+            'studio is the reference page itself, served from the same route.',
+        );
+      }
+      /* Said once, at startup, where somebody is looking. This route accepts
+       * writes and saves them wherever the document's translation store
+       * writes to; that it is on should never be something discovered from a
+       * diff. */
+      console.warn(
+        '[opra] The documentation studio is enabled: this adapter publishes ' +
+          "a route that writes documentation texts to this process's own " +
+          'translation store. Do not leave it on in production.',
+      );
+    }
   }
 
   get api(): HttpApi {
@@ -761,16 +804,95 @@ export abstract class HttpAdapter<
       );
       return this.sendResponse(context);
     }
-    /* Check if response cache exists */
-    let responseBody = this[kAssetCache].get(doc, `$schema`);
+    /* Documentation language comes from `?lang=` alone — deliberately not
+     * from `Accept-Language`. Sniffing the header would make one URL return
+     * different bodies, which any shared cache in front of this service
+     * would then serve to the wrong client (and `Vary: Accept-Language`,
+     * the alternative, all but disables caching since real header values
+     * are near-unique per browser). Without the parameter the document's
+     * own default language answers — which resolves to nothing at all for
+     * a document that ships no translations, leaving the texts written in
+     * the source exactly as they are. */
+    const lang = doc.resolveLanguage(searchParams.get('lang') || undefined);
+    /* Check if response cache exists. The language is part of the key: the
+     * same document serializes differently per language. */
+    const cacheKey = `$schema${lang ? ':' + lang : ''}`;
+    let responseBody = this[kAssetCache].get(doc, cacheKey);
     /* Create response if response cache does not exists */
     if (!responseBody) {
       const schema = doc.export({
         scope: this.scope,
+        lang,
       });
       responseBody = JSON.stringify(schema);
-      this[kAssetCache].set(doc, `$schema`, responseBody);
+      this[kAssetCache].set(doc, cacheKey, responseBody);
     }
+    response.end(responseBody);
+  }
+
+  /**
+   * Sends the document mapped to an OpenAPI 3.0/3.1 document as JSON —
+   * the `$openapi` counterpart of `sendDocumentSchema()` above, same
+   * `?id=` sub-document lookup included. Requires the optional
+   * `@opra/openapi` package; it's lazily imported here (only once,
+   * cached by Node itself) rather than imported at the top of this file,
+   * so an adapter that never enables `openapi` never loads it.
+   *
+   * @param context - The HTTP execution context.
+   * @returns A promise that resolves when the document is sent.
+   */
+  async sendOpenApiDocument(context: HttpContext): Promise<void> {
+    const { request, response } = context;
+    const { document } = this;
+    const url = new URL(
+      request.originalUrl || request.url || '/',
+      'http://tempuri.org',
+    );
+    const { searchParams } = url;
+    const documentId = searchParams.get('id');
+    const doc = documentId ? document.findDocument(documentId) : document;
+    if (!doc) {
+      context.errors.push(
+        new BadRequestError({
+          message: `Document with given id [${documentId}] does not exists`,
+        }),
+      );
+      return this.sendResponse(context);
+    }
+    if (!(doc.api instanceof HttpApi)) {
+      context.errors.push(
+        new BadRequestError({
+          message: `Document${documentId ? ` [${documentId}]` : ''} has no HTTP api to convert to OpenAPI`,
+        }),
+      );
+      return this.sendResponse(context);
+    }
+    let responseBody = this[kAssetCache].get(doc, `$openapi`);
+    if (!responseBody) {
+      let generate: typeof import('@opra/openapi').OpenApiDocumentFactory.generate;
+      try {
+        ({
+          OpenApiDocumentFactory: { generate },
+        } = await import('@opra/openapi'));
+      } catch {
+        context.errors.push(
+          new InternalServerError({
+            message:
+              'OpenAPI export requires the "@opra/openapi" package to be installed',
+          }),
+        );
+        return this.sendResponse(context);
+      }
+      const openApiOptions =
+        typeof this.openapi === 'object' ? this.openapi : undefined;
+      const openApiDoc = generate(doc, {
+        scope: this.scope,
+        ...openApiOptions,
+      });
+      responseBody = JSON.stringify(openApiDoc);
+      this[kAssetCache].set(doc, `$openapi`, responseBody);
+    }
+    response.setHeader('content-type', MimeTypes.json);
     response.end(responseBody);
   }
 
@@ -846,6 +968,15 @@ export abstract class HttpAdapter<
               operationResponse = filteredResponses.find(r =>
                 typeIs.is(contentType!, toArray(r.contentType)),
               );
+              /* A response that declares no content type at all constrains
+               * nothing, so it answers for whatever the operation actually
+               * returned - the same reading the `!hasBody` branch above
+               * already gives it. Without this, declaring
+               * `.Response(200, { type: OperationResult })` and returning an
+               * `OperationResult` is unsatisfiable: the body's type decides
+               * the content type is `opra.response+json` a few lines up,
+               * and nothing declared could ever match it. */
+              operationResponse ??= filteredResponses.find(r => !r.contentType);
               if (!operationResponse) {
                 throw new InternalServerError(
                   `Operation didn't configured to return "${contentType}" content`,
@@ -983,7 +1114,60 @@ export namespace HttpAdapter {
   export interface Options extends PlatformAdapter.Options {
     basePath?: string;
     interceptors?: (InterceptorFunction | IHttpInterceptor)[];
-    scope?: string | '*';
+    scope?: string;
+    /**
+     * Whether to publish the document's own native Opra schema at
+     * `GET $schema` (and accept `$bundle` multipart batch requests — see
+     * `handleBundle`). Enabled by default, matching this adapter's
+     * long-standing behavior; set to `false` to omit it entirely (e.g. to
+     * keep the schema private in production).
+     * @default true
+     */
+    schema?: boolean;
+    /**
+     * Whether to publish an OpenAPI 3.0/3.1 mapping of the document at
+     * `GET $openapi`. Requires the optional `@opra/openapi` package to be
+     * installed — lazily imported on first request, so an adapter that
+     * leaves this disabled (the default) never loads it. Pass an options
+     * object instead of `true` to customize the generated document (see
+     * `OpenApiDocumentFactory.Options`).
+     * @default false
+     */
+    openapi?: boolean | OpenApiDocumentFactory.Options;
+    /**
+     * Whether to publish the interactive API reference UI (`@opra/api-ui`)
+     * alongside this adapter's own routes. Requires the optional
+     * `@opra/api-ui` package to be installed — lazily imported on first
+     * request, so an adapter that leaves this disabled (the default)
+     * never loads it. Pass an options object instead of `true` to
+     * customize the rendered page (see `ApiUiOptions`); `path` (default
+     * `"$docs"`) picks where it's mounted, relative to this adapter's own
+     * `basePath`. *How* this actually gets mounted is entirely
+     * transport-specific — see each concrete adapter (e.g.
+     * `ExpressAdapter`) for what it does with this option.
+     * @default false
+     */
+    apiUi?: boolean | (ApiUiOptions & { path?: string });
+    /**
+     * Whether the reference page above also publishes the documentation
+     * studio — the same page in a writing mode, reached by a button in its
+     * header and by `?edit=1` on its own url. Requires `apiUi`, and throws
+     * when it is off: the studio is that page, not a second one.
+     *
+     * **A write endpoint with no authentication of its own.** It saves
+     * through the document's `TranslationStore`, so a document whose store
+     * cannot `save` has no studio at all and enabling this for one throws at
+     * startup rather than failing at the first click. Everything else is an
+     * application's own decision, which is why this is off by default and
+     * says so in the log when it is on.
+     *
+     * Equivalent to `apiUi: { studio: true }`; this is the same switch
+     * spelled at the adapter's own level, and an explicit `apiUi.studio`
+     * wins over it.
+     *
+     * @default false
+     */
+    enableStudio?: boolean;
   }
 
   /**

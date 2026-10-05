@@ -11,6 +11,11 @@
 /graphify-out
 **/*.md
 
+# Vendored browser libraries — kept byte-identical to the upstream
+# build so the header comment in each file stays true and an upgrade is
+# a plain file swap.
+/packages/api-ui/assets/vendor
+
 # IDEs and editors
 .project
 .classpath

@@ -3,28 +3,21 @@
   "version": "1.30.1",
   "description": "Opra Elastic Search adapter package",
   "author": "Panates",
+  "contributors": [
+    "Eray Hanoglu <e.hanoglu@panates.com>",
+    "Ilker Gurelli <i.gurelli@panates.com>",
+    "Onur Tokel <o.tokel@panates.com>",
+    "Bircan Yuruk <b.yuruk@panates.com>"
+  ],
   "license": "MIT",
   "homepage": "https://www.oprajs.com",
   "scripts": {
-    "compile": "tsc",
-    "prebuild": "npm run check && npm run lint && npm run clean",
-    "build": "tsc -b tsconfig-build.json",
-    "postbuild": "node ../../support/postbuild.cjs",
-    "lint": "eslint . --max-warnings=0",
-    "lint:fix": "eslint . --max-warnings=0 --fix",
-    "format": "prettier . --write --log-level=warn",
-    "check": "dpdm -T --no-warning --no-tree ./src/index.ts",
-    "test": "mocha",
-    "clean": "npm run clean:src && npm run clean:test && npm run clean:build && npm run clean:cover",
-    "clean:src": "ts-cleanup -s src --all",
-    "clean:test": "ts-cleanup -s test --all",
-    "clean:build": "rimraf build *.tsbuildinfo",
-    "clean:cover": "rimraf ../../coverage/elastic"
+    "test": "mocha"
   },
   "dependencies": {
-    "@jsopen/objects": "^2.3.1",
+    "@jsopen/objects": "^2.3.4",
     "tslib": "^2.8.1",
-    "valgen": "^7.0.0"
+    "valgen": "^7.0.3"
   },
   "peerDependencies": {
     "@elastic/elasticsearch": ">=8.7.0 <10",
@@ -34,9 +27,9 @@
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",
     "@opra/http": "^1.30.1",
-    "expect": "^30.5.1",
+    "expect": "^30.5.2",
     "sinon": "^22.1.0",
-    "ts-gems": "^4.0.3"
+    "ts-gems": "^4.0.4"
   },
   "type": "module",
   "module": "./index.js",

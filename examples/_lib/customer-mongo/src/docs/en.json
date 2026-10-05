@@ -1,0 +1,267 @@
+{
+  "info": {
+    "title": "Customer Models Document",
+    "description": "The complete data model shared by the customer-facing sample applications (`express-mongo`, `express-elastic`, `express-sqb` and the NestJS variant).\n\nEvery type here is storage-agnostic — the same `Customer`, `Person`, `Address`, `Note` and enum definitions are reused across MongoDB, Elasticsearch and SQL-backed examples; only the persistence layer changes underneath. Browse the **Models** section below for a breakdown by kind, or open any type from the sidebar to see its fields, constraints and examples.",
+    "termsOfService": "These type definitions are published purely as a reference for the Opra example applications; they carry no warranty and must not be treated as a stable, versioned public schema.",
+    "license": {
+      "content": "MIT License\n\nCopyright (c) 2020-present Example Inc \n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
+    }
+  },
+  "types": {
+    "AddressType": {
+      "description": "\nClassifies the **purpose** of an address associated with a customer.\n\nA customer may have several addresses on file at the same time (a home\naddress for correspondence, a separate billing address for invoices, a\nshipping address for deliveries, and so on) — this type tells the API\nconsumer which one it is looking at.\n\nRecommended usage:\n\n- `home` — the customer's primary residence\n- `work` — a business or office address\n- `billing` — where invoices and payment correspondence are sent\n- `shipping` — where physical goods should be delivered\n- `mailing` — a general postal address, used when it differs from the home address\n- `other` — anything that doesn't fit the categories above\n\n> A customer can have more than one address of the same type over time.\n> Only the most recently created one for a given type should be treated\n> as active; older ones are kept for historical/audit purposes.\n\nSee the [Customer](#/model/Customer) model for how addresses attach to a customer.\n"
+    },
+    "Gender": {
+      "description": "The gender of a person"
+    },
+    "Address": {
+      "description": "Address information",
+      "fields": {
+        "type": {
+          "description": "Purpose of this address"
+        },
+        "city": {
+          "description": "City name"
+        },
+        "countryCode": {
+          "description": "ISO 3166-1 alpha-2 country code"
+        },
+        "street": {
+          "description": "Street name and number"
+        },
+        "zipCode": {
+          "description": "Postal / ZIP code"
+        },
+        "location": {
+          "description": "Location information"
+        }
+      }
+    },
+    "Record": {
+      "description": "Base schema shared by every persisted entity — the storage key and soft-delete/audit timestamps",
+      "fields": {
+        "_id": {
+          "description": "Unique identifier of the record"
+        },
+        "deleted": {
+          "description": "Whether the record has been soft-deleted"
+        },
+        "createdAt": {
+          "description": "Date and time the record was created"
+        },
+        "updatedAt": {
+          "description": "Date and time the record was last updated"
+        }
+      }
+    },
+    "Country": {
+      "description": "Country information",
+      "fields": {
+        "code": {
+          "description": "ISO 3166-1 alpha-2 country code"
+        },
+        "name": {
+          "description": "Country name"
+        },
+        "phoneCode": {
+          "description": "International calling code"
+        }
+      }
+    },
+    "CountryCode": {
+      "description": "\nAn **ISO 3166-1 alpha-2** country code — a two-letter code identifying a\ncountry, such as `US`, `TR`, or `DE`.\n\nThese codes are maintained by the ISO 3166 Maintenance Agency and are the\nmost widely used country identifier in software systems, forming the basis\nof:\n\n- Domain suffixes (`.de`, `.fr`)\n- SIM card / telecom numbering plans\n- Locale codes, combined with a language code (e.g. `en-US`)\n\nAlways **uppercase**, exactly two letters — lowercase or three-letter\n(alpha-3, e.g. `USA`) codes are not accepted.\n",
+      "examples": {
+        "0": {
+          "description": "United States"
+        },
+        "1": {
+          "description": "Türkiye"
+        },
+        "2": {
+          "description": "Germany"
+        }
+      }
+    },
+    "Customer": {
+      "description": "\nThe **central entity** of this API — everything else (addresses, notes,\nphone numbers) hangs off a `Customer`.\n\nA customer record is a *mix* of three things:\n\n1. Standard [Record](#/model/Record) bookkeeping — id, timestamps, soft-delete.\n2. Personal details, via the shared [Person](#/model/Person) shape (name,\n   gender, birth date).\n3. Fields declared directly here — account status, contact info, and the\n   collections of related records (addresses, notes, phone numbers).\n\n:::info\nCustomers are **never hard-deleted**. Setting `deleted: true` (soft\ndelete) is the only supported removal path — this keeps historical\norders, notes, and audit trails intact.\n:::\n\nMost fields are self-explanatory, but a few are worth calling out:\n\n- `rate` drives pricing/loyalty calculations elsewhere in the system.\n- `country` is **read-only** — it's resolved server-side from `countryCode`,\n  not something a client can set directly.\n- `tags` is a free-form label list with no fixed vocabulary; use it for\n  ad-hoc segmentation.\n",
+      "fields": {
+        "uid": {
+          "description": "\nAn **external, user-facing** identifier for the customer — think of it as\nthe \"public\" id you'd put in a URL or show in a support ticket, as opposed\nto the internal `_id`.\n\nUnlike `_id`, this is *not* guaranteed to be a number, and it's safe to\nexpose in client-facing contexts. Usually a short alphanumeric code such\nas `CUST-4821`.\n"
+        },
+        "active": {
+          "description": "\nWhether the customer account is **active**.\n\nAn inactive customer:\n\n- cannot place new orders\n- is excluded from marketing/notification jobs\n- still appears in historical reports (their past orders aren't affected)\n\nToggling this is the recommended way to temporarily suspend an account\nwithout deleting any data — see `setStatus` on the `Customer` controller\nfor a higher-level operation that manages this alongside related state.\n"
+        },
+        "countryCode": {
+          "description": "ISO 3166-1 alpha-2 country code of the customer"
+        },
+        "rate": {
+          "description": "\nThe **loyalty/pricing rate** applied to this customer, used by the billing\nand discount engines elsewhere in the system.\n\nDefaults to `1` (standard rate). Values *below* 1 represent a discount\n(e.g. `0.9` = 10% off), values *above* 1 represent a surcharge. This field\nis intentionally a plain number rather than an enum of tiers, so pricing\nrules can evolve without a schema change.\n"
+        },
+        "address": {
+          "description": "Postal address of the customer"
+        },
+        "notes": {
+          "description": "Notes attached to the customer"
+        },
+        "phoneNumbers": {
+          "description": "Phone numbers of the customer"
+        },
+        "country": {
+          "description": "\nThe customer's **country**, resolved server-side from `countryCode`.\n\nThis field is **read-only** — you cannot set it directly through the API.\nTo change a customer's country, update `countryCode` instead; `country`\nwill be re-resolved automatically on the next read.\n"
+        },
+        "tags": {
+          "description": "Free-form labels attached to the customer"
+        },
+        "hasBranch": {
+          "description": "Whether the customer has a branch — either a flag or a branch count"
+        },
+        "identityDocument": {
+          "description": "The customer's identity document, if one has been verified — a passport, driver's license, or national ID card.\n\nExactly one of these three shapes is stored; which one it is can be told apart by which fields are present (e.g. only a `Passport` has `expiryDate`)."
+        }
+      }
+    },
+    "Person": {
+      "description": "Person information",
+      "fields": {
+        "givenName": {
+          "description": "Given (first) name"
+        },
+        "familyName": {
+          "description": "Family (last) name"
+        },
+        "gender": {
+          "description": "Gender of the person"
+        },
+        "birthDate": {
+          "description": "Date of birth"
+        },
+        "date2": {
+          "description": "Secondary date field used for testing purposes"
+        }
+      }
+    },
+    "PersonName": {
+      "description": "A person name, at least 3 characters long",
+      "examples": {
+        "0": {
+          "description": ""
+        },
+        "1": {
+          "description": ""
+        }
+      }
+    },
+    "Note": {
+      "description": "A note attached to a customer",
+      "fields": {
+        "title": {
+          "description": "Short title of the note"
+        },
+        "text": {
+          "description": "Body text of the note"
+        },
+        "rank": {
+          "description": "Display order of the note"
+        },
+        "largeContent": {
+          "description": "Large content only returned when explicitly requested"
+        }
+      }
+    },
+    "PhoneNumber": {
+      "description": "Phone number information",
+      "fields": {
+        "countryCode": {
+          "description": "International calling code"
+        },
+        "areaCode": {
+          "description": "Area code"
+        },
+        "phoneNumber": {
+          "description": "Local phone number"
+        }
+      }
+    },
+    "PhoneNumberValue": {
+      "description": "\nThe **subscriber (local) part** of a phone number — the digits dialed\n*after* the country and area codes.\n\nFor example, in `+1 (415) 555-2671`:\n\n1. `+1` is the *international calling code* (see `countryCode`)\n2. `415` is the *area code* (see `areaCode`)\n3. `5552671` is **this** value\n\nDigits only — no spaces, dashes, or parentheses; formatting is a display\nconcern, not part of the stored value. Length is restricted to a\nreasonable range (4–12 digits) to catch obviously malformed input, without\nhard-coding any single country's exact numbering plan.\n\n:::tip\nStore `countryCode`, `areaCode`, and this value separately rather than\none combined string — it's what lets you validate, sort, and query each\npart on its own.\n:::\n",
+      "examples": {
+        "0": {
+          "description": ""
+        }
+      }
+    },
+    "Passport": {
+      "description": "A passport used as an identity document.\n\nPassports are issued by national governments and are internationally recognized as travel and identity documents.",
+      "fields": {
+        "number": {
+          "description": "Passport number"
+        },
+        "issuingCountry": {
+          "description": "Country that issued the passport"
+        },
+        "expiryDate": {
+          "description": "Date the passport expires"
+        }
+      }
+    },
+    "DriversLicense": {
+      "description": "A driver's license used as an identity document.\n\nUnlike a passport, a driver's license is issued by a state/province-level authority rather than a national one, so it carries `issuingState` instead of a country code.",
+      "fields": {
+        "number": {
+          "description": "License number"
+        },
+        "issuingState": {
+          "description": "State or province that issued the license"
+        },
+        "licenseClass": {
+          "description": "License class — what the holder is permitted to drive, e.g. \"B\" for a standard passenger car"
+        }
+      }
+    },
+    "NationalId": {
+      "description": "A national identity card.\n\nThe most common identity document for domestic use — issued by a country to its own residents, distinct from a passport (meant for international travel).",
+      "fields": {
+        "number": {
+          "description": "National identity number"
+        },
+        "issuingCountry": {
+          "description": "Country that issued the identity card"
+        }
+      }
+    },
+    "Profile": {
+      "description": "The signed-in user's own profile",
+      "fields": {
+        "address": {
+          "description": "Postal address of the profile owner"
+        }
+      }
+    }
+  },
+  "description": "",
+  "fields": {
+    "latitude": {
+      "description": "Latitude in decimal degrees"
+    },
+    "longitude": {
+      "description": "Longitude in decimal degrees"
+    },
+    "radiusMeters": {
+      "description": "Estimated accuracy radius of the coordinate, in meters"
+    },
+    "source": {
+      "description": "Where the coordinate came from"
+    },
+    "accuracy": {
+      "description": "Accuracy of this coordinate — an embedded type nested inside another embedded type"
+    }
+  },
+  "examples": {
+    "0": {
+      "description": "San Francisco, US"
+    },
+    "1": {
+      "description": "Manhattan, US"
+    }
+  }
+}

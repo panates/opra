@@ -11,14 +11,11 @@
     "@opra/http": "^1.30.1",
     "@opra/mongodb": "^1.30.1",
     "express": "^5.2.1",
-    "mongodb": "^7.6.0",
-    "ts-gems": "^4.0.3"
+    "mongodb": "^7.7.0",
+    "ts-gems": "^4.0.4"
   },
   "scripts": {
-    "_build": "tsc && npm run check && npm run lint && npm run format",
-    "lint": "eslint . --max-warnings=0",
-    "check": "dpdm -T --no-warning --no-tree --exit-code circular:1 ./index.ts",
-    "format": "prettier . --write --log-level=warn",
+    "_build": "tsc",
     "start": "node --loader ../../support/esloader.mjs --experimental-specifier-resolution=node --import=./logerror.js src/start.ts"
   }
 }

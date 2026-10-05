@@ -9,6 +9,17 @@ export namespace CustomerApiDocument {
       info: {
         title: 'Customer Application',
         version: '1.0',
+        description:
+          'Sample Opra API demonstrating authentication backed by Elasticsearch',
+        termsOfService: 'https://panates.com/terms-of-service',
+        contact: [
+          {
+            name: 'Panates',
+            email: 'info@panates.com',
+            url: 'https://panates.com',
+          },
+        ],
+        license: { name: 'MIT', url: 'https://opensource.org/licenses/MIT' },
       },
       references: {
         cm: () => CustomerModelsDocument.create(),

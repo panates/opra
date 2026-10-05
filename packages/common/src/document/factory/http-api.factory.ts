@@ -332,6 +332,7 @@ export class HttpApiFactory {
             const field = new HttpMultipartField(target, {
               fieldName: src.fieldName,
               fieldType: src.fieldType,
+              required: src.required,
             });
             await this._initHttpMediaType(context, field, src);
             target.multipartFields.push(field);

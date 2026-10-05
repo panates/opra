@@ -1,4 +1,5 @@
 import {
+  ComplexType,
   HttpController,
   HttpOperation,
   OmitType,
@@ -7,22 +8,37 @@ import {
 import { HttpContext } from '@opra/http';
 import { MongoAdapter } from '@opra/mongodb';
 import { Customer, CustomersService } from 'example-customer-mongo';
-import { Db } from 'mongodb';
 import { type PartialDTO } from 'ts-gems';
+import type { CustomerApplication } from '../customer-application.js';
+
+// `Customer` minus its server-generated `_id`, used as the create
+// operation's request body. Naming it (rather than passing
+// `OmitType(Customer, ['_id'])` inline) gives it its own page in the API
+// reference, reachable like any other model — this `@ComplexType() class
+// ... extends OmitType(...)` shape is OPRA's own pattern for a *named*
+// mapped type (a bare `OmitType(...)` result only carries a name when
+// wrapped this way; its `base` is the underlying (anonymous) MappedType).
+@ComplexType()
+export class CustomerCreateInput extends OmitType(Customer, ['_id']) {}
 
 @HttpController({
   path: 'Customers',
 })
 export class CustomersController {
-  service: CustomersService;
+  protected _service?: CustomersService;
 
-  constructor(readonly db: Db) {
-    this.service = new CustomersService({ db });
+  constructor(readonly app: CustomerApplication) {}
+
+  get service() {
+    if (!this._service)
+      this._service = new CustomersService({ db: this.app.db });
+    return this._service;
   }
 
   @HttpOperation.Entity.Create(Customer, {
+    sections: ['Customers'],
     requestBody: {
-      type: OmitType(Customer, ['_id']),
+      type: CustomerCreateInput,
     },
   })
   async create(context: HttpContext): Promise<PartialDTO<Customer>> {
@@ -30,7 +46,9 @@ export class CustomersController {
     return this.service.for(context).create(data, options);
   }
 
-  @(HttpOperation.Entity.FindMany(Customer)
+  @(HttpOperation.Entity.FindMany(Customer, {
+    sections: ['Customers'],
+  })
     .Filter('_id', ['=', '!=', '<', '>', '>=', '<=', 'in', '!in'])
     .Filter('givenName', ['=', '!=', 'like', '!like', 'ilike', '!ilike'])
     .Filter('familyName', ['=', '!=', 'like', '!like'])
@@ -63,19 +81,17 @@ export class CustomersController {
     return this.service.for(context).findMany(options);
   }
 
-  @(HttpOperation.Entity.DeleteMany(Customer).Filter(
-    '_id',
-    '=, !=, <, >, >=, <=, in, !in',
-  ))
+  @(HttpOperation.Entity.DeleteMany(Customer, {
+    sections: ['Customers'],
+  }).Filter('_id', '=, !=, <, >, >=, <=, in, !in'))
   async deleteMany(context: HttpContext) {
     const { options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).deleteMany(options);
   }
 
-  @(HttpOperation.Entity.UpdateMany(Customer).Filter(
-    '_id',
-    '=, !=, <, >, >=, <=, in, !in',
-  ))
+  @(HttpOperation.Entity.UpdateMany(Customer, {
+    sections: ['Customers'],
+  }).Filter('_id', '=, !=, <, >, >=, <=, in, !in'))
   async updateMany(context: HttpContext) {
     const { data, options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).updateMany(data, options);

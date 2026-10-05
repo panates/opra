@@ -5,6 +5,7 @@ import { type Validator, vg } from 'valgen';
 import { OpraSchema } from '../../schema/index.js';
 import type { ApiDocument } from '../api-document.js';
 import { DocumentElement } from '../common/document-element.js';
+import { applyTranslations } from '../common/translate-doc.js';
 import { DECORATOR } from '../constants.js';
 import { ApiFieldDecoratorFactory } from '../decorators/api-field-decorator.js';
 import { testScopeMatch } from '../utils/test-scope-match.js';
@@ -61,6 +62,7 @@ export const ApiField = function (this: ApiField | void, ...args: any[]) {
   _this.origin = origin;
   _this.type = initArgs.type || owner.node.getDataType('any');
   _this.description = initArgs.description;
+  _this.docKey = initArgs.docKey;
   _this.isArray = initArgs.isArray;
   _this.isNestedEntity = initArgs.isNestedEntity;
   _this.default = initArgs.default;
@@ -90,6 +92,11 @@ export const ApiField = function (this: ApiField | void, ...args: any[]) {
  */
 class ApiFieldClass extends DocumentElement {
   declare protected _overrideCache?: Record<string, this>;
+
+  protected get docKeySegment(): string[] {
+    return ['fields', this.docKey || this.name];
+  }
+
   declare readonly owner: ComplexType | MappedType | MixinType;
   readonly origin?: ComplexType | MappedType | MixinType;
   declare readonly scopePattern?: (string | RegExp)[];
@@ -150,22 +157,27 @@ class ApiFieldClass extends DocumentElement {
     const typeName = this.type
       ? this.node.getDataTypeNameWithNs(this.type)
       : undefined;
-    return omitUndefined<OpraSchema.Field>({
-      type: typeName ? typeName : (this.type?.toJSON(options) as any),
-      description: this.description,
-      isArray: this.isArray || undefined,
-      isNestedEntity: this.isNestedEntity || undefined,
-      default: this.default,
-      fixed: this.fixed,
-      required: this.required || undefined,
-      exclusive: this.exclusive || undefined,
-      localization: this.localization || undefined,
-      keyField: this.keyField || undefined,
-      deprecated: this.deprecated || undefined,
-      readonly: this.readonly || undefined,
-      writeonly: this.writeonly || undefined,
-      examples: this.examples,
-    }) as OpraSchema.Field;
+    return applyTranslations(
+      this,
+      omitUndefined<OpraSchema.Field>({
+        type: typeName ? typeName : (this.type?.toJSON(options) as any),
+        description: this.description,
+        isArray: this.isArray || undefined,
+        isNestedEntity: this.isNestedEntity || undefined,
+        default: this.default,
+        fixed: this.fixed,
+        required: this.required || undefined,
+        exclusive: this.exclusive || undefined,
+        localization: this.localization || undefined,
+        keyField: this.keyField || undefined,
+        deprecated: this.deprecated || undefined,
+        readonly: this.readonly || undefined,
+        writeonly: this.writeonly || undefined,
+        examples: this.examples,
+      }) as OpraSchema.Field,
+      options,
+      ['description', 'deprecated'],
+    );
   }
 
   generateCodec(
@@ -216,6 +228,8 @@ export namespace ApiField {
       'override' | 'type' | 'isArray' | 'isNestedEntity'
     >[];
     designType?: Type;
+    /** Authoring-only; never exported. See `DocumentElement#docKey`. */
+    docKey?: string;
   }
 
   export interface Options extends Partial<

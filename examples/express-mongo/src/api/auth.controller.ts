@@ -1,20 +1,26 @@
 import { HttpController, HttpOperation, OperationResult } from '@opra/common';
-import { Db } from 'mongodb';
+import type { CustomerApplication } from '../customer-application.js';
 import { MyProfileController } from './my-profile.controller.js';
 
 @HttpController({
-  description: 'Auth controller',
-  controllers: [(parent: AuthController) => new MyProfileController(parent.db)],
+  controllers: [
+    (parent: AuthController) => new MyProfileController(parent.app),
+  ],
   path: 'auth',
 })
 export class AuthController {
-  constructor(readonly db: Db) {}
+  constructor(readonly app: CustomerApplication) {}
 
   @(HttpOperation({
+    sections: ['Account'],
     path: 'login',
   })
-    .QueryParam('user', String)
-    .QueryParam('password', 'string')
+    .QueryParam('user', {
+      type: String,
+    })
+    .QueryParam('password', {
+      type: 'string',
+    })
     .Response(200, { type: OperationResult }))
   login() {
     return new OperationResult({
@@ -23,6 +29,7 @@ export class AuthController {
   }
 
   @(HttpOperation({
+    sections: ['Account'],
     path: '/logout',
   }).Response(200, { type: OperationResult }))
   logout() {

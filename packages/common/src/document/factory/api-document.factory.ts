@@ -1,6 +1,10 @@
 import { updateErrorMessage } from '@jsopen/objects';
 import type { PartialSome, StrictOmit, ThunkAsync } from 'ts-gems';
 import { resolveThunk } from '../../helpers/index.js';
+import type {
+  TranslationBundle,
+  TranslationStore,
+} from '../../i18n/translation-store.js';
 import { OpraSchema } from '../../schema/index.js';
 import { ApiDocument } from '../api-document.js';
 import { DocumentInitContext } from '../common/document-init-context.js';
@@ -22,6 +26,14 @@ export namespace ApiDocumentFactory {
   > {
     references?: Record<string, ReferenceThunk>;
     types?: DataTypeInitSources;
+    /** Documentation texts per language, either inline or through a store
+     *  that loads them (a directory of JSON files, a remote source). Every
+     *  language the store lists is materialized here, while this document
+     *  is being built, so that `export()` can stay synchronous. */
+    translations?: Record<string, TranslationBundle>;
+    translationStore?: TranslationStore;
+    /** The language `export()` falls back to. Defaults to `'en'`. */
+    defaultLanguage?: string;
     api?:
       | StrictOmit<HttpApiFactory.InitArguments, 'owner'>
       | StrictOmit<MQApiFactory.InitArguments, 'owner'>
@@ -120,6 +132,7 @@ export class ApiDocumentFactory {
     init.spec = init.spec || OpraSchema.SpecVersion;
     document.url = init.url;
     if (init.info) document.info = { ...init.info };
+    await this.loadTranslations(document, init);
 
     /* Add references  */
     if (init.references) {
@@ -183,6 +196,33 @@ export class ApiDocumentFactory {
   }
 
   /**
+   * Materializes every language this document can be exported in. Bundle
+   * keys are lower-cased so that a request for `EN` or `tr-TR` resolves the
+   * same way regardless of how the language was written.
+   */
+  protected async loadTranslations(
+    document: ApiDocument,
+    init: ApiDocumentFactory.InitArguments,
+  ): Promise<void> {
+    if (init.defaultLanguage) document.defaultLanguage = init.defaultLanguage;
+    if (init.translations) {
+      for (const [lang, bundle] of Object.entries(init.translations)) {
+        document.translations.set(lang.toLowerCase(), bundle);
+      }
+    }
+    const store = init.translationStore;
+    if (!store) return;
+    /* Kept on the document, not just consumed here: a bundle is read from
+     * this store and must be written back to it, and the only component that
+     * can state that without guessing is the document itself. */
+    document.translationStore = store;
+    for (const lang of await store.listLanguages()) {
+      const bundle = await store.load(lang);
+      if (bundle) document.translations.set(lang.toLowerCase(), bundle);
+    }
+  }
+
+  /**
    *
    * @param context
    * @protected
@@ -209,7 +249,15 @@ export class ApiDocumentFactory {
     const document = new ApiDocument();
     document[BUILTIN] = true;
     const BigIntConstructor = Object.getPrototypeOf(BigInt(0)).constructor;
-    const BufferConstructor = Object.getPrototypeOf(Buffer.from([]));
+    // `Buffer` is a Node global, absent in a browser (e.g. `@opra/api-ui`'s
+    // client-side codegen bundle, which calls `createDocument()` on an
+    // already-exported schema) — this mapping is only ever needed to infer
+    // a decorated class field's type from its `Buffer`-typed design type,
+    // which a browser, never decorating classes itself, has no use for.
+    const BufferConstructor =
+      typeof Buffer !== 'undefined'
+        ? Object.getPrototypeOf(Buffer.from([]))
+        : undefined;
     const _ctorTypeMap = document.types[kCtorMap];
     _ctorTypeMap.set(Object, 'object');
     _ctorTypeMap.set(String, 'string');
@@ -219,7 +267,7 @@ export class ApiDocumentFactory {
     _ctorTypeMap.set(Date, 'datetime');
     _ctorTypeMap.set(BigIntConstructor, 'bigint');
     _ctorTypeMap.set(ArrayBuffer, 'base64');
-    _ctorTypeMap.set(BufferConstructor, 'base64');
+    if (BufferConstructor) _ctorTypeMap.set(BufferConstructor, 'base64');
     await this.initDocument(document, context, init);
     return document;
   }

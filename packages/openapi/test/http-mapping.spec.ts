@@ -80,6 +80,65 @@ describe('openapi:HTTP mapping', () => {
     expect(result.servers).toStrictEqual([{ url: '/test' }]);
   });
 
+  it('Should prefer HttpApi#servers over HttpApi#url when both are set', async () => {
+    const docWithServers = await ApiDocumentFactory.createDocument({
+      spec: OpraSchema.SpecVersion,
+      info: { title: 'TestApi', version: 'v1' },
+      types: [Customer],
+      api: {
+        transport: 'http',
+        name: 'TestApi',
+        url: '/test',
+        servers: [
+          { url: 'https://api.example.com', description: 'Production' },
+          { url: 'https://staging.example.com' },
+        ],
+        controllers: [CustomerController, CustomersController],
+      },
+    });
+    const result = OpenApiDocumentFactory.generate(docWithServers);
+    expect(result.servers).toStrictEqual([
+      { url: 'https://api.example.com', description: 'Production' },
+      { url: 'https://staging.example.com' },
+    ]);
+  });
+
+  it('Should map HttpApi#sections to Document#tags and HttpOperation#title/#sections to summary/tags', async () => {
+    @(HttpController({ path: 'Customers@:customerId' }).PathParam(
+      'customerId',
+      'uuid',
+    ))
+    class CustomerControllerWithSections {
+      @HttpOperation.Entity.Get({
+        type: Customer,
+        title: 'Get a customer',
+        sections: ['Customers'],
+      })
+      get() {
+        //
+      }
+    }
+    const docWithSections = await ApiDocumentFactory.createDocument({
+      spec: OpraSchema.SpecVersion,
+      info: { title: 'TestApi', version: 'v1' },
+      types: [Customer],
+      api: {
+        transport: 'http',
+        name: 'TestApi',
+        url: '/test',
+        sections: [{ name: 'Customers', description: 'Customer management' }],
+        controllers: [CustomerControllerWithSections],
+      },
+    });
+    const result = OpenApiDocumentFactory.generate(docWithSections);
+    expect(result.tags).toStrictEqual([
+      { name: 'Customers', description: 'Customer management' },
+    ]);
+    const pathItem = result.paths['/Customers@{customerId}'];
+    expect(pathItem.get!.summary).toStrictEqual('Get a customer');
+    expect(pathItem.get!.tags).toStrictEqual(['Customers']);
+  });
+
   it('Should convert ":param" path templates to "{param}"', () => {
     const result = OpenApiDocumentFactory.generate(doc);
     expect(Object.keys(result.paths)).toContain('/Customers@{customerId}');

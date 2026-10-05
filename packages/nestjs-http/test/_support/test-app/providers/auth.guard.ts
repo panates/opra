@@ -22,7 +22,12 @@ export class AuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     AuthGuard.callCounter++;
     const req = context.switchToHttp().getRequest();
-    const auth = req.get('Authorization');
+    // `req.get()` is Express's; Fastify hands a request that has only the
+    // headers. Reading both is what lets this fixture serve either platform.
+    const auth =
+      typeof req.get === 'function'
+        ? req.get('Authorization')
+        : req.headers?.authorization;
     if (auth === 'reject-auth') throw new UnauthorizedException();
     req.user = AuthGuard.user;
     return true;

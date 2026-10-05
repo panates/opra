@@ -61,7 +61,7 @@ export interface UnionTypeStatic {
   /**
    * Create a new mixin type from given two types
    */
-  (types: (string | Type)[], options?: UnionType.Options): Type;
+  (types: (string | Type | object)[], options?: UnionType.Options): Type;
 
   prototype: UnionType;
 }

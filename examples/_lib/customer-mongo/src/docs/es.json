@@ -1,0 +1,21 @@
+{
+  "info": {
+    "title": "Documento de modelos de cliente",
+    "description": "El modelo de datos completo que comparten las aplicaciones de ejemplo orientadas al cliente (`express-mongo`, `express-elastic`, `express-sqb` y la variante NestJS).\n\nCada tipo aquí es independiente del almacenamiento — las mismas definiciones de `Customer`, `Person`, `Address`, `Note` y los enums se reutilizan en los ejemplos basados en MongoDB, Elasticsearch y SQL; debajo solo cambia la capa de persistencia. Consulta la sección **Modelos** más abajo para ver un desglose por tipo, o abre cualquier tipo desde la barra lateral para ver sus campos, restricciones y ejemplos.",
+    "termsOfService": "Estas definiciones de tipos se publican únicamente como referencia para las aplicaciones de ejemplo de Opra; no ofrecen garantía alguna y no deben tratarse como un esquema público estable y versionado.",
+    "license": {
+      "content": "MIT License\n\nCopyright (c) 2020-present Example Inc \n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
+    }
+  },
+  "types": {
+    "Customer": {
+      "description": "\nLa **entidad central** de esta API — todo lo demás (direcciones, notas,\nnúmeros de teléfono) cuelga de un `Customer`.\n\nUn registro de cliente es una *mezcla* de tres cosas:\n\n1. La contabilidad estándar de [Record](#/model/Record) — id, marcas de tiempo, borrado lógico.\n2. Datos personales, mediante la forma compartida [Person](#/model/Person) (nombre,\n   género, fecha de nacimiento).\n3. Campos declarados directamente aquí — estado de la cuenta, datos de contacto y\n   las colecciones de registros relacionados (direcciones, notas, teléfonos).\n\n:::info\nLos clientes **nunca se borran físicamente**. Asignar `deleted: true` (borrado\nlógico) es la única vía de eliminación admitida — así se mantienen intactos los\npedidos históricos, las notas y las trazas de auditoría.\n:::\n\nLa mayoría de los campos se explican por sí solos, pero algunos merecen mención:\n\n- `rate` gobierna los cálculos de precios/fidelidad en otras partes del sistema.\n- `country` es de **solo lectura** — se resuelve en el servidor a partir de `countryCode`,\n  no es algo que el cliente pueda establecer directamente.\n- `tags` es una lista de etiquetas libre, sin vocabulario fijo; úsala para\n  segmentaciones ad-hoc.\n"
+    },
+    "Note": {
+      "description": "Una nota adjunta a un cliente"
+    },
+    "Profile": {
+      "description": "El perfil propio del usuario que ha iniciado sesión"
+    }
+  }
+}

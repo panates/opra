@@ -41,6 +41,13 @@ function mapField(
   field: ApiField,
   ctx: OpenApiGenerateContext,
 ): OpenApi.SchemaObject {
+  // Applies any `.Override(scopePattern, ...)` for the requested scope
+  // (e.g. `readonly: false` in "db") before reading the field's own
+  // properties below — a no-op (returns `field` itself) when nothing
+  // overrides it for this scope. Field *enumeration* (`mapObjectLike`'s
+  // own `dataType.fields('*')`) deliberately stays unscoped — this only
+  // fixes which *values* an already-included field reports.
+  field = field.forScope(ctx.scope);
   let inner = mapDataTypeRef(field.type, ctx);
   if (field.isArray && !(field.type instanceof ArrayType)) {
     inner = { type: 'array', items: inner };

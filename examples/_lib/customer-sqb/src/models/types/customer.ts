@@ -1,5 +1,5 @@
 import '@opra/sqb';
-import { ApiField, ComplexType, MixinType } from '@opra/common';
+import { ApiField, ArrayType, ComplexType, MixinType } from '@opra/common';
 import { Column, Entity, Link } from '@sqb/connect';
 import { type PartialDTO } from 'ts-gems';
 import { Address } from './address.js';
@@ -37,7 +37,7 @@ export class Customer extends MixinType([Record, Person]) {
   @Column({ type: Address, exclusive: true })
   declare address?: Address;
 
-  @ApiField({ type: Note, exclusive: true })
+  @ApiField({ type: ArrayType(Note), exclusive: true })
   @Column({ type: Note, exclusive: true })
   declare notes?: Note[];
 

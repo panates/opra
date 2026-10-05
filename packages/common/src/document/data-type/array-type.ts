@@ -71,7 +71,7 @@ export interface ArrayTypeStatic {
    * Create a new mixin type from the given data type
    */
   (
-    type: string | Type | EnumType.EnumObject,
+    type: string | Type | EnumType.EnumObject | object,
     options?: ArrayType.Options,
   ): Type;
 

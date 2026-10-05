@@ -3,14 +3,14 @@ import { isBase64, type Validator, validator, vg } from 'valgen';
 import { DECODER, ENCODER } from '../../constants.js';
 import { SimpleType } from '../simple-type.js';
 
-@SimpleType({
+@(SimpleType({
   name: 'base64',
   description: 'A stream of bytes, base64 encoded',
   nameMappings: {
     js: 'string',
     json: 'string',
   },
-})
+}).Example('SGVsbG8sIFdvcmxkIQ=='))
 export class Base64Type {
   designType?: Type;
 

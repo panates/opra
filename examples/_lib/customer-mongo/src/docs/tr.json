@@ -1,0 +1,21 @@
+{
+  "info": {
+    "title": "Müşteri Veri Modeli Dokümanı",
+    "description": "Müşteriye dönük örnek uygulamaların (`express-mongo`, `express-elastic`, `express-sqb` ve NestJS sürümü) paylaştığı eksiksiz veri modeli.\n\nBuradaki her tip depolamadan bağımsızdır — aynı `Customer`, `Person`, `Address`, `Note` ve enum tanımları MongoDB, Elasticsearch ve SQL tabanlı örneklerde yeniden kullanılır; altta yalnızca kalıcılık katmanı değişir. Türlere göre dökümü için aşağıdaki **Modeller** bölümüne göz atın ya da kenar çubuğundan herhangi bir tipi açıp alanlarını, kısıtlarını ve örneklerini görün.",
+    "termsOfService": "Bu tip tanımları yalnızca Opra örnek uygulamaları için referans olarak yayınlanmıştır; hiçbir garanti taşımaz ve kararlı, sürümlenmiş bir genel şema olarak değerlendirilmemelidir.",
+    "license": {
+      "content": "MIT License\n\nCopyright (c) 2020-present Example Inc \n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
+    }
+  },
+  "types": {
+    "Customer": {
+      "description": "\nBu API'nin **merkezî varlığı** — diğer her şey (adresler, notlar,\ntelefon numaraları) bir `Customer` üzerine asılıdır.\n\nBir müşteri kaydı üç şeyin *karışımıdır*:\n\n1. Standart [Record](#/model/Record) künyesi — id, zaman damgaları, yumuşak silme.\n2. Paylaşılan [Person](#/model/Person) yapısı üzerinden kişisel bilgiler (ad,\n   cinsiyet, doğum tarihi).\n3. Doğrudan burada tanımlanan alanlar — hesap durumu, iletişim bilgileri ve\n   ilişkili kayıt koleksiyonları (adresler, notlar, telefon numaraları).\n\n:::info\nMüşteriler **hiçbir zaman kalıcı olarak silinmez**. Desteklenen tek kaldırma\nyolu `deleted: true` atamaktır (yumuşak silme) — böylece geçmiş siparişler,\nnotlar ve denetim izleri bozulmadan kalır.\n:::\n\nAlanların çoğu kendini açıklar, ancak birkaçı özellikle belirtmeye değer:\n\n- `rate`, sistemin başka yerlerindeki fiyatlandırma/sadakat hesaplarını belirler.\n- `country` **salt okunurdur** — sunucu tarafında `countryCode`'dan çözülür,\n  istemcinin doğrudan atayabileceği bir alan değildir.\n- `tags`, sabit bir sözlüğü olmayan serbest biçimli bir etiket listesidir;\n  serbest segmentasyon için kullanın.\n"
+    },
+    "Note": {
+      "description": "Bir müşteriye eklenmiş not"
+    },
+    "Profile": {
+      "description": "Oturum açmış kullanıcının kendi profili"
+    }
+  }
+}

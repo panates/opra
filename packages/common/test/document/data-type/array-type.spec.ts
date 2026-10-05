@@ -29,6 +29,7 @@ describe('common:ArrayType', () => {
         ArrayType(Cat, { name: 'ArrayType2' }),
         ArrayType(Color, { name: 'ArrayType3' }),
         ArrayType(ArrayType(Number), { name: 'ArrayType4' }),
+        ArrayType(String, { name: 'ArrayType5', minOccurs: 1, maxOccurs: 10 }),
       ],
     });
   });
@@ -66,6 +67,13 @@ describe('common:ArrayType', () => {
     expect(dt.type).toBeDefined();
     expect(dt.type).toBeInstanceOf(ArrayType);
     expect(dt.name).toEqual('ArrayType4');
+  });
+
+  it('Should keep minOccurs/maxOccurs given to ArrayType()', async () => {
+    const dt = doc.node.getArrayType('ArrayType5');
+    expect(dt).toBeDefined();
+    expect(dt.minOccurs).toStrictEqual(1);
+    expect(dt.maxOccurs).toStrictEqual(10);
   });
 
   it('Should generateCodec() return ValGen validator', async () => {

@@ -1,0 +1,21 @@
+{
+  "info": {
+    "title": "客户数据模型文档",
+    "description": "面向客户的示例应用（`express-mongo`、`express-elastic`、`express-sqb` 以及 NestJS 版本）共用的完整数据模型。\n\n这里的每个类型都与存储无关——相同的 `Customer`、`Person`、`Address`、`Note` 及枚举定义在基于 MongoDB、Elasticsearch 和 SQL 的示例中重复使用，底层只有持久化层不同。浏览下方的**模型**部分可按种类查看分类，或从侧边栏打开任意类型以查看其字段、约束和示例。",
+    "termsOfService": "这些类型定义仅作为 Opra 示例应用的参考发布；不提供任何担保，也不应被视为稳定的、带版本的公开模式。",
+    "license": {
+      "content": "MIT License\n\nCopyright (c) 2020-present Example Inc \n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
+    }
+  },
+  "types": {
+    "Customer": {
+      "description": "\n本 API 的**核心实体** — 其他所有内容（地址、备注、\n电话号码）都挂在 `Customer` 之下。\n\n一条客户记录是三部分的*组合*：\n\n1. 标准的 [Record](#/model/Record) 元信息 — id、时间戳、软删除。\n2. 通过共享的 [Person](#/model/Person) 结构表示的个人信息（姓名、\n   性别、出生日期）。\n3. 直接在此声明的字段 — 账户状态、联系方式，以及\n   相关记录的集合（地址、备注、电话号码）。\n\n:::info\n客户**永远不会被物理删除**。设置 `deleted: true`（软删除）\n是唯一受支持的移除方式 — 这样可以完整保留历史订单、\n备注与审计记录。\n:::\n\n大多数字段含义明确，但有几个值得特别说明：\n\n- `rate` 会影响系统其他部分的定价/忠诚度计算。\n- `country` 是**只读的** — 它由服务端根据 `countryCode` 解析得出，\n  客户端无法直接设置。\n- `tags` 是没有固定词表的自由标签列表；可用于\n  临时分组。\n"
+    },
+    "Note": {
+      "description": "附加在客户上的备注"
+    },
+    "Profile": {
+      "description": "当前登录用户自己的个人资料"
+    }
+  }
+}

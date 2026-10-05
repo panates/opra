@@ -354,10 +354,31 @@ export class DataTypeFactory {
         metadata = ctor && Reflect.getMetadata(DATATYPE_METADATA, ctor);
         if (metadata) {
           if (metadata.kind === OpraSchema.SimpleType.Kind) {
+            // Prefer resolving by the instance's own registered name when
+            // that name is already known here (a framework builtin like
+            // `string`/`integer`, or a type this document separately
+            // declares) — this reuses that type's full, already-built
+            // definition (its own codec included) rather than a more
+            // generic ancestor. An application-defined *named* subclass
+            // that isn't itself declared under its own name (e.g. `new
+            // CountryCode()` where `CountryCode` was never added to this
+            // document's own `types`) can't be resolved that way — asking
+            // it to be its own base just fails as "unknown"/"not
+            // declared". Fall back to the real base class from the
+            // prototype chain instead, exactly like a bare class reference
+            // (`type: CountryCode`, no `new`) is already resolved above.
+            const nameIsResolvable =
+              !!metadata.name &&
+              (!!owner.node.findDataType(metadata.name) ||
+                !!importQueue?.get(metadata.name) ||
+                !!initArgsMap?.get(metadata.name));
+            const baseThunk = nameIsResolvable
+              ? metadata.name
+              : Object.getPrototypeOf(ctor!.prototype).constructor;
             const baseArgs = await this._importDataTypeArgs(
               context,
               owner,
-              metadata.name,
+              baseThunk,
             );
             if (!baseArgs) return;
             if (
@@ -470,6 +491,8 @@ export class DataTypeFactory {
     metadata: (ArrayType.Metadata | OpraSchema.ArrayType) & { ctor?: Type },
   ): Promise<void> {
     await this._prepareDataTypeArgs(context, initArgs, metadata);
+    initArgs.minOccurs = metadata.minOccurs;
+    initArgs.maxOccurs = metadata.maxOccurs;
     await context.enterAsync('.type', async () => {
       const baseArgs = await this._importDataTypeArgs(
         context,

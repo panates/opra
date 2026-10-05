@@ -55,14 +55,21 @@ describe('common:ApiDocument', () => {
     expect(sch.id).toBeDefined();
     expect(sch.types).toBeDefined();
     expect(Object.keys(sch.types!)).toEqual([
+      'AddressType',
       'Gender',
       'Address',
       'Record',
       'Country',
+      'CountryCode',
       'Customer',
       'Person',
+      'PersonName',
       'Note',
       'PhoneNumber',
+      'PhoneNumberValue',
+      'Passport',
+      'DriversLicense',
+      'NationalId',
       'Profile',
     ]);
   });
@@ -74,15 +81,22 @@ describe('common:ApiDocument', () => {
     expect(sch.id).toBeDefined();
     expect(sch.types).toBeDefined();
     expect(Object.keys(sch.types!)).toEqual([
+      'AddressType',
       'Gender',
       'Address',
       'Record',
       'Config',
       'Country',
+      'CountryCode',
       'Customer',
       'Person',
+      'PersonName',
       'Note',
       'PhoneNumber',
+      'PhoneNumberValue',
+      'Passport',
+      'DriversLicense',
+      'NationalId',
       'Profile',
     ]);
   });

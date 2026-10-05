@@ -6,16 +6,20 @@
     "rootDir": "src",
     "outDir": "./build",
     "paths": {
+      "@opra/api-ui": ["../api-ui/src/index.js"],
       "@opra/common": ["../common/src/index.js"],
       "@opra/core": ["../core/src/index.js"],
       "@opra/http": ["../http/src/index.js"],
-      "@opra/nestjs": ["../nestjs/src/index.js"]
+      "@opra/nestjs": ["../nestjs/src/index.js"],
+      "@opra/openapi": ["../openapi/src/index.js"]
     }
   },
   "references": [
+    { "path": "../api-ui" },
     { "path": "../common" },
     { "path": "../core" },
     { "path": "../http" },
-    { "path": "../nestjs" }
+    { "path": "../nestjs" },
+    { "path": "../openapi" }
   ]
 }

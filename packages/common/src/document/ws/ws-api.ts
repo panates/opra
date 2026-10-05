@@ -17,6 +17,10 @@ export namespace WSApi {
  * @class WSApi
  */
 export class WSApi extends ApiBase {
+  protected get docKeySegment(): string {
+    return 'api';
+  }
+
   // noinspection JSUnusedGlobalSymbols
   protected _controllerReverseMap: WeakMap<Type, WSController | null> =
     new WeakMap();
@@ -64,15 +68,15 @@ export class WSApi extends ApiBase {
     return controller?.operations.get(operationName);
   }
 
-  toJSON(): OpraSchema.WSApi {
-    const schema = super.toJSON();
+  toJSON(options?: ApiDocument.ExportOptions): OpraSchema.WSApi {
+    const schema = super.toJSON(options);
     const out: OpraSchema.WSApi = {
       ...schema,
       transport: this.transport,
       controllers: {},
     };
     for (const v of this.controllers.values()) {
-      out.controllers[v.name] = v.toJSON();
+      out.controllers[v.name] = v.toJSON(options);
     }
     return out;
   }

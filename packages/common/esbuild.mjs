@@ -29,8 +29,15 @@ await esbuild.build({
   keepNames: true,
   platform: 'browser',
   target: ['es2020', 'chrome80'],
+  /* **Every shim needs both spellings.** esbuild matches an alias against the specifier as
+   * written, so `fs` does not cover `node:fs` - which is what `stream`/`node:stream` and
+   * `path`/`node:path` below already say twice each. `translation-store.ts` does
+   * `await import('node:fs')`, added 2026-09-15, and the bundle has failed since with
+   * `Could not resolve "node:fs"`; nothing noticed because CI lints and runs mocha through swc on
+   * `dev` and never builds, and no release has been cut since. */
   alias: {
     fs: '@browsery/fs',
+    'node:fs': '@browsery/fs',
     highland: '@browsery/highland',
     'http-parser-js': '@browsery/http-parser',
     i18next: '@browsery/i18next',

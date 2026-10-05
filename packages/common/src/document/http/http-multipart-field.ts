@@ -49,6 +49,20 @@ export class HttpMultipartField extends HttpMediaType {
     this.required = initArgs.required;
   }
 
+  override get docKeyUnstable(): boolean {
+    return !this.docKey && this.fieldName instanceof RegExp;
+  }
+
+  protected get docKeySegment(): string[] {
+    return [
+      'multipartFields',
+      this.docKey ||
+        (typeof this.fieldName === 'string'
+          ? this.fieldName
+          : this.fieldName.source),
+    ];
+  }
+
   toJSON(options?: ApiDocument.ExportOptions): OpraSchema.HttpMultipartField {
     return omitUndefined({
       fieldName: this.fieldName,

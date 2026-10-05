@@ -2,7 +2,7 @@
   "name": "opra",
   "description": "Open Platform for Richful APIs",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.31.0",
   "license": "MIT",
   "contributors": [
     "Eray Hanoglu <e.hanoglu@panates.com>",

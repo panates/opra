@@ -1,6 +1,6 @@
 {
   "name": "@opra/cli",
-  "version": "1.30.1",
+  "version": "1.31.0",
   "description": "Opra CLI tools",
   "author": "Panates",
   "contributors": [
@@ -26,9 +26,9 @@
     "tslib": "^2.8.1"
   },
   "peerDependencies": {
-    "@opra/api-ui": "^1.30.1",
-    "@opra/client": "^1.30.1",
-    "@opra/common": "^1.30.1"
+    "@opra/api-ui": "^1.31.0",
+    "@opra/client": "^1.31.0",
+    "@opra/common": "^1.31.0"
   },
   "optionalDependencies": {
     "@swc-node/register": "^1.12.1"

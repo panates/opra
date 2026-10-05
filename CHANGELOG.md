@@ -1,6 +1,89 @@
 # Changelog
 
-<!-- rman:documented-up-to 8ed940ce0d5bb69f9378daf417381115b3e61073 -->
+<!-- rman:documented-up-to 2043e2cf8bf832b5f55162702a9bb643e76b1a10 -->
+
+## v1.31.0 (2026-10-05)
+
+### ✨ Features
+
+- Add @opra/api-ui — interactive API reference UI from native Opra schema (92e849e)
+- **api-ui:** Redesign the UI and add a richer Document Info page (d887389)
+- **api-ui:** Reorder the Overview page and rename its sidebar entry (d3766a1)
+- **common:** Add examples to builtin types; fix ArrayType-unwrapping bugs in mongodb adapter (ad33622)
+- **examples:** Add a Customer.identityDocument union of three ComplexTypes (e50b60a)
+- **api-ui:** Add a multi-language request panel and richer responses UI (0a98c2e)
+- **api-ui:** Show the Request rail on every operation and fix its layout/sticky handoff (02ec52a)
+- **api-ui:** Collapse long request body field lists behind a "Show more" button (0a403ab)
+- **api-ui:** Hide "Show Schema" when a response has no type, render real multipart bodies (b00b492)
+- **api-ui:** Move the document picker into the header, tie its version to the active doc (b9d3511)
+- **api-ui:** Let the document picker widen for a long document title (511a582)
+- **api-ui:** Add a Quick Filter box above the sidebar tree (423f7e0)
+- Add operation groups/title (OpenAPI tags/summary) and a sidebar Group By view (9c0aeef)
+- **api-ui:** Add a schema export viewer/downloader, rename groups to sections, add sidebar filters (7fe936e)
+- **api-ui:** Let clicking the active controller in the sidebar toggle collapse (1482808)
+- **api-ui:** Persist sidebar collapse state, add Expand/Collapse All, fix a few sidebar bugs (c8c5461)
+- **api-ui:** Replace hand-rolled fuzzy search with MiniSearch, redesign results popup (3c3d365)
+- **http:** Publish native schema, OpenAPI mapping and the reference UI from HttpAdapter (c17c255)
+- **api-ui:** Support switching between scopes of the same document via the URL (6016dc8)
+- **nestjs-http:** Publish native schema, OpenAPI mapping and the reference UI from OpraHttpNestjsAdapter (fc010c8)
+- **api-ui:** Add a browser-side TypeScript client generator (17a6836)
+- Internationalize API documentation and the reference UI (0c59c9f)
+- **api-ui:** Resolve and key every documentation text the page renders (5d662a4)
+- **api-ui:** Make the documentation page its own editor (cad9c96)
+- **cli:** Add oprimp docs:studio (bc09613)
+- **api-ui:** Say which type a response returns (4145cb9)
+- **cli:** Show and switch the language docs:studio is editing (3f9e381)
+- **cli:** Start a new translation from the studio's language picker (21ac16c)
+- **api-ui:** Name the languages the studio offers to add (8bf6aa3)
+- **api-ui:** Translate the studio along with the page (c12ba1f)
+- **api-ui:** Make the studio's undocumented list a tree (5a0972b)
+- **api-ui:** Open the editor straight from the undocumented tree (9b85b35)
+- **common:** Let a translation store write, and keep it on the document (0e779b7)
+- **api-ui:** Publish the documentation studio, routed by who owns the text (288448e)
+- **http:** Add `enableStudio` to the HTTP adapter (81cda97)
+- **cli:** Write through the document's own store, and load its sources (af9300e)
+- **api-ui:** Serve the reference page on Fastify as well as Express (cbdebc9)
+- **nestjs-http:** Run the reference page, the studio and $openapi on Fastify (7c5faea)
+
+### 🐛 Bug Fixes
+
+- Resolve base type from the prototype chain for a named SimpleType instance (cca8a69)
+- **api-ui:** Keep the request/response rail panels aligned across viewport widths (8216f47)
+- **common:** Apply field scope Override() values when exporting/rendering schema (3f7964b)
+- **http:** Route an operation's path as a child segment unless mergePath (45edea3)
+- **common:** Type an OperationResult response as opra.response+json (93e0d8e)
+- **http:** Let a response with no declared content type answer any body (8c0802a)
+- **mongodb:** Correct MongoNestedService's misleading dataType param doc (316053e)
+- **examples:** Repair two unreachable endpoints in the customer demo (4214db4)
+- **api-ui:** End a paragraph at a callout, not just at a blank line (53b5a20)
+- **api-ui:** Keep the document's own divisions as branches in the todo tree (09de20a)
+- **api-ui:** Give the todo tree one level per segment (81c6857)
+- **api-ui:** Put the todo tree's pencil ahead of the text (80716be)
+- **common:** Extract a node's texts into the bundle that declares it (81940a3)
+- **common:** Keep cloneObject and a toJSON assertion compiling after the bump (5cb3040)
+- **common:** Alias `node:fs` as well as `fs` for the browser bundle (b5b8725)
+- **examples:** Stop the example projects emitting into the packages' sources (34484ce)
+
+### 🔧 Refactoring
+
+- **http:** Rename the apiUi default mount path from $ui to $docs (69bc55a)
+- **examples:** Hand controllers the application, not a Db (c9ad6f9)
+
+### 🧹 Chores
+
+- Remove api-ui test tsconfig from the previous commit (4b2fc90)
+- Migrate to rman 2.x and the shared GitHub Actions workflows (a7f729d)
+- **examples:** Move the documentation bundles into `src`, and let the demo write them (92dedc5)
+- **deps:** Update the toolchain, and move package build steps into .rmanrc.yml (b45c7d7)
+- **examples:** Reformat the contact blocks, and point the demos at $docs (6f77b88)
+- Move @opra/angular's build hooks into its own .rmanrc.yml (35c5e2d)
+
+### 💬 General Changes
+
+- Point coverage badge at dev consistently across all packages (6d1ad71)
+- Merge branch 'api-ui' into dev (1c3a05b)
+
+---
 
 ## v1.30.0 (2026-09-09)
 

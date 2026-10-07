@@ -26,6 +26,16 @@ export namespace FilterRules {
 
   export interface Rule {
     operators?: ComparisonOperator[];
+    /**
+     * A line about what this field means, printed under the rule by the
+     * reference page. The name `HttpOperation.Entity.Filter`'s own options
+     * use, and the one that reaches the exported schema - `set` keeps
+     * whatever it is handed, so this was already stored and already
+     * serialized while the type said nothing about it.
+     */
+    notes?: string;
+    /** The same slot under its older name, for a rule built directly
+     *  rather than through the decorator. */
     description?: string;
     prepare?: (args: ComparisonExpression.PrepareArgs) => any;
     mappedField?: string;

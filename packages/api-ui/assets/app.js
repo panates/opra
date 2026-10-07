@@ -5038,7 +5038,19 @@
 
   // ---------- sidebar ----------
 
+  /** The Quick Filter text the sidebar was last built with — see the
+   *  restore step at the end of `buildSidebar` for what it decides. */
+  var lastSidebarFilter = '';
+
   function buildSidebar(nav, docKey, doc) {
+    // Emptying the list drops the browser's own scroll offset to 0, and
+    // every rebuild goes through here — a navigation most of all — so a
+    // reader who had scrolled down to find an operation was thrown back
+    // to the top of the sidebar the moment they clicked it, and had to
+    // scroll down and find their place again. What comes back is the
+    // same list, so the offset it had is still the right one: it's read
+    // here and put back at the end, once the new rows are in place.
+    var prevScrollTop = nav.scrollTop;
     clear(nav);
     var filterValue = (
       (document.getElementById('opra-sidebar-filter') || {}).value || ''
@@ -5580,6 +5592,15 @@
         ]),
       );
     }
+
+    // Back to where the reader had it (see `prevScrollTop` above). The
+    // browser clamps this for us when the rebuild produced a shorter
+    // list, so a collapse or a method filter needs nothing special.
+    // A *changed* Quick Filter is the one case where it would be wrong:
+    // those are different results, not the same list scrolled, and they
+    // start at the top the way any result list does.
+    nav.scrollTop = filterValue === lastSidebarFilter ? prevScrollTop : 0;
+    lastSidebarFilter = filterValue;
   }
 
   function hasMatchingDescendant(ctrl, filterValue) {
@@ -5643,6 +5664,33 @@
         );
       },
     );
+  }
+
+  /** The row `revealActiveNavItem` last had to account for — so that a
+   *  render which doesn't change the page (a language switch, a theme
+   *  toggle, a Group By change) never yanks the sidebar away from
+   *  wherever the reader has scrolled it. */
+  var lastRevealedHash = null;
+
+  /** `buildSidebar` puts the reader's own scroll offset back, which is
+   *  right when the page they landed on is the row they just clicked.
+   *  It isn't when the page changed from somewhere else — the global
+   *  search, a link in the content, a pasted URL, the first load of a
+   *  deep one — and the active row can then sit far outside the visible
+   *  part of the list. Only then (and only if it really is out of view)
+   *  is the list scrolled, centering the row within `nav` itself rather
+   *  than through `scrollIntoView`, which would scroll every ancestor
+   *  too and take the main column along with it. */
+  function revealActiveNavItem(nav) {
+    var active = nav.querySelector('a.nav-link.active');
+    var href = active ? normalizeHash(active.getAttribute('href') || '') : null;
+    if (href === lastRevealedHash) return;
+    lastRevealedHash = href;
+    if (!active) return;
+    var navBox = nav.getBoundingClientRect();
+    var box = active.getBoundingClientRect();
+    if (box.top >= navBox.top && box.bottom <= navBox.bottom) return;
+    nav.scrollTop += box.top - navBox.top - (nav.clientHeight - box.height) / 2;
   }
 
   // ---------- document switcher ----------
@@ -5865,6 +5913,7 @@
     buildSidebar(nav, state.docKey, doc);
     buildPicker(picker);
     highlightActive(nav);
+    revealActiveNavItem(nav);
 
     var rest = parsed.rest;
     var handled = false;

@@ -346,6 +346,15 @@ export function serveApiUi(
       });
       htmlByScope.set(htmlCacheKey, html);
     }
-    send(res, 200, 'text/html; charset=utf-8', html);
+    /* `no-cache` means "reuse only after asking", not "do not store". The
+     * page carried no cache headers at all, which leaves a browser free to
+     * apply its own heuristics - and because the whole application is
+     * inlined into this one document, a stale page is stale *code*: the
+     * server restarts with new documentation, the reader reloads, and
+     * nothing changes. The body is rendered once per process and held in
+     * `htmlByScope`, so answering a revalidation costs nothing to build. */
+    send(res, 200, 'text/html; charset=utf-8', html, {
+      'cache-control': 'no-cache',
+    });
   };
 }

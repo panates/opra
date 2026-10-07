@@ -21,6 +21,7 @@ export class CustomersController {
   }
 
   @HttpOperation.Entity.Create(Customer, {
+    sections: ['Customers'],
     requestBody: {
       type: OmitType(Customer, ['_id']),
     },
@@ -31,6 +32,7 @@ export class CustomersController {
   }
 
   @(HttpOperation.Entity.FindMany(Customer, {
+    sections: ['Customers'],
     defaultLimit: 5,
     maxLimit: 10,
   })
@@ -66,13 +68,17 @@ export class CustomersController {
     return this.service.for(context).findMany(options);
   }
 
-  @(HttpOperation.Entity.DeleteMany(Customer).Filter('_id'))
+  @(HttpOperation.Entity.DeleteMany(Customer, {
+    sections: ['Customers'],
+  }).Filter('_id'))
   async deleteMany(context: HttpContext) {
     const { options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).deleteMany(options);
   }
 
-  @(HttpOperation.Entity.UpdateMany(Customer).Filter('_id'))
+  @(HttpOperation.Entity.UpdateMany(Customer, {
+    sections: ['Customers'],
+  }).Filter('_id'))
   async updateMany(context: HttpContext) {
     const { data, options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).updateMany(data, options);

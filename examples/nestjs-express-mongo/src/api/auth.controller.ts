@@ -17,6 +17,7 @@ export class AuthController {
   constructor(readonly db: Db) {}
 
   @(HttpOperation({
+    sections: ['Account'],
     path: 'login',
   })
     .QueryParam('user', String)
@@ -32,6 +33,7 @@ export class AuthController {
   }
 
   @(HttpOperation({
+    sections: ['Account'],
     path: '/logout',
   }).Response(200, { type: OperationResult }))
   logout() {

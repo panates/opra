@@ -20,7 +20,9 @@ class AvatarMetadata {
   path: 'avatar',
 }).UseType(AvatarMetadata))
 export class AvatarController {
-  @(HttpOperation.POST({})
+  @(HttpOperation.POST({
+    sections: ['Customers'],
+  })
     .MultipartContent({}, content => {
       content.Field('name', { type: String, required: true });
       content.Field('metadata', { type: OmitType(AvatarMetadata, ['name']) });

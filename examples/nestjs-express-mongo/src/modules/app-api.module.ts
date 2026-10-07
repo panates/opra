@@ -37,6 +37,19 @@ import { AppDbModule } from './app-db.module.js';
         CustomersController,
         CustomerNotesController,
       ],
+      // The same three this application's Express twin declares (see
+      // `examples/express-mongo/src/api-document.ts`) - the operations
+      // already name them, the module just had no way to say what they are.
+      sections: [
+        { name: 'Account', icon: '👤' },
+        { name: 'Customers', icon: '🧾' },
+        { name: 'Notes', icon: '📝' },
+      ],
+      servers: [
+        // `docKey` because the url itself is environment-dependent and would
+        // make a moving documentation key.
+        { url: 'http://localhost:3012', docKey: 'local' },
+      ],
       schemaIsPublic: true,
       openapi: true,
       apiUi: {

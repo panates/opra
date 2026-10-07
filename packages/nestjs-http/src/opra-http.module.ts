@@ -1,5 +1,5 @@
 import { type DynamicModule, Logger, Module, type Type } from '@nestjs/common';
-import type { ApiDocumentFactory } from '@opra/common';
+import type { ApiDocumentFactory, HttpApi } from '@opra/common';
 import type { HttpAdapter } from '@opra/http';
 import { OpraHttpCoreModule } from './opra-http-core.module.js';
 
@@ -92,6 +92,21 @@ export namespace OpraHttpModule {
     description?: string;
     /** API scope */
     scope?: string;
+    /**
+     * The sections this API is organised into, as the reference page's
+     * "Sections" view groups its operations - each with a name, and
+     * optionally an icon and a description. An operation joins one by
+     * naming it (`@HttpOperation({ sections: [...] })`).
+     *
+     * A module could not declare these at all: the `api` block was built
+     * from `name`, `description` and the controllers alone, so the view
+     * had nothing to group by and the page hid the control that switches
+     * to it. The same was true of `servers`.
+     */
+    sections?: HttpApi.SectionInit[];
+    /** The servers this API is published on. The first is the default one
+     *  the reference page shows. */
+    servers?: HttpApi.ServerInit[];
     /** Logger to be used */
     logger?: Logger;
   }

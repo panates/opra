@@ -95,6 +95,8 @@ export class OpraHttpCoreModule implements OnModuleDestroy, NestModule {
               transport: 'http',
               name: apiConfig.name,
               description: apiConfig.description,
+              sections: apiConfig.sections,
+              servers: apiConfig.servers,
               controllers: moduleOptions.controllers as any,
             },
           });

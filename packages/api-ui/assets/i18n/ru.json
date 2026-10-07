@@ -107,7 +107,10 @@
     "showSchema": "Показать схему",
     "httpStatusCode": "Код состояния HTTP: ",
     "noResponses": "Задокументированных ответов нет.",
-    "body": "Тело"
+    "body": "Тело",
+    "paramInclude": "Добавить в пример запроса",
+    "paramAlwaysSent": "Обязательный — отправляется всегда",
+    "paramValue": "Значение"
   },
   "media": {
     "encoding": "Кодировка",
@@ -150,7 +153,8 @@
     "showMoreFields_many": "Показать ещё {count} полей",
     "showMoreFields_other": "Показать ещё {count} поля",
     "noFields": "Полей нет.",
-    "noProperties": "Свойств нет."
+    "noProperties": "Свойств нет.",
+    "reversePrefix": "Префикс «-» меняет направление на обратное."
   },
   "flags": {
     "required": "обязательное",
@@ -188,7 +192,8 @@
     "version": "Версия",
     "provider": "Поставщик",
     "element": "Элемент",
-    "additionalFields": "Дополнительные поля"
+    "additionalFields": "Дополнительные поля",
+    "anyOperator": "Любой оператор"
   },
   "toc": {
     "onThisPage": "На этой странице",

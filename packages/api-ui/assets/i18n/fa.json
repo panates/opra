@@ -105,7 +105,10 @@
     "showSchema": "نمایش شما",
     "httpStatusCode": "کد وضعیت HTTP: ",
     "noResponses": "هیچ پاسخ مستندی وجود ندارد.",
-    "body": "بدنه"
+    "body": "بدنه",
+    "paramInclude": "افزودن به درخواست نمونه",
+    "paramAlwaysSent": "الزامی — همیشه ارسال می‌شود",
+    "paramValue": "مقدار"
   },
   "media": {
     "encoding": "کدگذاری",
@@ -146,7 +149,8 @@
     "showMoreFields_one": "نمایش {count} فیلد دیگر",
     "showMoreFields_other": "نمایش {count} فیلد دیگر",
     "noFields": "فیلدی وجود ندارد.",
-    "noProperties": "ویژگی‌ای وجود ندارد."
+    "noProperties": "ویژگی‌ای وجود ندارد.",
+    "reversePrefix": "برای جهت معکوس، “-” را پیش از مقدار بیاورید."
   },
   "flags": {
     "required": "الزامی",
@@ -184,7 +188,8 @@
     "version": "نسخه",
     "provider": "تأمین‌کننده",
     "element": "عنصر",
-    "additionalFields": "فیلدهای اضافی"
+    "additionalFields": "فیلدهای اضافی",
+    "anyOperator": "هر عملگری"
   },
   "toc": {
     "onThisPage": "در این صفحه",

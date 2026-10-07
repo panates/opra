@@ -107,7 +107,10 @@
     "showSchema": "Pokaż schemat",
     "httpStatusCode": "Kod stanu HTTP: ",
     "noResponses": "Brak udokumentowanych odpowiedzi.",
-    "body": "Treść"
+    "body": "Treść",
+    "paramInclude": "Dodaj do przykładowego żądania",
+    "paramAlwaysSent": "Wymagane — zawsze wysyłane",
+    "paramValue": "Wartość"
   },
   "media": {
     "encoding": "Kodowanie",
@@ -150,7 +153,8 @@
     "showMoreFields_many": "Pokaż jeszcze {count} pól",
     "showMoreFields_other": "Pokaż jeszcze {count} pól",
     "noFields": "Brak pól.",
-    "noProperties": "Brak właściwości."
+    "noProperties": "Brak właściwości.",
+    "reversePrefix": "Poprzedź wartość znakiem „-”, aby odwrócić kolejność."
   },
   "flags": {
     "required": "wymagane",
@@ -188,7 +192,8 @@
     "version": "Wersja",
     "provider": "Dostawca",
     "element": "Element",
-    "additionalFields": "Pola dodatkowe"
+    "additionalFields": "Pola dodatkowe",
+    "anyOperator": "Dowolny operator"
   },
   "toc": {
     "onThisPage": "Na tej stronie",

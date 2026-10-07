@@ -96,7 +96,10 @@
     "showSchema": "スキーマを表示",
     "httpStatusCode": "HTTP ステータスコード: ",
     "noResponses": "文書化されたレスポンスはありません。",
-    "body": "ボディ"
+    "body": "ボディ",
+    "paramInclude": "リクエスト例に追加",
+    "paramAlwaysSent": "必須 — 常に送信されます",
+    "paramValue": "値"
   },
   "media": {
     "encoding": "エンコーディング",
@@ -135,7 +138,8 @@
     "noValues": "値がありません。",
     "showMoreFields_other": "さらに {count} 件のフィールドを表示",
     "noFields": "フィールドがありません。",
-    "noProperties": "プロパティがありません。"
+    "noProperties": "プロパティがありません。",
+    "reversePrefix": "先頭に「-」を付けると逆順になります。"
   },
   "flags": {
     "required": "必須",
@@ -173,7 +177,8 @@
     "version": "バージョン",
     "provider": "プロバイダー",
     "element": "要素",
-    "additionalFields": "追加フィールド"
+    "additionalFields": "追加フィールド",
+    "anyOperator": "任意の演算子"
   },
   "toc": {
     "onThisPage": "このページの内容",

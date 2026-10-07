@@ -105,7 +105,10 @@
     "showSchema": "Sxemi göstər",
     "httpStatusCode": "HTTP status kodu: ",
     "noResponses": "Sənədləşdirilmiş cavab yoxdur.",
-    "body": "Gövdə"
+    "body": "Gövdə",
+    "paramInclude": "Nümunə sorğuya əlavə et",
+    "paramAlwaysSent": "Tələb olunur — həmişə göndərilir",
+    "paramValue": "Dəyər"
   },
   "media": {
     "encoding": "Kodlaşdırma",
@@ -146,7 +149,8 @@
     "showMoreFields_one": "Daha {count} sahə göstər",
     "showMoreFields_other": "Daha {count} sahə göstər",
     "noFields": "Sahə yoxdur.",
-    "noProperties": "Xüsusiyyət yoxdur."
+    "noProperties": "Xüsusiyyət yoxdur.",
+    "reversePrefix": "Əks istiqamət üçün dəyərin əvvəlinə “-” əlavə edin."
   },
   "flags": {
     "required": "məcburi",
@@ -184,7 +188,8 @@
     "version": "Versiya",
     "provider": "Təchizatçı",
     "element": "Element",
-    "additionalFields": "Əlavə sahələr"
+    "additionalFields": "Əlavə sahələr",
+    "anyOperator": "İstənilən operator"
   },
   "toc": {
     "onThisPage": "Bu səhifədə",

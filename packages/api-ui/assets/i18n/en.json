@@ -105,7 +105,10 @@
     "showSchema": "Show Schema",
     "httpStatusCode": "HTTP Status Code: ",
     "noResponses": "No documented responses.",
-    "body": "Body"
+    "body": "Body",
+    "paramInclude": "Add to the example request",
+    "paramAlwaysSent": "Required — always sent",
+    "paramValue": "Value"
   },
   "media": {
     "encoding": "Encoding",
@@ -146,7 +149,8 @@
     "showMoreFields_one": "Show {count} more field",
     "showMoreFields_other": "Show {count} more fields",
     "noFields": "No fields.",
-    "noProperties": "No properties."
+    "noProperties": "No properties.",
+    "reversePrefix": "Prefix a value with “-” for the reverse direction."
   },
   "flags": {
     "required": "required",
@@ -184,7 +188,8 @@
     "version": "Version",
     "provider": "Provider",
     "element": "Element",
-    "additionalFields": "Additional fields"
+    "additionalFields": "Additional fields",
+    "anyOperator": "Any operator"
   },
   "toc": {
     "onThisPage": "On this page",

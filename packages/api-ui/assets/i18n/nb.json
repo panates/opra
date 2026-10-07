@@ -105,7 +105,10 @@
     "showSchema": "Vis skjema",
     "httpStatusCode": "HTTP-statuskode: ",
     "noResponses": "Ingen dokumenterte svar.",
-    "body": "Kropp"
+    "body": "Kropp",
+    "paramInclude": "Legg til i eksempelforespørselen",
+    "paramAlwaysSent": "Påkrevd — sendes alltid",
+    "paramValue": "Verdi"
   },
   "media": {
     "encoding": "Koding",
@@ -146,7 +149,8 @@
     "showMoreFields_one": "Vis {count} felt til",
     "showMoreFields_other": "Vis {count} felter til",
     "noFields": "Ingen felter.",
-    "noProperties": "Ingen egenskaper."
+    "noProperties": "Ingen egenskaper.",
+    "reversePrefix": "Sett ”-” foran for motsatt retning."
   },
   "flags": {
     "required": "påkrevd",
@@ -184,7 +188,8 @@
     "version": "Versjon",
     "provider": "Leverandør",
     "element": "Element",
-    "additionalFields": "Flere felter"
+    "additionalFields": "Flere felter",
+    "anyOperator": "Enhver operator"
   },
   "toc": {
     "onThisPage": "På denne siden",

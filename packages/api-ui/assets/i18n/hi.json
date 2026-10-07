@@ -105,7 +105,10 @@
     "showSchema": "स्कीमा दिखाएँ",
     "httpStatusCode": "HTTP स्टेटस कोड: ",
     "noResponses": "कोई प्रलेखित प्रतिक्रिया नहीं।",
-    "body": "बॉडी"
+    "body": "बॉडी",
+    "paramInclude": "उदाहरण अनुरोध में जोड़ें",
+    "paramAlwaysSent": "आवश्यक — हमेशा भेजा जाता है",
+    "paramValue": "मान"
   },
   "media": {
     "encoding": "एन्कोडिंग",
@@ -146,7 +149,8 @@
     "showMoreFields_one": "{count} और फ़ील्ड दिखाएँ",
     "showMoreFields_other": "{count} और फ़ील्ड दिखाएँ",
     "noFields": "कोई फ़ील्ड नहीं।",
-    "noProperties": "कोई गुण नहीं।"
+    "noProperties": "कोई गुण नहीं।",
+    "reversePrefix": "विपरीत क्रम के लिए मान से पहले “-” लगाएँ।"
   },
   "flags": {
     "required": "आवश्यक",
@@ -184,7 +188,8 @@
     "version": "संस्करण",
     "provider": "प्रदाता",
     "element": "एलिमेंट",
-    "additionalFields": "अतिरिक्त फ़ील्ड"
+    "additionalFields": "अतिरिक्त फ़ील्ड",
+    "anyOperator": "कोई भी ऑपरेटर"
   },
   "toc": {
     "onThisPage": "इस पृष्ठ पर",

@@ -105,7 +105,10 @@
     "showSchema": "Mostrar esquema",
     "httpStatusCode": "Código de status HTTP: ",
     "noResponses": "Nenhuma resposta documentada.",
-    "body": "Corpo"
+    "body": "Corpo",
+    "paramInclude": "Adicionar à requisição de exemplo",
+    "paramAlwaysSent": "Obrigatório — sempre enviado",
+    "paramValue": "Valor"
   },
   "media": {
     "encoding": "Codificação",
@@ -146,7 +149,8 @@
     "showMoreFields_one": "Mostrar mais {count} campo",
     "showMoreFields_other": "Mostrar mais {count} campos",
     "noFields": "Sem campos.",
-    "noProperties": "Sem propriedades."
+    "noProperties": "Sem propriedades.",
+    "reversePrefix": "Prefixe com “-” para inverter a ordem."
   },
   "flags": {
     "required": "obrigatório",
@@ -184,7 +188,8 @@
     "version": "Versão",
     "provider": "Provedor",
     "element": "Elemento",
-    "additionalFields": "Campos adicionais"
+    "additionalFields": "Campos adicionais",
+    "anyOperator": "Qualquer operador"
   },
   "toc": {
     "onThisPage": "Nesta página",

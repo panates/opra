@@ -23,7 +23,7 @@
     "@opra/common": "^1.31.1",
     "@opra/core": "^1.31.1",
     "@opra/http": "^1.31.1",
-    "mongodb": "^7.0.0"
+    "mongodb": "^7.7.0"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",

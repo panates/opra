@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^22.2.1",
-    "@angular/cli": "^22.2.1",
+    "@angular/cli": "^22.2.2",
     "@angular/compiler": "^22.2.1",
     "@angular/compiler-cli": "^22.2.1",
     "@angular/platform-browser": "^22.2.1",

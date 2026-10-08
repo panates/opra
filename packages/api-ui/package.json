@@ -46,7 +46,7 @@
     "fastify": "^5.12.5",
     "esbuild": "^0.28.2",
     "expect": "^30.5.2",
-    "express": "^5.1.0",
+    "express": "^5.2.1",
     "minisearch": "^7.2.0",
     "reflect-metadata": "^0.2.2",
     "supertest": "^7.3.1"

@@ -49,8 +49,10 @@ HttpOperation.Entity.FindMany = function (
       type: new IntegerType({ minValue: 1, maxValue: args.maxLimit }),
     })
     .QueryParam('skip', {
-      description: 'Determines number of returning instances',
-      type: new IntegerType({ minValue: 1 }),
+      description: 'Determines number of instances to skip before returning',
+      // Zero is the first page, and `skip = page * pageSize` is how a
+      // client pages: rejecting it made the very first page a 400.
+      type: new IntegerType({ minValue: 0 }),
     })
     .QueryParam('count', {
       description: 'Counts all matching instances if enabled',

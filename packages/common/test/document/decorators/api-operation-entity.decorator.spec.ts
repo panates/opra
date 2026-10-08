@@ -25,7 +25,8 @@ describe('common:HttpOperation.Entity.* decorators', () => {
       name: 'skip',
       description: expect.any(String),
       type: new IntegerType({
-        minValue: 1,
+        // Zero, not one: `skip=0` is the first page.
+        minValue: 0,
       }),
     },
     count: {

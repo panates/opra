@@ -1,4 +1,5 @@
 import { expect } from 'expect';
+import { FilesController } from '../../http/test/_support/test-api/index.js';
 import { ClientError, HttpResponse, OpraHttpClient } from '../src/index.js';
 import type { MockServer } from './_support/create-mock-server.js';
 import { createMockServer } from './_support/create-mock-server.js';
@@ -32,6 +33,28 @@ describe('client:OpraClient:bundle', () => {
     // other 2 counts are the sub-requests dispatched internally through the
     // same Express instance by handleBundle(), not separate client calls
     expect(app.requestCount - requestCountBefore).toBe(3);
+  });
+
+  it('Should send a FormData body in a bundled request', async () => {
+    // What an upload from a browser actually looks like. Every check in
+    // `serializeHttpRequest` used to miss both `FormData` and `Blob`, so
+    // the body fell through to the plain-object branch and was sent as
+    // the JSON string "{}" - no error anywhere, just an empty request.
+    const form = new FormData();
+    form.append('notes', 'Joe Blow');
+    form.append(
+      'file1',
+      new Blob(['... contents of file1.txt ...'], { type: 'text/plain' }),
+      'file1.txt',
+    );
+    const r1 = client.post('Files', form);
+
+    const [response] = await client.bundle([r1]).getResponses();
+
+    expect(response.status).toBe(200);
+    const parts = FilesController.lastPost;
+    expect(parts.map((p: any) => p.field)).toEqual(['notes', 'file1']);
+    expect(parts[0].value).toStrictEqual('Joe Blow');
   });
 
   it('Should finalize individual requests after the bundle completes (subscribe after send)', async () => {

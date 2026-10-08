@@ -105,7 +105,10 @@
     "showSchema": "Schema tonen",
     "httpStatusCode": "HTTP-statuscode: ",
     "noResponses": "Geen gedocumenteerde antwoorden.",
-    "body": "Body"
+    "body": "Body",
+    "paramInclude": "Toevoegen aan het voorbeeldverzoek",
+    "paramAlwaysSent": "Verplicht — wordt altijd verzonden",
+    "paramValue": "Waarde"
   },
   "media": {
     "encoding": "Codering",
@@ -146,7 +149,8 @@
     "showMoreFields_one": "Nog {count} veld tonen",
     "showMoreFields_other": "Nog {count} velden tonen",
     "noFields": "Geen velden.",
-    "noProperties": "Geen eigenschappen."
+    "noProperties": "Geen eigenschappen.",
+    "reversePrefix": "Zet er “-” voor om de richting om te keren."
   },
   "flags": {
     "required": "verplicht",
@@ -184,7 +188,8 @@
     "version": "Versie",
     "provider": "Aanbieder",
     "element": "Element",
-    "additionalFields": "Aanvullende velden"
+    "additionalFields": "Aanvullende velden",
+    "anyOperator": "Elke operator"
   },
   "toc": {
     "onThisPage": "Op deze pagina",

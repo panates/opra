@@ -96,7 +96,10 @@
     "showSchema": "Tunjukkan skema",
     "httpStatusCode": "Kod status HTTP: ",
     "noResponses": "Tiada respons yang didokumenkan.",
-    "body": "Badan"
+    "body": "Badan",
+    "paramInclude": "Tambah ke permintaan contoh",
+    "paramAlwaysSent": "Diperlukan — sentiasa dihantar",
+    "paramValue": "Nilai"
   },
   "media": {
     "encoding": "Pengekodan",
@@ -135,7 +138,8 @@
     "noValues": "Tiada nilai.",
     "showMoreFields_other": "Tunjukkan {count} medan lagi",
     "noFields": "Tiada medan.",
-    "noProperties": "Tiada sifat."
+    "noProperties": "Tiada sifat.",
+    "reversePrefix": "Awalkan dengan “-” untuk arah bertentangan."
   },
   "flags": {
     "required": "wajib",
@@ -173,7 +177,8 @@
     "version": "Versi",
     "provider": "Pembekal",
     "element": "Elemen",
-    "additionalFields": "Medan tambahan"
+    "additionalFields": "Medan tambahan",
+    "anyOperator": "Sebarang operator"
   },
   "toc": {
     "onThisPage": "Pada halaman ini",

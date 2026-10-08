@@ -105,7 +105,10 @@
     "showSchema": "Näytä skeema",
     "httpStatusCode": "HTTP-tilakoodi: ",
     "noResponses": "Ei dokumentoituja vastauksia.",
-    "body": "Runko"
+    "body": "Runko",
+    "paramInclude": "Lisää esimerkkipyyntöön",
+    "paramAlwaysSent": "Pakollinen — lähetetään aina",
+    "paramValue": "Arvo"
   },
   "media": {
     "encoding": "Koodaus",
@@ -146,7 +149,8 @@
     "showMoreFields_one": "Näytä {count} kenttä lisää",
     "showMoreFields_other": "Näytä {count} kenttää lisää",
     "noFields": "Ei kenttiä.",
-    "noProperties": "Ei ominaisuuksia."
+    "noProperties": "Ei ominaisuuksia.",
+    "reversePrefix": "Etuliite ”-” kääntää suunnan."
   },
   "flags": {
     "required": "pakollinen",
@@ -184,7 +188,8 @@
     "version": "Versio",
     "provider": "Tarjoaja",
     "element": "Elementti",
-    "additionalFields": "Lisäkentät"
+    "additionalFields": "Lisäkentät",
+    "anyOperator": "Mikä tahansa operaattori"
   },
   "toc": {
     "onThisPage": "Tällä sivulla",

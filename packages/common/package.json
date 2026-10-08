@@ -15,7 +15,7 @@
     "test": "mocha"
   },
   "dependencies": {
-    "@browsery/antlr4": "^4.13.3-r7",
+    "@browsery/antlr4": "^4.13.3-rev.1",
     "@browsery/highland": "^2.13.6-r5",
     "@browsery/http-parser": "^0.5.10-r3",
     "@browsery/i18next": "^26.4.2",
@@ -32,7 +32,7 @@
     "valgen": "^7.0.3"
   },
   "devDependencies": {
-    "@browsery/fs": "^0.5.1-r2",
+    "@browsery/fs": "^0.5.1-rev.1",
     "@browsery/stream": "^4.7.0-r3",
     "@browsery/util": "^0.12.6-r4",
     "@types/encodeurl": "^1.0.3",

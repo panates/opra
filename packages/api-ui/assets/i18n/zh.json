@@ -96,7 +96,10 @@
     "showSchema": "显示结构",
     "httpStatusCode": "HTTP 状态码：",
     "noResponses": "没有已记录的响应。",
-    "body": "请求体"
+    "body": "请求体",
+    "paramInclude": "添加到示例请求",
+    "paramAlwaysSent": "必填 — 始终发送",
+    "paramValue": "值"
   },
   "media": {
     "encoding": "编码",
@@ -135,7 +138,8 @@
     "noValues": "没有取值。",
     "showMoreFields_other": "再显示 {count} 个字段",
     "noFields": "没有字段。",
-    "noProperties": "没有属性。"
+    "noProperties": "没有属性。",
+    "reversePrefix": "在值前加 “-” 表示反向。"
   },
   "flags": {
     "required": "必填",
@@ -173,7 +177,8 @@
     "version": "版本",
     "provider": "提供方",
     "element": "元素",
-    "additionalFields": "额外字段"
+    "additionalFields": "额外字段",
+    "anyOperator": "任意运算符"
   },
   "toc": {
     "onThisPage": "本页目录",

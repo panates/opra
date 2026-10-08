@@ -105,7 +105,10 @@
     "showSchema": "Séma megjelenítése",
     "httpStatusCode": "HTTP-állapotkód: ",
     "noResponses": "Nincsenek dokumentált válaszok.",
-    "body": "Törzs"
+    "body": "Törzs",
+    "paramInclude": "Hozzáadás a példakéréshez",
+    "paramAlwaysSent": "Kötelező — mindig elküldve",
+    "paramValue": "Érték"
   },
   "media": {
     "encoding": "Kódolás",
@@ -146,7 +149,8 @@
     "showMoreFields_one": "Még {count} mező megjelenítése",
     "showMoreFields_other": "Még {count} mező megjelenítése",
     "noFields": "Nincsenek mezők.",
-    "noProperties": "Nincsenek tulajdonságok."
+    "noProperties": "Nincsenek tulajdonságok.",
+    "reversePrefix": "A „-” előtag megfordítja az irányt."
   },
   "flags": {
     "required": "kötelező",
@@ -184,7 +188,8 @@
     "version": "Verzió",
     "provider": "Szolgáltató",
     "element": "Elem",
-    "additionalFields": "További mezők"
+    "additionalFields": "További mezők",
+    "anyOperator": "Bármely operátor"
   },
   "toc": {
     "onThisPage": "Ezen az oldalon",

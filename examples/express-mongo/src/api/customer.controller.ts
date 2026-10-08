@@ -26,6 +26,7 @@ class AvatarUrlInput {
   controllers: [
     (parent: CustomerController) => new CustomerNotesController(parent.app),
   ],
+  sections: ['Customers'],
 })
   .KeyParam('customerId', {
     type: 'integer',
@@ -42,25 +43,19 @@ export class CustomerController {
     return this._service;
   }
 
-  @(HttpOperation.Entity.Get(Customer, {
-    sections: ['Customers'],
-  }).QueryParam('xId'))
+  @(HttpOperation.Entity.Get(Customer).QueryParam('xId'))
   async get(context: HttpContext): Promise<PartialDTO<Customer> | undefined> {
     const { key, options } = await MongoAdapter.parseRequest(context);
     return this.service.for(context).findById(key, options);
   }
 
-  @HttpOperation.Entity.Delete(Customer, {
-    sections: ['Customers'],
-  })
+  @HttpOperation.Entity.Delete(Customer)
   async delete(context: HttpContext) {
     const { key, options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).delete(key, options);
   }
 
-  @HttpOperation.Entity.Update(Customer, {
-    sections: ['Customers'],
-  })
+  @HttpOperation.Entity.Update(Customer)
   async update(context: HttpContext) {
     const { key, data, options } = await MongoAdapter.parseRequest(context);
     return this.service.for(context).update(key, data, options);
@@ -70,7 +65,6 @@ export class CustomerController {
   // own route, where `get` above already answers GET — leaving this
   // operation documented but unreachable.
   @(HttpOperation.GET({
-    sections: ['Customers'],
     path: 'setStatus',
   }).QueryParam('status', {
     type: EnumType(['active', 'hidden']),
@@ -80,7 +74,6 @@ export class CustomerController {
   }
 
   @(HttpOperation.PATCH({
-    sections: ['Customers'],
     path: 'avatar',
     requestBody: {
       required: true,

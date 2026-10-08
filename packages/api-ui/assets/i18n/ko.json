@@ -96,7 +96,10 @@
     "showSchema": "스키마 표시",
     "httpStatusCode": "HTTP 상태 코드: ",
     "noResponses": "문서화된 응답이 없습니다.",
-    "body": "본문"
+    "body": "본문",
+    "paramInclude": "예제 요청에 추가",
+    "paramAlwaysSent": "필수 — 항상 전송됨",
+    "paramValue": "값"
   },
   "media": {
     "encoding": "인코딩",
@@ -135,7 +138,8 @@
     "noValues": "값이 없습니다.",
     "showMoreFields_other": "{count}개 필드 더 보기",
     "noFields": "필드가 없습니다.",
-    "noProperties": "속성이 없습니다."
+    "noProperties": "속성이 없습니다.",
+    "reversePrefix": "값 앞에 “-”를 붙이면 역순이 됩니다."
   },
   "flags": {
     "required": "필수",
@@ -173,7 +177,8 @@
     "version": "버전",
     "provider": "제공자",
     "element": "요소",
-    "additionalFields": "추가 필드"
+    "additionalFields": "추가 필드",
+    "anyOperator": "모든 연산자"
   },
   "toc": {
     "onThisPage": "이 페이지의 내용",

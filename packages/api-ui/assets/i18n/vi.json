@@ -96,7 +96,10 @@
     "showSchema": "Hiện lược đồ",
     "httpStatusCode": "Mã trạng thái HTTP: ",
     "noResponses": "Không có phản hồi nào được ghi lại.",
-    "body": "Thân"
+    "body": "Thân",
+    "paramInclude": "Thêm vào yêu cầu mẫu",
+    "paramAlwaysSent": "Bắt buộc — luôn được gửi",
+    "paramValue": "Giá trị"
   },
   "media": {
     "encoding": "Mã hóa",
@@ -135,7 +138,8 @@
     "noValues": "Không có giá trị.",
     "showMoreFields_other": "Hiện thêm {count} trường",
     "noFields": "Không có trường nào.",
-    "noProperties": "Không có thuộc tính nào."
+    "noProperties": "Không có thuộc tính nào.",
+    "reversePrefix": "Thêm “-” ở đầu để đảo chiều."
   },
   "flags": {
     "required": "bắt buộc",
@@ -173,7 +177,8 @@
     "version": "Phiên bản",
     "provider": "Nhà cung cấp",
     "element": "Phần tử",
-    "additionalFields": "Trường bổ sung"
+    "additionalFields": "Trường bổ sung",
+    "anyOperator": "Bất kỳ toán tử nào"
   },
   "toc": {
     "onThisPage": "Trên trang này",

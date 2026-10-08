@@ -1201,6 +1201,156 @@
     return spaced.charAt(0).toUpperCase() + spaced.slice(1);
   }
 
+  /** The type of the field a filter rule names, following the dotted path
+   *  (`address.countryCode`) down from the type the filter applies to.
+   *
+   *  The filter's own `dataType` arrives namespaced (`cm:Customer`) while
+   *  the embedded tree flattens every reference's types into one map under
+   *  their plain names, so the namespace is dropped before the lookup. A
+   *  name that collided across documents was renamed on the way in (see
+   *  `getTypeName` in `schema-builder.ts`), which this cannot follow — so a
+   *  miss returns `null` and the row shows no type rather than guessing. */
+  function filterFieldDef(doc, dataTypeRef, path) {
+    if (!doc || typeof dataTypeRef !== 'string') return null;
+    var current = unwrapArray(doc, dataTypeRef.split(':').pop()).def;
+    var field = null;
+    var parts = String(path).split('.');
+    for (var i = 0; i < parts.length; i++) {
+      if (!current || !current.fields) return null;
+      field = current.fields[parts[i]];
+      if (!field) return null;
+      current = unwrapArray(doc, field.type).def;
+    }
+    return field;
+  }
+
+  /** Just that field's type — what the rules table prints in its own
+   *  column. */
+  function filterFieldType(doc, dataTypeRef, path) {
+    var field = filterFieldDef(doc, dataTypeRef, path);
+    return field && field.type != null ? field.type : null;
+  }
+
+  /** One of the filter language's own literals, or `null` for a value it
+   *  has no literal form for (an object or an array - a filter compares
+   *  against scalars). Strings are single-quoted, the same spelling the
+   *  expression AST prints back; one that would need escaping is skipped
+   *  rather than guessed at. */
+  function filterLiteral(value) {
+    if (value === null || value === undefined) return null;
+    if (typeof value === 'boolean' || typeof value === 'number') {
+      return String(value);
+    }
+    if (typeof value !== 'string') return null;
+    return value.indexOf("'") === -1 ? "'" + value + "'" : null;
+  }
+
+  /** One `field=value` term for the example filter: `=` when the rule
+   *  allows it (it is the one every reader recognizes), otherwise the
+   *  first operator it does allow. `in`/`!in` take a list, and the worded
+   *  operators (`like`, `ilike`, `in`) need spaces around them where the
+   *  symbols do not. */
+  function filterExampleTerm(doc, dataTypeRef, field, rule) {
+    var ops = (rule && rule.operators) || [];
+    var op = !ops.length || ops.indexOf('=') !== -1 ? '=' : ops[0];
+    var def = filterFieldDef(doc, dataTypeRef, field);
+    if (!def) return null;
+    var declared = firstFieldExampleValue(def.examples);
+    var value =
+      declared !== undefined ? declared : buildExampleValue(doc, def.type);
+    var literal = filterLiteral(value);
+    if (literal === null) return null;
+    if (op === 'in' || op === '!in') {
+      return field + ' ' + op + ' [' + literal + ']';
+    }
+    return /[a-z]/i.test(op)
+      ? field + ' ' + op + ' ' + literal
+      : field + op + literal;
+  }
+
+  /** A filter the reader can actually send. The builtin `filter` type
+   *  declares one generic example (`name='John' and age>=18`) which names
+   *  fields that no particular resource has, so the request example was
+   *  offering every operation a filter its own API rejects. This builds
+   *  one from the operation's *own* rules instead - the first two fields
+   *  that have a literal form, joined with `and`. */
+  function filterExampleValue(doc, type) {
+    var props = (type && type.properties) || {};
+    var rules = props.rules;
+    if (!rules || typeof rules !== 'object') return null;
+    var parts = [];
+    Object.keys(rules).forEach(function (field) {
+      if (parts.length >= 2) return;
+      var term = filterExampleTerm(doc, props.dataType, field, rules[field]);
+      if (term) parts.push(term);
+    });
+    return parts.length ? parts.join(' and ') : null;
+  }
+
+  /** The `filter` type's own `rules` map, which says what each field may be
+   *  filtered by: one row per field, its type, and its operators as chips.
+   *
+   *  It used to be `JSON.stringify`d into a single `<code>` - correct, and
+   *  unreadable at exactly the size it matters, since a resource with twenty
+   *  filterable fields printed one unbroken line of punctuation. The content
+   *  is a small table and reads like one.
+   *
+   *  `prepare` never arrives (a function does not serialize) and
+   *  `mappedField` is deliberately not shown: it is the name the server
+   *  maps to internally, and a reader filters by the documented name. */
+  function renderFilterRules(rules, doc, dataTypeRef) {
+    var fields = Object.keys(rules || {});
+    if (!fields.length) return null;
+    var list = el('div', { class: 'filter-rules' });
+    fields.forEach(function (field) {
+      var rule = rules[field] || {};
+      var ops = rule.operators || [];
+      /* What the field may be compared *to*, which the operators alone
+       * never said: `=` means a different thing against a date, an integer
+       * and an enum. */
+      var typeRef = filterFieldType(doc, dataTypeRef, field);
+      var row = el('div', { class: 'filter-rule' }, [
+        el('span', { class: 'filter-rule-field mono' }, [field]),
+        el(
+          'span',
+          { class: 'filter-rule-type' },
+          /* `fieldTypeNode`, not `typeRefNode`: it folds the `[]` of an
+           * array layer into the chip, and `notes` is an `Note[]`. */
+          typeRef == null ? [] : [fieldTypeNode(doc, typeRef)],
+        ),
+        el(
+          'span',
+          { class: 'filter-rule-ops' },
+          ops.length
+            ? ops.map(function (op) {
+                return el('code', { class: 'token-chip' }, [op]);
+              })
+            : [
+                el('span', { class: 'filter-rule-any' }, [
+                  t('props.anyOperator'),
+                ]),
+              ],
+        ),
+      ]);
+      list.appendChild(row);
+      /* A rule may carry its own sentence about what the field means here,
+       * which the single-line JSON had nowhere to put. */
+      /* `notes` is what `Filter(field, { notes })` writes and what reaches
+       * the schema; `description` is the name the same slot carries on
+       * `FilterRules.Rule`, for rules built directly rather than through
+       * the decorator. Either is the sentence this row is missing. */
+      var note = rule.notes || rule.description;
+      if (note) {
+        list.appendChild(
+          doc
+            ? mdBlock(doc, note, 'filter-rule-desc')
+            : el('div', { class: 'filter-rule-desc' }, [note]),
+        );
+      }
+    });
+    return list;
+  }
+
   /** A SimpleType's own constraint properties (e.g. `minValue`/`maxValue`
    *  on a number, `pattern`/`minLength`/`maxLength` on a string) — shown
    *  under the field's description as "Label: value" pairs, a pattern
@@ -1211,7 +1361,7 @@
    *  visible text — this is the dense, inline-under-a-field context (see
    *  `renderSimpleTypePropertyRows` for the type's own spacious page,
    *  where it's shown outright). */
-  function renderSimpleTypeProperties(properties, descriptions) {
+  function renderSimpleTypeProperties(properties, descriptions, doc) {
     var keys = Object.keys(properties || {});
     if (!keys.length) return null;
     var container = el('div', { class: 'field-properties' });
@@ -1223,14 +1373,21 @@
       // `String(value)` on an object/array would otherwise print the
       // useless "[object Object]".
       var isObject = value !== null && typeof value === 'object';
+      var asRules =
+        key === 'rules' && isObject
+          ? renderFilterRules(value, doc, properties.dataType)
+          : null;
       container.appendChild(
-        el('div', { class: 'prop-row' }, [
+        el('div', { class: asRules ? 'prop-row prop-row-block' : 'prop-row' }, [
           el('span', { class: 'prop-key', title: desc || null }, [
-            humanizePropKey(key) + ': ',
+            humanizePropKey(key) + (asRules ? '' : ': '),
           ]),
-          key === 'pattern' || isObject
-            ? el('code', {}, [isObject ? JSON.stringify(value) : String(value)])
-            : text(String(value)),
+          asRules ||
+            (key === 'pattern' || isObject
+              ? el('code', {}, [
+                  isObject ? JSON.stringify(value) : String(value),
+                ])
+              : text(String(value))),
         ]),
       );
     });
@@ -1597,10 +1754,55 @@
       var propsNode = renderSimpleTypeProperties(
         d.properties,
         d.propertyDescriptions,
+        doc,
       );
       if (propsNode) row.appendChild(propsNode);
+    } else if (d && !u.name && d.kind === 'EnumType' && d.values) {
+      var enumNode = renderInlineEnumValues(doc, d);
+      if (enumNode) row.appendChild(enumNode);
     }
     return row;
+  }
+
+  /** The values of an anonymous EnumType, listed under the field that
+   *  carries it — until now the chip said `EnumType[]` and stopped there,
+   *  so an operation's `sort` parameter advertised that it took one of a
+   *  fixed set without ever saying which. A *named* enum is left alone: it
+   *  has its own page, and the chip already links to it.
+   *
+   *  Values that pair as `x` and `-x` all the way through are listed once,
+   *  with a line about the prefix. That is OPRA's sort syntax, and spelling
+   *  out ten values to say five things made the list twice as long while
+   *  leaving the reader to infer the rule anyway. The pairing is read off
+   *  the values themselves rather than the parameter's name, so a set that
+   *  does not pair simply lists in full. */
+  function renderInlineEnumValues(doc, d) {
+    var values = Object.keys(d.values || {});
+    if (!values.length) return null;
+    var bases = values.filter(function (v) {
+      return v.charAt(0) !== '-';
+    });
+    var paired =
+      bases.length * 2 === values.length &&
+      bases.every(function (b) {
+        return values.indexOf('-' + b) !== -1;
+      });
+    var shown = paired ? bases : values;
+    var box = el('div', { class: 'enum-values' }, [
+      el(
+        'div',
+        { class: 'enum-values-chips' },
+        shown.map(function (v) {
+          return el('code', { class: 'token-chip' }, [v]);
+        }),
+      ),
+    ]);
+    if (paired) {
+      box.appendChild(
+        el('div', { class: 'enum-values-note' }, [t('field.reversePrefix')]),
+      );
+    }
+    return box;
   }
 
   /** A SimpleType's own constraint properties, shown on *its* model page
@@ -1621,11 +1823,15 @@
       // larger font included) — not just `pattern` boxed in a bare
       // `<code>` while `minLength`/`maxLength` sat as plain inline text
       // as if less important than it.
+      var asRules =
+        key === 'rules' && value && typeof value === 'object'
+          ? renderFilterRules(value, doc, properties.dataType)
+          : null;
       var row = el('div', { class: 'field-row' }, [
         el('span', { class: 'field-head' }, [
           el('span', { class: 'key' }, [humanizePropKey(key)]),
-          text(': '),
-          exampleChip(value),
+          asRules ? text('') : text(': '),
+          asRules || exampleChip(value),
         ]),
       ]);
       var desc = descriptions && descriptions[key];
@@ -1798,6 +2004,84 @@
    *  controller's own operations — used by the top-level Controllers list
    *  below, which shows only first-level controllers (the sidebar already
    *  covers the full nested tree) but still wants an honest count. */
+  /** Every operation anywhere in the tree (not just one level), flat — which
+   *  is what lets one operation be bucketed under several of its own
+   *  `sections` at once, unlike `buildControllerNodes`'s walk, which builds
+   *  one nested DOM tree mirroring the *controller* structure exactly once.
+   *  Shared by the sidebar's "Sections" view and the overview's. */
+  function collectAllOperations(ctrls, parentRoute) {
+    var out = [];
+    Object.keys(ctrls).forEach(function (name) {
+      var ctrl = ctrls[name];
+      var route = parentRoute + '/' + encodeURIComponent(name);
+      if (ctrl.operations) {
+        Object.keys(ctrl.operations).forEach(function (opKey) {
+          out.push({
+            opKey: opKey,
+            // The declaring controller's name, so an operation with no
+            // `title` can still be told apart from a same-named one under
+            // another controller once this flat list mixes them together.
+            ctrlName: name,
+            op: ctrl.operations[opKey],
+            route: route + '/' + encodeURIComponent(opKey),
+          });
+        });
+      }
+      if (ctrl.controllers) {
+        out = out.concat(collectAllOperations(ctrl.controllers, route));
+      }
+    });
+    return out;
+  }
+
+  /** The document's sections in the order the sidebar shows them: the ones
+   *  `api.sections` declares, in declaration order, then any name an
+   *  operation references without declaring, then "Ungrouped" - mirroring
+   *  `buildSectionsNav` exactly, because the two views disagreeing about
+   *  what a section *contains* would be worse than either being wrong. */
+  function sectionsOf(doc) {
+    var entries = collectAllOperations(
+      (doc.api && doc.api.controllers) || {},
+      'ctl',
+    );
+    var bySection = {};
+    var ungrouped = [];
+    entries.forEach(function (entry) {
+      if (entry.op.sections && entry.op.sections.length) {
+        entry.op.sections.forEach(function (name) {
+          (bySection[name] = bySection[name] || []).push(entry);
+        });
+      } else ungrouped.push(entry);
+    });
+    var declared = (doc.api && doc.api.sections) || [];
+    var declaredNames = declared.map(function (g) {
+      return g.name;
+    });
+    var out = declared
+      .concat(
+        Object.keys(bySection)
+          .filter(function (name) {
+            return declaredNames.indexOf(name) === -1;
+          })
+          .map(function (name) {
+            return { name: name };
+          }),
+      )
+      .map(function (g) {
+        return { section: g, entries: bySection[g.name] || [] };
+      })
+      .filter(function (g) {
+        return g.entries.length;
+      });
+    if (ungrouped.length) {
+      out.push({
+        section: { name: t('sidebar.ungrouped') },
+        entries: ungrouped,
+      });
+    }
+    return out;
+  }
+
   function countOperations(ctrl) {
     var n = ctrl.operations ? Object.keys(ctrl.operations).length : 0;
     if (ctrl.controllers) {
@@ -2022,6 +2306,19 @@
     var controllers = (doc.api && doc.api.controllers) || {};
     var names = Object.keys(controllers);
     if (!names.length) return;
+    /* "Sections" is a way of reading the whole API, not a sidebar setting:
+     * picking it and finding this page still listing controllers was the
+     * page disagreeing with the tree beside it. Same condition
+     * `buildSidebar` applies, so the two always show the same thing. */
+    if (
+      state.groupBy === 'sections' &&
+      doc.api &&
+      doc.api.sections &&
+      doc.api.sections.length
+    ) {
+      renderSectionsSection(main, docKey, doc);
+      return;
+    }
     var section = el('div', { class: 'section' }, [
       el('h2', {}, [t('overview.controllers')]),
     ]);
@@ -2039,6 +2336,40 @@
             el('span', { class: 'mono' }, [name]),
             el('span', { class: 'row-desc' }, [
               tp('overview.operationCount', n),
+            ]),
+          ],
+        ),
+      );
+    });
+    main.appendChild(section);
+  }
+
+  /** The overview's "Sections" view: one row per section, carrying the
+   *  thing the sidebar has nowhere to put - the section's own description.
+   *  A row links to the first operation in its section, since a section is
+   *  a grouping rather than a page of its own. */
+  function renderSectionsSection(main, docKey, doc) {
+    var groups = sectionsOf(doc);
+    if (!groups.length) return;
+    var section = el('div', { class: 'section' }, [
+      el('h2', {}, [t('sidebar.sections')]),
+    ]);
+    groups.forEach(function (g) {
+      var name = g.section.icon
+        ? g.section.icon + ' ' + g.section.name
+        : g.section.name;
+      section.appendChild(
+        el(
+          'a',
+          {
+            class: 'row-link',
+            href: hrefFor(docKey, g.entries[0].route),
+          },
+          [
+            el('span', { class: 'mono' }, [name]),
+            el('span', { class: 'row-desc' }, [
+              g.section.description ||
+                tp('overview.operationCount', g.entries.length),
             ]),
           ],
         ),
@@ -2146,6 +2477,81 @@
    *  path parameter) and an operation's page (its own parameters *plus*
    *  every ancestor controller's, already merged server-side — see
    *  `mapHttpOperation` in schema-builder.ts). */
+  /* Which query parameters the reader has switched into the request example,
+   * and with what value. Deliberately per page *view*: a remembered
+   * selection would mean the next person to open a shared link sees an
+   * example nobody chose, and the snippet is the one thing on this page that
+   * reads as an instruction. Cleared by `resetRequestExampleState` at the
+   * top of every operation render. */
+  var querySelection = Object.create(null);
+  /* Set by `renderRequestSection` so a toggle can redraw just the rail,
+   * rather than re-rendering the page under the reader's cursor. Null
+   * between renders, and on any page that has no rail at all. */
+  var rerenderRequestRail = null;
+
+  function resetRequestExampleState() {
+    querySelection = Object.create(null);
+    rerenderRequestRail = null;
+  }
+
+  /** The value a parameter starts with, in the order the reader would guess:
+   *  what the API itself defaults to, then what it gives as an example, then
+   *  a synthesized stand-in for its type. The last of those is a
+   *  placeholder, which is why the field is editable - a snippet you cannot
+   *  run is a template, and the point of switching one on is to copy it. */
+  function initialParamValue(doc, p) {
+    if (p.default !== undefined) return String(p.default);
+    var ex = p.examples && Object.keys(p.examples);
+    if (ex && ex.length) {
+      var first = p.examples[ex[0]];
+      var v = first && typeof first === 'object' ? first.value : first;
+      if (v !== undefined) return String(v);
+    }
+    // Before the type's own example, which for `filter` is a generic one
+    // naming fields this resource does not have (see
+    // `filterExampleValue`); every other parameter falls straight
+    // through, since only a filter type carries `rules`.
+    var fromRules = filterExampleValue(doc, p.type);
+    if (fromRules) return fromRules;
+    var built = buildExampleValue(doc, p.type);
+    return built === undefined || built === null ? '' : String(built);
+  }
+
+  /** The checkbox and the value beside one query parameter. A required
+   *  parameter is in the example whether anyone asks or not - removing it
+   *  would make the snippet describe a request the API rejects - so it shows
+   *  ticked and locked rather than absent. */
+  function queryParamControl(doc, p) {
+    var state = (querySelection[p.name] = {
+      on: !!p.required,
+      value: initialParamValue(doc, p),
+    });
+    var box = el('input', { type: 'checkbox', class: 'qp-check' });
+    box.checked = state.on;
+    box.disabled = !!p.required;
+    box.title = p.required
+      ? t('operation.paramAlwaysSent')
+      : t('operation.paramInclude');
+    var input = el('input', {
+      type: 'text',
+      class: 'qp-value mono',
+      value: state.value,
+      spellcheck: 'false',
+    });
+    input.disabled = !state.on;
+    input.setAttribute('aria-label', t('operation.paramValue'));
+    box.addEventListener('change', function () {
+      state.on = box.checked;
+      input.disabled = !state.on;
+      if (rerenderRequestRail) rerenderRequestRail();
+    });
+    input.addEventListener('input', function () {
+      state.value = input.value;
+      if (rerenderRequestRail) rerenderRequestRail();
+    });
+    return el('span', { class: 'qp-control' }, [box, input]);
+  }
+
   function renderParametersSections(main, doc, parameters) {
     if (!parameters || !parameters.length) return;
     var PARAMETER_SECTION_KEYS = {
@@ -2170,15 +2576,22 @@
       // clickable chip, hover tooltip, and inline properties a field gets.
       var list = el('div', { class: 'field-list' });
       params.forEach(function (p) {
-        list.appendChild(
-          renderFieldNode(doc, p.name, p.type, {
-            source: p,
-            required: p.required,
-            deprecated: p.deprecated,
-            description: p.description,
-            arraySeparator: p.arraySeparator,
-          }),
-        );
+        var node = renderFieldNode(doc, p.name, p.type, {
+          source: p,
+          required: p.required,
+          deprecated: p.deprecated,
+          description: p.description,
+          arraySeparator: p.arraySeparator,
+        });
+        /* Only query parameters: a path parameter is already part of the
+         * url and a header is sent regardless, so neither is something to
+         * switch on or off. */
+        if (loc === 'query') {
+          node.classList.add('field-row-selectable');
+          var head = node.querySelector('.field-head');
+          if (head) head.appendChild(queryParamControl(doc, p));
+        }
+        list.appendChild(node);
       });
       section.appendChild(list);
       main.appendChild(section);
@@ -2775,15 +3188,23 @@
       operationPath(ctrlPath, op),
       op.parameters,
     );
+    /* Required, plus whatever the reader switched on — and with the value
+     * they typed, if they typed one. This is the only place that decides
+     * what a request contains, which is why every snippet language picks
+     * the change up without knowing anything about it. */
     var query = (op.parameters || [])
       .filter(function (p) {
-        return p.location === 'query' && p.required;
+        if (p.location !== 'query') return false;
+        var sel = querySelection[p.name];
+        return sel ? sel.on : !!p.required;
       })
       .map(function (p) {
+        var sel = querySelection[p.name];
         return {
           name: p.name,
-          value:
-            p.default !== undefined
+          value: sel
+            ? sel.value
+            : p.default !== undefined
               ? p.default
               : buildExampleValue(doc, p.type),
         };
@@ -3894,6 +4315,11 @@
       railCopyHolder.appendChild(copyBtn);
     }
 
+    /* Published so a query-parameter toggle can redraw just this, leaving
+     * the rest of the page — and the cursor in the field being typed in —
+     * alone. */
+    rerenderRequestRail = renderRail;
+
     // Rebuilds the dropdown's options for `media`'s own set of body
     // formats (the "Body" entry only — the rest of `REQUEST_SNIPPET_KINDS`
     // never changes) and re-applies `selectedKind` to the new `<select>`;
@@ -4383,6 +4809,10 @@
     var opDescBlock = mdBlock(doc, op.description, null, op);
     if (opDescBlock) topMain.appendChild(opDescBlock);
 
+    /* Before the parameter rows build their own controls: the selection is
+     * per operation, and carrying one page's choices into the next would
+     * put a value in a snippet the reader never asked for. */
+    resetRequestExampleState();
     renderParametersSections(topMain, doc, op.parameters);
 
     renderRequestSection(topMain, doc, op, found.ctrlPath, railExample);
@@ -4676,7 +5106,19 @@
 
   // ---------- sidebar ----------
 
+  /** The Quick Filter text the sidebar was last built with — see the
+   *  restore step at the end of `buildSidebar` for what it decides. */
+  var lastSidebarFilter = '';
+
   function buildSidebar(nav, docKey, doc) {
+    // Emptying the list drops the browser's own scroll offset to 0, and
+    // every rebuild goes through here — a navigation most of all — so a
+    // reader who had scrolled down to find an operation was thrown back
+    // to the top of the sidebar the moment they clicked it, and had to
+    // scroll down and find their place again. What comes back is the
+    // same list, so the offset it had is still the right one: it's read
+    // here and put back at the end, once the new rows are in place.
+    var prevScrollTop = nav.scrollTop;
     clear(nav);
     var filterValue = (
       (document.getElementById('opra-sidebar-filter') || {}).value || ''
@@ -4973,36 +5415,6 @@
       return nodes;
     }
 
-    // Every operation anywhere in the tree (not just one level), for the
-    // "Sections" sidebar view below — a flat list is what lets one operation
-    // be bucketed under several of its own `sections` at once, unlike
-    // `buildControllerNodes`'s walk, which builds one nested DOM tree
-    // mirroring the *controller* structure exactly once.
-    function collectAllOperations(ctrls, parentRoute) {
-      var out = [];
-      Object.keys(ctrls).forEach(function (name) {
-        var ctrl = ctrls[name];
-        var route = parentRoute + '/' + encodeURIComponent(name);
-        if (ctrl.operations) {
-          Object.keys(ctrl.operations).forEach(function (opKey) {
-            out.push({
-              opKey: opKey,
-              // The declaring controller's name, so an operation with no
-              // `title` can still be told apart from a same-named one under
-              // another controller once this flat list mixes them together.
-              ctrlName: name,
-              op: ctrl.operations[opKey],
-              route: route + '/' + encodeURIComponent(opKey),
-            });
-          });
-        }
-        if (ctrl.controllers) {
-          out = out.concat(collectAllOperations(ctrl.controllers, route));
-        }
-      });
-      return out;
-    }
-
     // "Sections" mode: one top-level section per `doc.api.sections` entry
     // (in declaration order — same reasoning as `servers[0]` being "the"
     // default server), plus any section name an operation references but
@@ -5248,6 +5660,15 @@
         ]),
       );
     }
+
+    // Back to where the reader had it (see `prevScrollTop` above). The
+    // browser clamps this for us when the rebuild produced a shorter
+    // list, so a collapse or a method filter needs nothing special.
+    // A *changed* Quick Filter is the one case where it would be wrong:
+    // those are different results, not the same list scrolled, and they
+    // start at the top the way any result list does.
+    nav.scrollTop = filterValue === lastSidebarFilter ? prevScrollTop : 0;
+    lastSidebarFilter = filterValue;
   }
 
   function hasMatchingDescendant(ctrl, filterValue) {
@@ -5311,6 +5732,33 @@
         );
       },
     );
+  }
+
+  /** The row `revealActiveNavItem` last had to account for — so that a
+   *  render which doesn't change the page (a language switch, a theme
+   *  toggle, a Group By change) never yanks the sidebar away from
+   *  wherever the reader has scrolled it. */
+  var lastRevealedHash = null;
+
+  /** `buildSidebar` puts the reader's own scroll offset back, which is
+   *  right when the page they landed on is the row they just clicked.
+   *  It isn't when the page changed from somewhere else — the global
+   *  search, a link in the content, a pasted URL, the first load of a
+   *  deep one — and the active row can then sit far outside the visible
+   *  part of the list. Only then (and only if it really is out of view)
+   *  is the list scrolled, centering the row within `nav` itself rather
+   *  than through `scrollIntoView`, which would scroll every ancestor
+   *  too and take the main column along with it. */
+  function revealActiveNavItem(nav) {
+    var active = nav.querySelector('a.nav-link.active');
+    var href = active ? normalizeHash(active.getAttribute('href') || '') : null;
+    if (href === lastRevealedHash) return;
+    lastRevealedHash = href;
+    if (!active) return;
+    var navBox = nav.getBoundingClientRect();
+    var box = active.getBoundingClientRect();
+    if (box.top >= navBox.top && box.bottom <= navBox.bottom) return;
+    nav.scrollTop += box.top - navBox.top - (nav.clientHeight - box.height) / 2;
   }
 
   // ---------- document switcher ----------
@@ -5533,6 +5981,7 @@
     buildSidebar(nav, state.docKey, doc);
     buildPicker(picker);
     highlightActive(nav);
+    revealActiveNavItem(nav);
 
     var rest = parsed.rest;
     var handled = false;
@@ -7196,8 +7645,15 @@
           // ignore
         }
         syncGroupByUi();
-        buildSidebar(navList, state.docKey, docs[state.docKey]);
-        highlightActive(navList);
+        /* A full `render()`, not just a sidebar rebuild: grouping is a way
+         * of reading the whole document, and the page lists the same
+         * controllers (or sections) the tree does. Rebuilding only the tree
+         * left the two disagreeing until the next navigation - switching
+         * back to "API Structure" kept the page on "Sections", which is the
+         * half of this that looked like nothing had happened. `render()`
+         * rebuilds the sidebar itself, so nothing is lost by going through
+         * it. */
+        render();
       });
       groupByItemEls[opt.key] = item;
       groupByMenu.appendChild(item);

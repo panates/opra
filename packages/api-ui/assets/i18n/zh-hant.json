@@ -96,7 +96,10 @@
     "showSchema": "顯示結構",
     "httpStatusCode": "HTTP 狀態碼：",
     "noResponses": "沒有已記錄的回應。",
-    "body": "主體"
+    "body": "主體",
+    "paramInclude": "加入範例請求",
+    "paramAlwaysSent": "必填 — 一律傳送",
+    "paramValue": "值"
   },
   "media": {
     "encoding": "編碼",
@@ -135,7 +138,8 @@
     "noValues": "沒有值。",
     "showMoreFields_other": "再顯示 {count} 個欄位",
     "noFields": "沒有欄位。",
-    "noProperties": "沒有屬性。"
+    "noProperties": "沒有屬性。",
+    "reversePrefix": "在值前加 “-” 表示反向。"
   },
   "flags": {
     "required": "必填",
@@ -173,7 +177,8 @@
     "version": "版本",
     "provider": "提供者",
     "element": "元素",
-    "additionalFields": "額外欄位"
+    "additionalFields": "額外欄位",
+    "anyOperator": "任意運算子"
   },
   "toc": {
     "onThisPage": "本頁目錄",

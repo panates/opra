@@ -105,7 +105,10 @@
     "showSchema": "Εμφάνιση σχήματος",
     "httpStatusCode": "Κωδικός κατάστασης HTTP: ",
     "noResponses": "Δεν υπάρχουν τεκμηριωμένες αποκρίσεις.",
-    "body": "Σώμα"
+    "body": "Σώμα",
+    "paramInclude": "Προσθήκη στο παράδειγμα αιτήματος",
+    "paramAlwaysSent": "Υποχρεωτικό — στέλνεται πάντα",
+    "paramValue": "Τιμή"
   },
   "media": {
     "encoding": "Κωδικοποίηση",
@@ -146,7 +149,8 @@
     "showMoreFields_one": "Εμφάνιση {count} ακόμη πεδίου",
     "showMoreFields_other": "Εμφάνιση {count} ακόμη πεδίων",
     "noFields": "Κανένα πεδίο.",
-    "noProperties": "Καμία ιδιότητα."
+    "noProperties": "Καμία ιδιότητα.",
+    "reversePrefix": "Προσθέστε «-» μπροστά για την αντίστροφη φορά."
   },
   "flags": {
     "required": "υποχρεωτικό",
@@ -184,7 +188,8 @@
     "version": "Έκδοση",
     "provider": "Πάροχος",
     "element": "Στοιχείο",
-    "additionalFields": "Πρόσθετα πεδία"
+    "additionalFields": "Πρόσθετα πεδία",
+    "anyOperator": "Οποιοσδήποτε τελεστής"
   },
   "toc": {
     "onThisPage": "Σε αυτή τη σελίδα",

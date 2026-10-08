@@ -12,6 +12,7 @@ import { type PartialDTO } from 'ts-gems';
 
 @HttpController({
   path: 'Customers',
+  sections: ['Customers'],
 })
 export class CustomersController {
   service: CustomersService;

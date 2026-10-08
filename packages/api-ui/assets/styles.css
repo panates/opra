@@ -2172,6 +2172,185 @@ a.from-flag:hover {
   word-break: break-word;
 }
 
+/* ---------- Inline enum values ---------- */
+/* An anonymous enum's values, under the field that carries it — the `sort`
+   parameter's allowed fields, above all, which the `EnumType[]` chip named
+   without ever listing. */
+.enum-values {
+  margin: 6px 0 2px;
+}
+
+.enum-values-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.enum-values-note {
+  margin-top: 4px;
+  font-size: 0.88em;
+  color: var(--text-muted);
+}
+
+/* ---------- Query parameter selection (request example) ---------- */
+/* A checkbox and a value beside each query parameter, feeding the snippet in
+   the rail. Sits at the end of the parameter's own head line and pushed to
+   the right, so the Name/Type column down the left stays exactly as it reads
+   without it — this is an action on the row, not part of its description. */
+.qp-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding-left: 12px;
+}
+
+.field-row-selectable .field-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.qp-check {
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.qp-check:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* Quiet until it is switched on: an unchecked row's value is a suggestion,
+   not something the snippet is using. */
+.qp-value {
+  width: 150px;
+  max-width: 40vw;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--code-bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.qp-value:disabled {
+  opacity: 0.45;
+}
+
+.qp-value:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ---------- Filter rules (the `filter` type's own `rules` map) ---------- */
+/* One row per filterable field, its operators as chips. This was a single
+   `JSON.stringify`d line, which on a resource with twenty filterable fields
+   was one unbroken run of punctuation — correct and unreadable. A grid keeps
+   the field names in a column, so the eye scans down them rather than
+   hunting through braces. */
+.filter-rules {
+  display: grid;
+  /* field · type · operators — the type column earns its own track so the
+     operator chips still start on one line down the list, instead of each
+     row's chips beginning wherever that row's type name happened to end. */
+  grid-template-columns: auto auto 1fr;
+  gap: 4px 12px;
+  align-items: baseline;
+  margin: 6px 0 2px;
+}
+
+.filter-rule-type {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.filter-rule {
+  display: contents;
+}
+
+/* The anchor of its row, and the only thing in this column — so it carries
+   the weight. Everything else in the block is lighter than this. */
+.filter-rule-field {
+  color: var(--text);
+  font-size: 0.95em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.filter-rule-ops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Deliberately quieter than a type chip: a token the reader copies into a
+   query string, not a link to anywhere. Shared by the filter operators and
+   by an inline enum's own values, which are the same kind of thing. */
+.token-chip {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  line-height: 1.5;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 5px;
+  white-space: nowrap;
+}
+
+.filter-rule-any {
+  font-size: 0.9em;
+  color: var(--text-muted);
+}
+
+/* Starts in the *second* column, not the first.
+   Spanning the full width put a sentence directly beneath the field name,
+   in the same column and — because `mdBlock` wraps it in `.markdown`, whose
+   own colour won — the same ink. Two different kinds of thing read as one
+   list. Indenting it past the field column leaves that column holding
+   nothing but field names, which is what makes them scannable.
+   `.markdown` is overridden explicitly here, on the block and on the
+   paragraph it generates, rather than hoped past on specificity. */
+.filter-rules .filter-rule-desc {
+  color: var(--text-muted);
+  font-size: 0.88em;
+  line-height: 1.5;
+}
+
+/* Colour only — the size is the block's, and setting `em` again here
+   multiplied it by itself (0.88 × 0.88) down to 10px. */
+.filter-rules .filter-rule-desc p {
+  color: var(--text-muted);
+  font-size: inherit;
+}
+
+.filter-rules .filter-rule-desc {
+  grid-column: 2 / -1;
+  margin: -2px 0 2px;
+}
+
+/* A rule and its note are one block; the gap between rules is what separates
+   them. Without this the `gap` alone spaced every line evenly and a note
+   floated between the row above it and the row below. */
+.filter-rules .filter-rule + .filter-rule-desc + .filter-rule > * {
+  margin-top: 4px;
+}
+
+/* A rules block is a table, not a value that sits after its label on one
+   line — the label goes above it. */
+.field-properties .prop-row-block {
+  margin-top: 8px;
+}
+
+.field-properties .prop-row-block .prop-key {
+  display: block;
+  margin-bottom: 2px;
+}
+
 /* ---------- Document Info metadata (license / contact / terms) ---------- */
 /* `renderInfoMeta` — license/contact/terms sit right under the page's own
    big h1, so a small uppercase label over normal body-sized content reads

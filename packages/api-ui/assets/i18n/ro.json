@@ -106,7 +106,10 @@
     "showSchema": "Arată schema",
     "httpStatusCode": "Cod de stare HTTP: ",
     "noResponses": "Niciun răspuns documentat.",
-    "body": "Corp"
+    "body": "Corp",
+    "paramInclude": "Adaugă la cererea exemplu",
+    "paramAlwaysSent": "Obligatoriu — trimis întotdeauna",
+    "paramValue": "Valoare"
   },
   "media": {
     "encoding": "Codificare",
@@ -148,7 +151,8 @@
     "showMoreFields_few": "Arată încă {count} câmpuri",
     "showMoreFields_other": "Arată încă {count} de câmpuri",
     "noFields": "Niciun câmp.",
-    "noProperties": "Nicio proprietate."
+    "noProperties": "Nicio proprietate.",
+    "reversePrefix": "Prefixează cu „-” pentru ordinea inversă."
   },
   "flags": {
     "required": "obligatoriu",
@@ -186,7 +190,8 @@
     "version": "Versiune",
     "provider": "Furnizor",
     "element": "Element",
-    "additionalFields": "Câmpuri suplimentare"
+    "additionalFields": "Câmpuri suplimentare",
+    "anyOperator": "Orice operator"
   },
   "toc": {
     "onThisPage": "Pe această pagină",

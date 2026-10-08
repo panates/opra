@@ -86,6 +86,17 @@ describe('http:e2e:HttpOperation.Entity endpoints', () => {
     });
   });
 
+  it('Should accept "skip=0" on "findMany"', async () => {
+    // A client that pages with `skip = page * pageSize` asks for zero on
+    // its very first request - which the parameter itself used to reject
+    // as below its own minimum, making the first page the only page a
+    // client could not fetch.
+    const resp = await supertest(adapter.app).get('/Customers?skip=0&limit=1');
+    expect(resp.body.errors).not.toBeDefined();
+    expect(resp.statusCode).toStrictEqual(200);
+    expect(resp.body.payload).toHaveLength(1);
+  });
+
   it('Should execute "update" endpoint', async () => {
     const d = new Date();
     const resp = await supertest(adapter.app).patch('/Customers@1').send({

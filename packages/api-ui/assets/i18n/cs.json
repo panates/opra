@@ -107,7 +107,10 @@
     "showSchema": "Zobrazit schéma",
     "httpStatusCode": "Stavový kód HTTP: ",
     "noResponses": "Žádné zdokumentované odpovědi.",
-    "body": "Tělo"
+    "body": "Tělo",
+    "paramInclude": "Přidat do ukázkového požadavku",
+    "paramAlwaysSent": "Povinné — odesílá se vždy",
+    "paramValue": "Hodnota"
   },
   "media": {
     "encoding": "Kódování",
@@ -150,7 +153,8 @@
     "showMoreFields_many": "Zobrazit ještě {count} pole",
     "showMoreFields_other": "Zobrazit ještě {count} polí",
     "noFields": "Žádná pole.",
-    "noProperties": "Žádné vlastnosti."
+    "noProperties": "Žádné vlastnosti.",
+    "reversePrefix": "Opačný směr získáte předponou „-“."
   },
   "flags": {
     "required": "povinné",
@@ -188,7 +192,8 @@
     "version": "Verze",
     "provider": "Poskytovatel",
     "element": "Prvek",
-    "additionalFields": "Další pole"
+    "additionalFields": "Další pole",
+    "anyOperator": "Libovolný operátor"
   },
   "toc": {
     "onThisPage": "Na této stránce",

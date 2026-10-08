@@ -9,6 +9,7 @@ import { CustomerNotesController } from './customer-notes.controller.js';
 @HttpController({
   path: 'Customers',
   controllers: [CustomerNotesController],
+  sections: ['Customers'],
 })
 export class CustomerController {
   service: CustomersService;

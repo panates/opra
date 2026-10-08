@@ -18,6 +18,9 @@ class AvatarMetadata {
 
 @(HttpController({
   path: 'avatar',
+  // Nested under the profile, so this replaces the `Account` it would
+  // otherwise inherit.
+  sections: ['Customers'],
 }).UseType(AvatarMetadata))
 export class AvatarController {
   @(HttpOperation.POST({})

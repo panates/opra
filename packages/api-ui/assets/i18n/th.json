@@ -96,7 +96,10 @@
     "showSchema": "แสดงสคีมา",
     "httpStatusCode": "รหัสสถานะ HTTP: ",
     "noResponses": "ไม่มีการตอบกลับที่บันทึกไว้",
-    "body": "เนื้อหา"
+    "body": "เนื้อหา",
+    "paramInclude": "เพิ่มลงในคำขอตัวอย่าง",
+    "paramAlwaysSent": "จำเป็น — ส่งเสมอ",
+    "paramValue": "ค่า"
   },
   "media": {
     "encoding": "การเข้ารหัส",
@@ -135,7 +138,8 @@
     "noValues": "ไม่มีค่า",
     "showMoreFields_other": "แสดงอีก {count} ฟิลด์",
     "noFields": "ไม่มีฟิลด์",
-    "noProperties": "ไม่มีคุณสมบัติ"
+    "noProperties": "ไม่มีคุณสมบัติ",
+    "reversePrefix": "ใส่ “-” นำหน้าเพื่อสลับทิศทาง"
   },
   "flags": {
     "required": "จำเป็น",
@@ -173,7 +177,8 @@
     "version": "เวอร์ชัน",
     "provider": "ผู้ให้บริการ",
     "element": "อิลิเมนต์",
-    "additionalFields": "ฟิลด์เพิ่มเติม"
+    "additionalFields": "ฟิลด์เพิ่มเติม",
+    "anyOperator": "ตัวดำเนินการใดก็ได้"
   },
   "toc": {
     "onThisPage": "ในหน้านี้",

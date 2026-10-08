@@ -7,12 +7,14 @@ import { MyProfileController } from './my-profile.controller.js';
     (parent: AuthController) => new MyProfileController(parent.app),
   ],
   path: 'auth',
+  // Said once for every operation here and in the controller nested
+  // above, rather than repeated on each one.
+  sections: ['Account'],
 })
 export class AuthController {
   constructor(readonly app: CustomerApplication) {}
 
   @(HttpOperation({
-    sections: ['Account'],
     path: 'login',
   })
     .QueryParam('user', {
@@ -29,7 +31,6 @@ export class AuthController {
   }
 
   @(HttpOperation({
-    sections: ['Account'],
     path: '/logout',
   }).Response(200, { type: OperationResult }))
   logout() {

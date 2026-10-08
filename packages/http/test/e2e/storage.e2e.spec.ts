@@ -51,4 +51,29 @@ describe('http:e2e:Storage', () => {
     expect(resp.body.title).toStrictEqual('title');
     expect(resp.body.text).toStrictEqual('notes');
   });
+
+  it('Should answer 400 when a required part is missing', async () => {
+    // The client's mistake, not the server's: this used to come back as
+    // `500 RESPONSE_VALIDATION`, because the reader threw valgen's own
+    // `ValidationError` and the adapter's catch block reads any
+    // `ValidationError` reaching it as a failure to encode the response.
+    const resp = await supertest(adapter.app)
+      .post('/Files')
+      .set('content-type', 'multipart/form-data; boundary=AaB03x')
+      .send(
+        Buffer.from(
+          '--AaB03x\r\n' +
+            'content-disposition: form-data; name="notes2"\r\n' +
+            '\r\n' +
+            'only the optional one\r\n' +
+            '--AaB03x--\r\n',
+        ),
+      );
+    expect(resp.statusCode).toStrictEqual(400);
+    expect(resp.body.errors).toBeDefined();
+    expect(resp.body.errors[0]).toMatchObject({
+      code: 'REQUEST_VALIDATION',
+      message: 'Multi part field "notes" is required',
+    });
+  });
 });

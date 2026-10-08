@@ -105,7 +105,10 @@
     "showSchema": "স্কিমা দেখান",
     "httpStatusCode": "HTTP স্ট্যাটাস কোড: ",
     "noResponses": "নথিভুক্ত কোনো প্রতিক্রিয়া নেই।",
-    "body": "বডি"
+    "body": "বডি",
+    "paramInclude": "উদাহরণ অনুরোধে যুক্ত করুন",
+    "paramAlwaysSent": "আবশ্যক — সর্বদা পাঠানো হয়",
+    "paramValue": "মান"
   },
   "media": {
     "encoding": "এনকোডিং",
@@ -146,7 +149,8 @@
     "showMoreFields_one": "আরও {count}টি ফিল্ড দেখান",
     "showMoreFields_other": "আরও {count}টি ফিল্ড দেখান",
     "noFields": "কোনো ফিল্ড নেই।",
-    "noProperties": "কোনো বৈশিষ্ট্য নেই।"
+    "noProperties": "কোনো বৈশিষ্ট্য নেই।",
+    "reversePrefix": "বিপরীত দিকের জন্য মানের আগে “-” দিন।"
   },
   "flags": {
     "required": "আবশ্যক",
@@ -184,7 +188,8 @@
     "version": "সংস্করণ",
     "provider": "সরবরাহকারী",
     "element": "এলিমেন্ট",
-    "additionalFields": "অতিরিক্ত ফিল্ড"
+    "additionalFields": "অতিরিক্ত ফিল্ড",
+    "anyOperator": "যেকোনো অপারেটর"
   },
   "toc": {
     "onThisPage": "এই পাতায়",

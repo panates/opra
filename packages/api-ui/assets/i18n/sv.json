@@ -105,7 +105,10 @@
     "showSchema": "Visa schema",
     "httpStatusCode": "HTTP-statuskod: ",
     "noResponses": "Inga dokumenterade svar.",
-    "body": "Kropp"
+    "body": "Kropp",
+    "paramInclude": "Lägg till i exempelförfrågan",
+    "paramAlwaysSent": "Obligatorisk — skickas alltid",
+    "paramValue": "Värde"
   },
   "media": {
     "encoding": "Kodning",
@@ -146,7 +149,8 @@
     "showMoreFields_one": "Visa {count} fält till",
     "showMoreFields_other": "Visa {count} fält till",
     "noFields": "Inga fält.",
-    "noProperties": "Inga egenskaper."
+    "noProperties": "Inga egenskaper.",
+    "reversePrefix": "Sätt ”-” före för omvänd riktning."
   },
   "flags": {
     "required": "obligatoriskt",
@@ -184,7 +188,8 @@
     "version": "Version",
     "provider": "Leverantör",
     "element": "Element",
-    "additionalFields": "Ytterligare fält"
+    "additionalFields": "Ytterligare fält",
+    "anyOperator": "Valfri operator"
   },
   "toc": {
     "onThisPage": "På den här sidan",

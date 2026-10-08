@@ -12,6 +12,9 @@ import { type PartialDTO } from 'ts-gems';
 
 @HttpController({
   path: 'Notes',
+  // Nested under `CustomerController`, so this replaces the `Customers`
+  // it would otherwise inherit.
+  sections: ['Notes'],
 })
 export class CustomerNotesController {
   service: CustomerNotesService;

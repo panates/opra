@@ -97,7 +97,9 @@ export class HttpBundleObservable<
               'Content-Transfer-Encoding': 'binary',
               'X-Request-Id': req.requestId,
             },
-            body: serializeHttpRequest(req[kContext]),
+            /* Awaited: a `Blob` or `FormData` body has to be read before
+               it can be framed (see `serializeHttpRequest`). */
+            body: await serializeHttpRequest(req[kContext]),
           });
         }
 

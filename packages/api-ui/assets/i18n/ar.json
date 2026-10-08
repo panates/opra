@@ -125,7 +125,10 @@
     "showSchema": "عرض المخطط",
     "httpStatusCode": "رمز حالة HTTP: ",
     "noResponses": "لا توجد استجابات موثَّقة.",
-    "body": "المتن"
+    "body": "المتن",
+    "paramInclude": "إضافة إلى طلب المثال",
+    "paramAlwaysSent": "مطلوب — يُرسل دائمًا",
+    "paramValue": "القيمة"
   },
   "media": {
     "encoding": "الترميز",
@@ -172,7 +175,8 @@
     "showMoreFields_many": "عرض {count} حقلًا إضافيًا",
     "showMoreFields_other": "عرض {count} حقل إضافي",
     "noFields": "لا توجد حقول.",
-    "noProperties": "لا توجد خصائص."
+    "noProperties": "لا توجد خصائص.",
+    "reversePrefix": "أضف البادئة «-» لعكس الاتجاه."
   },
   "flags": {
     "required": "مطلوب",
@@ -210,7 +214,8 @@
     "version": "الإصدار",
     "provider": "المزوّد",
     "element": "العنصر",
-    "additionalFields": "حقول إضافية"
+    "additionalFields": "حقول إضافية",
+    "anyOperator": "أي عامل"
   },
   "toc": {
     "onThisPage": "في هذه الصفحة",

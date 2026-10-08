@@ -23,6 +23,7 @@ export class CustomerCreateInput extends OmitType(Customer, ['_id']) {}
 
 @HttpController({
   path: 'Customers',
+  sections: ['Customers'],
 })
 export class CustomersController {
   protected _service?: CustomersService;
@@ -36,7 +37,6 @@ export class CustomersController {
   }
 
   @HttpOperation.Entity.Create(Customer, {
-    sections: ['Customers'],
     requestBody: {
       type: CustomerCreateInput,
     },
@@ -46,19 +46,33 @@ export class CustomersController {
     return this.service.for(context).create(data, options);
   }
 
-  @(HttpOperation.Entity.FindMany(Customer, {
-    sections: ['Customers'],
-  })
-    .Filter('_id', ['=', '!=', '<', '>', '>=', '<=', 'in', '!in'])
-    .Filter('givenName', ['=', '!=', 'like', '!like', 'ilike', '!ilike'])
-    .Filter('familyName', ['=', '!=', 'like', '!like'])
-    .Filter('gender')
-    .Filter('uid')
-    .Filter('address.countryCode')
-    .Filter('deleted')
-    .Filter('active')
-    .Filter('birthDate')
-    .Filter('rate', ['=', '!=', '<', '>', '>=', '<=', 'in', '!in'])
+  @(HttpOperation.Entity.FindMany(Customer)
+    // The operators say what you may *write*; `notes` says what the field
+    // means. The reference page prints it under each rule.
+    .Filter('_id', {
+      operators: ['=', '!=', '<', '>', '>=', '<=', 'in', '!in'],
+      notes: 'Customer id',
+    })
+    .Filter('givenName', {
+      operators: ['=', '!=', 'like', '!like', 'ilike', '!ilike'],
+      notes: 'First name. `ilike` ignores case',
+    })
+    .Filter('familyName', {
+      operators: ['=', '!=', 'like', '!like'],
+      notes: 'Last name. Case-sensitive, unlike `givenName`',
+    })
+    .Filter('gender', { notes: 'One of the `Gender` values' })
+    .Filter('uid', { notes: 'External identifier, unique per customer' })
+    .Filter('address.countryCode', {
+      notes: 'ISO 3166-1 alpha-2 code of the postal address',
+    })
+    .Filter('deleted', { notes: 'Soft-delete flag' })
+    .Filter('active', { notes: 'Active or not' })
+    .Filter('birthDate', { notes: 'Date of birth' })
+    .Filter('rate', {
+      operators: ['=', '!=', '<', '>', '>=', '<=', 'in', '!in'],
+      notes: 'Pricing/loyalty multiplier',
+    })
     .SortFields(
       '_id',
       'givenName',
@@ -81,17 +95,19 @@ export class CustomersController {
     return this.service.for(context).findMany(options);
   }
 
-  @(HttpOperation.Entity.DeleteMany(Customer, {
-    sections: ['Customers'],
-  }).Filter('_id', '=, !=, <, >, >=, <=, in, !in'))
+  @(HttpOperation.Entity.DeleteMany(Customer).Filter(
+    '_id',
+    '=, !=, <, >, >=, <=, in, !in',
+  ))
   async deleteMany(context: HttpContext) {
     const { options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).deleteMany(options);
   }
 
-  @(HttpOperation.Entity.UpdateMany(Customer, {
-    sections: ['Customers'],
-  }).Filter('_id', '=, !=, <, >, >=, <=, in, !in'))
+  @(HttpOperation.Entity.UpdateMany(Customer).Filter(
+    '_id',
+    '=, !=, <, >, >=, <=, in, !in',
+  ))
   async updateMany(context: HttpContext) {
     const { data, options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).updateMany(data, options);

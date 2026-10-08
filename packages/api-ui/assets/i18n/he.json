@@ -114,7 +114,10 @@
     "showSchema": "הצגת הסכמה",
     "httpStatusCode": "קוד מצב HTTP: ",
     "noResponses": "אין תשובות מתועדות.",
-    "body": "גוף"
+    "body": "גוף",
+    "paramInclude": "הוספה לבקשת הדוגמה",
+    "paramAlwaysSent": "נדרש — תמיד נשלח",
+    "paramValue": "ערך"
   },
   "media": {
     "encoding": "קידוד",
@@ -157,7 +160,8 @@
     "showMoreFields_two": "הצגת שני שדות נוספים",
     "showMoreFields_other": "הצגת {count} שדות נוספים",
     "noFields": "אין שדות.",
-    "noProperties": "אין מאפיינים."
+    "noProperties": "אין מאפיינים.",
+    "reversePrefix": "הוסיפו “-” לפני הערך לכיוון ההפוך."
   },
   "flags": {
     "required": "חובה",
@@ -195,7 +199,8 @@
     "version": "גרסה",
     "provider": "ספק",
     "element": "רכיב",
-    "additionalFields": "שדות נוספים"
+    "additionalFields": "שדות נוספים",
+    "anyOperator": "כל אופרטור"
   },
   "toc": {
     "onThisPage": "בעמוד הזה",

@@ -105,7 +105,10 @@
     "showSchema": "Vis skema",
     "httpStatusCode": "HTTP-statuskode: ",
     "noResponses": "Ingen dokumenterede svar.",
-    "body": "Brødtekst"
+    "body": "Brødtekst",
+    "paramInclude": "Tilføj til eksempelanmodningen",
+    "paramAlwaysSent": "Påkrævet — sendes altid",
+    "paramValue": "Værdi"
   },
   "media": {
     "encoding": "Kodning",
@@ -146,7 +149,8 @@
     "showMoreFields_one": "Vis {count} felt mere",
     "showMoreFields_other": "Vis {count} felter mere",
     "noFields": "Ingen felter.",
-    "noProperties": "Ingen egenskaber."
+    "noProperties": "Ingen egenskaber.",
+    "reversePrefix": "Sæt ”-” foran for modsat retning."
   },
   "flags": {
     "required": "påkrævet",
@@ -184,7 +188,8 @@
     "version": "Version",
     "provider": "Udbyder",
     "element": "Element",
-    "additionalFields": "Yderligere felter"
+    "additionalFields": "Yderligere felter",
+    "anyOperator": "Enhver operator"
   },
   "toc": {
     "onThisPage": "På denne side",

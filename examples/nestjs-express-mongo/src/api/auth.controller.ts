@@ -12,6 +12,9 @@ import { MyProfileController } from './my-profile.controller.js';
   description: 'Auth controller',
   controllers: [MyProfileController],
   path: 'auth',
+  // Said once for every operation here and in the controllers nested
+  // above, rather than repeated on each one.
+  sections: ['Account'],
 })
 export class AuthController {
   constructor(readonly db: Db) {}

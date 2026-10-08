@@ -107,7 +107,10 @@
     "showSchema": "Показати схему",
     "httpStatusCode": "Код стану HTTP: ",
     "noResponses": "Задокументованих відповідей немає.",
-    "body": "Тіло"
+    "body": "Тіло",
+    "paramInclude": "Додати до прикладу запиту",
+    "paramAlwaysSent": "Обовʼязковий — надсилається завжди",
+    "paramValue": "Значення"
   },
   "media": {
     "encoding": "Кодування",
@@ -150,7 +153,8 @@
     "showMoreFields_many": "Показати ще {count} полів",
     "showMoreFields_other": "Показати ще {count} поля",
     "noFields": "Полів немає.",
-    "noProperties": "Властивостей немає."
+    "noProperties": "Властивостей немає.",
+    "reversePrefix": "Префікс «-» задає зворотний напрямок."
   },
   "flags": {
     "required": "обов'язкове",
@@ -188,7 +192,8 @@
     "version": "Версія",
     "provider": "Постачальник",
     "element": "Елемент",
-    "additionalFields": "Додаткові поля"
+    "additionalFields": "Додаткові поля",
+    "anyOperator": "Будь-який оператор"
   },
   "toc": {
     "onThisPage": "На цій сторінці",

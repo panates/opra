@@ -107,7 +107,10 @@
     "showSchema": "Zobraziť schému",
     "httpStatusCode": "Stavový kód HTTP: ",
     "noResponses": "Žiadne zdokumentované odpovede.",
-    "body": "Telo"
+    "body": "Telo",
+    "paramInclude": "Pridať do ukážkovej požiadavky",
+    "paramAlwaysSent": "Povinné — vždy sa odosiela",
+    "paramValue": "Hodnota"
   },
   "media": {
     "encoding": "Kódovanie",
@@ -150,7 +153,8 @@
     "showMoreFields_many": "Zobraziť ešte {count} poľa",
     "showMoreFields_other": "Zobraziť ešte {count} polí",
     "noFields": "Žiadne polia.",
-    "noProperties": "Žiadne vlastnosti."
+    "noProperties": "Žiadne vlastnosti.",
+    "reversePrefix": "Predpona „-“ otočí poradie."
   },
   "flags": {
     "required": "povinné",
@@ -188,7 +192,8 @@
     "version": "Verzia",
     "provider": "Poskytovateľ",
     "element": "Prvok",
-    "additionalFields": "Ďalšie polia"
+    "additionalFields": "Ďalšie polia",
+    "anyOperator": "Ľubovoľný operátor"
   },
   "toc": {
     "onThisPage": "Na tejto stránke",

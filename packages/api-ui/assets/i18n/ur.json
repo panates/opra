@@ -105,7 +105,10 @@
     "showSchema": "اسکیما دکھائیں",
     "httpStatusCode": "HTTP اسٹیٹس کوڈ: ",
     "noResponses": "کوئی مستند جواب موجود نہیں۔",
-    "body": "متن"
+    "body": "متن",
+    "paramInclude": "مثالی درخواست میں شامل کریں",
+    "paramAlwaysSent": "لازمی — ہمیشہ بھیجا جاتا ہے",
+    "paramValue": "قدر"
   },
   "media": {
     "encoding": "انکوڈنگ",
@@ -146,7 +149,8 @@
     "showMoreFields_one": "{count} مزید فیلڈ دکھائیں",
     "showMoreFields_other": "{count} مزید فیلڈز دکھائیں",
     "noFields": "کوئی فیلڈ نہیں۔",
-    "noProperties": "کوئی خصوصیت نہیں۔"
+    "noProperties": "کوئی خصوصیت نہیں۔",
+    "reversePrefix": "الٹی ترتیب کے لیے قدر سے پہلے “-” لگائیں۔"
   },
   "flags": {
     "required": "لازمی",
@@ -184,7 +188,8 @@
     "version": "ورژن",
     "provider": "فراہم کنندہ",
     "element": "عنصر",
-    "additionalFields": "اضافی فیلڈز"
+    "additionalFields": "اضافی فیلڈز",
+    "anyOperator": "کوئی بھی آپریٹر"
   },
   "toc": {
     "onThisPage": "اس صفحے پر",

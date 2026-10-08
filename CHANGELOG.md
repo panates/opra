@@ -1,6 +1,18 @@
 # Changelog
 
-<!-- rman:documented-up-to 5ba4adef79daf082e413d9768f70537a9e25d657 -->
+<!-- rman:documented-up-to be4bf4fe3aeccb5523f29724821a1de2f784e33b -->
+
+## v1.32.1 (2026-10-08)
+
+### 🐛 Bug Fixes
+
+- **testing:** Buffer the request body, and close only a server we started (f00ef55)
+
+### 🧹 Chores
+
+- sync lockfile (124a294)
+
+---
 
 ## v1.32.0 (2026-10-08)
 

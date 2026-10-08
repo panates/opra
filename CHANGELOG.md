@@ -1,6 +1,34 @@
 # Changelog
 
-<!-- rman:documented-up-to c7bcc8b304e51d398d431df6b41789688396ebda -->
+<!-- rman:documented-up-to 5ba4adef79daf082e413d9768f70537a9e25d657 -->
+
+## v1.32.0 (2026-10-08)
+
+### ✨ Features
+
+- **common:** Declare `notes` on a filter rule (6cdffe9)
+- **api-ui:** Make a request's parameters readable, and the example runnable (3604099)
+- **nestjs-http:** Let a module declare its API's sections and servers (18764e7)
+- **api-ui:** Build the filter example from the operation's own rules (f19df50)
+- **common:** Let a controller declare the sections its operations are in (944582d)
+
+### 🐛 Bug Fixes
+
+- **api-ui:** Send `cache-control` with the reference page (abf459f)
+- **api-ui:** Keep the sidebar where the reader left it (a5fc014)
+- **common:** Accept `skip=0` on an entity findMany (e32e323)
+- **http:** Answer 400 when a multipart request fails validation (153f7ca)
+- **client:** Send a Blob or FormData body in a bundled request (401b6a7)
+
+### 🧹 Chores
+
+- sync lockfile (c145d7c)
+- Added renovate.json (86a9b89)
+- **examples:** Put the demos' operations in sections, and annotate the filters (1edcbbf)
+- **examples:** Declare the demos' sections on the controller (265eb67)
+- **dependencies:** Update package versions across multiple modules (7a196bd)
+
+---
 
 ## v1.31.1 (2026-10-05)
 

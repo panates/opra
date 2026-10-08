@@ -17,6 +17,11 @@ export interface HttpOperation extends DataTypeContainer {
    * mirrors OpenAPI's per-operation `tags`. An operation can list more
    * than one; one with none at all falls into the UI's "Ungrouped"
    * bucket rather than being left out of the sectioned view entirely.
+   *
+   * An operation that declares none inherits its controller's
+   * (`HttpController.sections`), so this is always the whole answer for
+   * one operation and a reader never has to walk up the tree. Declaring
+   * any here replaces the inherited list rather than adding to it.
    */
   sections?: string[];
   path?: string;

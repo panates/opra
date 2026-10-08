@@ -27,7 +27,7 @@ import { HttpParameter } from './http-parameter.js';
 export namespace HttpController {
   export interface Metadata extends Pick<
     OpraSchema.HttpController,
-    'description' | 'path'
+    'description' | 'path' | 'sections'
   > {
     name: string;
     controllers?: (Type | ((parent: any) => any))[];
@@ -39,7 +39,7 @@ export namespace HttpController {
   }
 
   export interface Options extends Partial<
-    Pick<OpraSchema.HttpController, 'description' | 'path'>
+    Pick<OpraSchema.HttpController, 'description' | 'path' | 'sections'>
   > {
     name?: string;
     controllers?: (Type | ((parent: any) => any))[];
@@ -52,7 +52,7 @@ export namespace HttpController {
       instance?: object;
       ctor?: Type;
     },
-    Pick<Metadata, 'name' | 'description' | 'path' | 'docKey'>
+    Pick<Metadata, 'name' | 'description' | 'path' | 'sections' | 'docKey'>
   > {}
 }
 
@@ -107,6 +107,7 @@ export const HttpController = function (
   _this.name = initArgs.name;
   _this.description = initArgs.description;
   _this.docKey = initArgs.docKey;
+  _this.sections = initArgs.sections ? [...initArgs.sections] : undefined;
   _this.path = initArgs.path ?? initArgs.name;
   _this.instance = initArgs.instance;
   _this.ctor = initArgs.ctor;
@@ -128,6 +129,10 @@ class HttpControllerClass extends DocumentElement {
   declare readonly kind: OpraSchema.HttpController.Kind;
   declare readonly name: string;
   declare description?: string;
+  /** What this controller's operations belong to unless they say
+   *  otherwise — see `HttpOperation#sections`, which is where the
+   *  inheritance is actually resolved. */
+  declare sections?: string[];
   declare path: string;
   declare instance?: any;
   declare ctor?: Type;
@@ -224,6 +229,7 @@ class HttpControllerClass extends DocumentElement {
       omitUndefined<OpraSchema.HttpController>({
         kind: this.kind,
         description: this.description,
+        sections: this.sections,
         path: this.path,
       }),
       options,

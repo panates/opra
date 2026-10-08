@@ -185,7 +185,7 @@ export const HttpOperation = function (this: HttpOperation, ...args: any[]) {
   _this.title = initArgs.title;
   _this.description = initArgs.description;
   _this.docKey = initArgs.docKey;
-  _this.sections = initArgs.sections ? [...initArgs.sections] : undefined;
+  _this.sections = initArgs.sections;
   _this.composition = initArgs.composition;
   _this.compositionOptions = initArgs.compositionOptions
     ? cloneObject(initArgs.compositionOptions)
@@ -203,10 +203,42 @@ class HttpOperationClass extends DocumentElement {
     return ['operations', this.docKey || this.name];
   }
 
+  /** What this operation itself declared, which is not always what it is
+   *  in — see the accessor below. */
+  protected _ownSections?: string[];
+
+  /** The sections this operation is in: its own if it named any, and
+   *  otherwise its controller's, walking up through nested controllers to
+   *  the first one that declares any.
+   *
+   *  Resolved here rather than at each reader, because every reader wants
+   *  the same answer — the api-ui groups by it, the OpenAPI mapper writes
+   *  it out as the operation's `tags` — and a declaration one or two
+   *  controllers up is not something any of them should have to go
+   *  looking for. Declaring sections on an operation replaces the
+   *  inherited list rather than adding to it: a resource whose operations
+   *  mostly belong together usually has one or two that belong somewhere
+   *  else entirely, and "somewhere else as well" is spelled by naming
+   *  both. */
+  get sections(): string[] | undefined {
+    if (this._ownSections) return this._ownSections;
+    /* Up through nested controllers only: once the chain runs out `owner`
+       is the HttpApi, and an api's own `sections` are the section
+       *definitions* (name/description/icon), not a membership list. */
+    let owner: any = this.owner;
+    while (owner?.kind === OpraSchema.HttpController.Kind) {
+      if (owner.sections?.length) return owner.sections;
+      owner = owner.owner;
+    }
+  }
+
+  set sections(value: string[] | undefined) {
+    this._ownSections = value ? [...value] : undefined;
+  }
+
   declare method: OpraSchema.HttpMethod;
   declare title?: string;
   declare description?: string;
-  declare sections?: string[];
   declare path?: string;
   declare mergePath?: boolean;
   declare types: DataTypeMap;

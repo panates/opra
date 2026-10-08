@@ -1,6 +1,6 @@
 {
   "name": "@opra/api-ui",
-  "version": "1.32.0",
+  "version": "1.32.1",
   "description": "Modern, interactive API reference UI rendering an Opra ApiDocument's native schema",
   "author": "Panates",
   "contributors": [
@@ -25,9 +25,9 @@
   },
   "peerDependencies": {
     "fastify": "^5.12.5",
-    "@opra/cli": "^1.32.0",
-    "@opra/common": "^1.32.0",
-    "@opra/openapi": "^1.32.0",
+    "@opra/cli": "^1.32.1",
+    "@opra/common": "^1.32.1",
+    "@opra/openapi": "^1.32.1",
     "esbuild": "^0.28.2"
   },
   "peerDependenciesMeta": {

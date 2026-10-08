@@ -12,12 +12,14 @@ import { MyProfileController } from './my-profile.controller.js';
   description: 'Auth controller',
   controllers: [MyProfileController],
   path: 'auth',
+  // Said once for every operation here and in the controllers nested
+  // above, rather than repeated on each one.
+  sections: ['Account'],
 })
 export class AuthController {
   constructor(readonly db: Db) {}
 
   @(HttpOperation({
-    sections: ['Account'],
     path: 'login',
   })
     .QueryParam('user', String)
@@ -33,7 +35,6 @@ export class AuthController {
   }
 
   @(HttpOperation({
-    sections: ['Account'],
     path: '/logout',
   }).Response(200, { type: OperationResult }))
   logout() {

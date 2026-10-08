@@ -19,7 +19,6 @@ export class MyProfileController {
   }
 
   @HttpOperation.Entity.Create(Profile, {
-    sections: ['Account'],
     requestBody: {
       type: OmitType(Profile, ['_id']),
     },
@@ -29,25 +28,19 @@ export class MyProfileController {
     return this.service.for(context).create(data, options);
   }
 
-  @HttpOperation.Entity.Delete(Profile, {
-    sections: ['Account'],
-  })
+  @HttpOperation.Entity.Delete(Profile)
   async delete(context: HttpContext) {
     const { options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).delete(options);
   }
 
-  @HttpOperation.Entity.Get(Profile, {
-    sections: ['Account'],
-  })
+  @HttpOperation.Entity.Get(Profile)
   async get(context: HttpContext) {
     const { options } = await MongoAdapter.parseRequest(context);
     return this.service.for(context).find(options);
   }
 
-  @HttpOperation.Entity.Update(Profile, {
-    sections: ['Account'],
-  })
+  @HttpOperation.Entity.Update(Profile)
   async update(context: HttpContext) {
     const { data, options } = await MongoAdapter.parseRequest(context);
     return this.service.for(context).update(data, options);

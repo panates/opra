@@ -23,6 +23,7 @@ export class CustomerCreateInput extends OmitType(Customer, ['_id']) {}
 
 @HttpController({
   path: 'Customers',
+  sections: ['Customers'],
 })
 export class CustomersController {
   protected _service?: CustomersService;
@@ -36,7 +37,6 @@ export class CustomersController {
   }
 
   @HttpOperation.Entity.Create(Customer, {
-    sections: ['Customers'],
     requestBody: {
       type: CustomerCreateInput,
     },
@@ -46,9 +46,7 @@ export class CustomersController {
     return this.service.for(context).create(data, options);
   }
 
-  @(HttpOperation.Entity.FindMany(Customer, {
-    sections: ['Customers'],
-  })
+  @(HttpOperation.Entity.FindMany(Customer)
     // The operators say what you may *write*; `notes` says what the field
     // means. The reference page prints it under each rule.
     .Filter('_id', {
@@ -97,17 +95,19 @@ export class CustomersController {
     return this.service.for(context).findMany(options);
   }
 
-  @(HttpOperation.Entity.DeleteMany(Customer, {
-    sections: ['Customers'],
-  }).Filter('_id', '=, !=, <, >, >=, <=, in, !in'))
+  @(HttpOperation.Entity.DeleteMany(Customer).Filter(
+    '_id',
+    '=, !=, <, >, >=, <=, in, !in',
+  ))
   async deleteMany(context: HttpContext) {
     const { options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).deleteMany(options);
   }
 
-  @(HttpOperation.Entity.UpdateMany(Customer, {
-    sections: ['Customers'],
-  }).Filter('_id', '=, !=, <, >, >=, <=, in, !in'))
+  @(HttpOperation.Entity.UpdateMany(Customer).Filter(
+    '_id',
+    '=, !=, <, >, >=, <=, in, !in',
+  ))
   async updateMany(context: HttpContext) {
     const { data, options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).updateMany(data, options);

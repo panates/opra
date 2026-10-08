@@ -12,6 +12,9 @@ import { type PartialDTO } from 'ts-gems';
 
 @HttpController({
   path: 'Notes',
+  // Nested under `CustomerController`, so this replaces the `Customers`
+  // it would otherwise inherit.
+  sections: ['Notes'],
 })
 export class CustomerNotesController {
   service: CustomerNotesService;
@@ -20,35 +23,25 @@ export class CustomerNotesController {
     this.service = new CustomerNotesService({ db });
   }
 
-  @(HttpOperation.Entity.Get(Note, { sections: ['Notes'] }).KeyParam(
-    '_id',
-    Number,
-  ))
+  @(HttpOperation.Entity.Get(Note).KeyParam('_id', Number))
   async get(context: HttpContext): Promise<PartialDTO<Note> | undefined> {
     const { key, options } = await MongoAdapter.parseRequest(context);
     return this.service.for(context).findById(key, options);
   }
 
-  @(HttpOperation.Entity.Delete(Note, { sections: ['Notes'] }).KeyParam(
-    '_id',
-    Number,
-  ))
+  @(HttpOperation.Entity.Delete(Note).KeyParam('_id', Number))
   async delete(context: HttpContext) {
     const { key, options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).delete(key, options);
   }
 
-  @(HttpOperation.Entity.Update(Note, { sections: ['Notes'] }).KeyParam(
-    '_id',
-    Number,
-  ))
+  @(HttpOperation.Entity.Update(Note).KeyParam('_id', Number))
   async update(context: HttpContext) {
     const { key, data, options } = await MongoAdapter.parseRequest(context);
     return this.service.for(context).update(key, data, options);
   }
 
   @HttpOperation.Entity.Create(Note, {
-    sections: ['Notes'],
     requestBody: {
       type: OmitType(Note, ['_id']),
     },
@@ -58,7 +51,7 @@ export class CustomerNotesController {
     return this.service.for(context).create(data, options);
   }
 
-  @(HttpOperation.Entity.FindMany(Note, { sections: ['Notes'] })
+  @(HttpOperation.Entity.FindMany(Note)
     .SortFields('_id', 'title', 'title')
     .DefaultSort('_id')
     .Filter('_id')
@@ -79,17 +72,13 @@ export class CustomerNotesController {
     return this.service.for(context).findMany(options);
   }
 
-  @(HttpOperation.Entity.DeleteMany(Note, { sections: ['Notes'] })
-    .Filter('_id')
-    .Filter('rank'))
+  @(HttpOperation.Entity.DeleteMany(Note).Filter('_id').Filter('rank'))
   async deleteMany(context: HttpContext) {
     const { options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).deleteMany(options);
   }
 
-  @(HttpOperation.Entity.UpdateMany(Note, { sections: ['Notes'] })
-    .Filter('_id')
-    .Filter('rank'))
+  @(HttpOperation.Entity.UpdateMany(Note).Filter('_id').Filter('rank'))
   async updateMany(context: HttpContext) {
     const { data, options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).updateMany(data, options);

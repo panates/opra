@@ -13,6 +13,10 @@ import type { CustomerApplication } from '../customer-application.js';
 @HttpController({
   path: 'Notes',
   name: 'Notes',
+  // Nested under `CustomerController`, so this replaces the `Customers`
+  // it would otherwise inherit. `get` below still names both, which is
+  // how an operation says it belongs to the parent's section as well.
+  sections: ['Notes'],
 })
 export class CustomerNotesController {
   protected _service?: CustomerNotesService;
@@ -35,7 +39,7 @@ export class CustomerNotesController {
       .findById(context.pathParams.customerId, key, options);
   }
 
-  @(HttpOperation.Entity.Delete(Note, { sections: ['Notes'] }).KeyParam('_id', {
+  @(HttpOperation.Entity.Delete(Note).KeyParam('_id', {
     type: Number,
   }))
   async delete(context: HttpContext) {
@@ -45,7 +49,7 @@ export class CustomerNotesController {
       .delete(context.pathParams.customerId, key, options);
   }
 
-  @(HttpOperation.Entity.Update(Note, { sections: ['Notes'] }).KeyParam('_id', {
+  @(HttpOperation.Entity.Update(Note).KeyParam('_id', {
     type: Number,
   }))
   async update(context: HttpContext) {
@@ -56,7 +60,6 @@ export class CustomerNotesController {
   }
 
   @HttpOperation.Entity.Create(Note, {
-    sections: ['Notes'],
     requestBody: {
       type: OmitType(Note, ['_id']),
     },
@@ -68,9 +71,7 @@ export class CustomerNotesController {
       .create(context.pathParams.customerId, data, options);
   }
 
-  @(HttpOperation.Entity.FindMany(Note, {
-    sections: ['Notes'],
-  })
+  @(HttpOperation.Entity.FindMany(Note)
     .SortFields('_id', 'title', 'title')
     .DefaultSort('_id')
     .Filter('_id')
@@ -93,9 +94,7 @@ export class CustomerNotesController {
       .findMany(context.pathParams.customerId, options);
   }
 
-  @(HttpOperation.Entity.DeleteMany(Note, { sections: ['Notes'] })
-    .Filter('_id')
-    .Filter('rank'))
+  @(HttpOperation.Entity.DeleteMany(Note).Filter('_id').Filter('rank'))
   async deleteMany(context: HttpContext) {
     const { options } = await MongoAdapter.parseRequest(context);
     return await this.service
@@ -103,9 +102,7 @@ export class CustomerNotesController {
       .deleteMany(context.pathParams.customerId, options);
   }
 
-  @(HttpOperation.Entity.UpdateMany(Note, { sections: ['Notes'] })
-    .Filter('_id')
-    .Filter('rank'))
+  @(HttpOperation.Entity.UpdateMany(Note).Filter('_id').Filter('rank'))
   async updateMany(context: HttpContext) {
     const { data, options } = await MongoAdapter.parseRequest(context);
     return await this.service

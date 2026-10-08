@@ -18,11 +18,12 @@ class AvatarMetadata {
 
 @(HttpController({
   path: 'avatar',
+  // Nested under the profile, so this replaces the `Account` it would
+  // otherwise inherit.
+  sections: ['Customers'],
 }).UseType(AvatarMetadata))
 export class AvatarController {
-  @(HttpOperation.POST({
-    sections: ['Customers'],
-  })
+  @(HttpOperation.POST({})
     .MultipartContent({}, content => {
       content.Field('name', { type: String, required: true });
       content.Field('metadata', { type: OmitType(AvatarMetadata, ['name']) });

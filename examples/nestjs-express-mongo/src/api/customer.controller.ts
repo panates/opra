@@ -9,6 +9,7 @@ import { CustomerNotesController } from './customer-notes.controller.js';
 @HttpController({
   path: 'Customers',
   controllers: [CustomerNotesController],
+  sections: ['Customers'],
 })
 export class CustomerController {
   service: CustomersService;
@@ -17,28 +18,19 @@ export class CustomerController {
     this.service = new CustomersService({ db });
   }
 
-  @(HttpOperation.Entity.Get(Customer, { sections: ['Customers'] }).KeyParam(
-    '_id',
-    Number,
-  ))
+  @(HttpOperation.Entity.Get(Customer).KeyParam('_id', Number))
   async get(context: HttpContext): Promise<PartialDTO<Customer> | undefined> {
     const { key, options } = await MongoAdapter.parseRequest(context);
     return this.service.for(context).findById(key, options);
   }
 
-  @(HttpOperation.Entity.Delete(Customer, { sections: ['Customers'] }).KeyParam(
-    '_id',
-    Number,
-  ))
+  @(HttpOperation.Entity.Delete(Customer).KeyParam('_id', Number))
   async delete(context: HttpContext) {
     const { key, options } = await MongoAdapter.parseRequest(context);
     return await this.service.for(context).delete(key, options);
   }
 
-  @(HttpOperation.Entity.Update(Customer, { sections: ['Customers'] }).KeyParam(
-    '_id',
-    Number,
-  ))
+  @(HttpOperation.Entity.Update(Customer).KeyParam('_id', Number))
   async update(context: HttpContext) {
     const { key, data, options } = await MongoAdapter.parseRequest(context);
     return this.service.for(context).update(key, data, options);

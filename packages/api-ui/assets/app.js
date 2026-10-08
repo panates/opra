@@ -1210,19 +1210,81 @@
    *  name that collided across documents was renamed on the way in (see
    *  `getTypeName` in `schema-builder.ts`), which this cannot follow — so a
    *  miss returns `null` and the row shows no type rather than guessing. */
-  function filterFieldType(doc, dataTypeRef, path) {
+  function filterFieldDef(doc, dataTypeRef, path) {
     if (!doc || typeof dataTypeRef !== 'string') return null;
     var current = unwrapArray(doc, dataTypeRef.split(':').pop()).def;
-    var ref = null;
+    var field = null;
     var parts = String(path).split('.');
     for (var i = 0; i < parts.length; i++) {
       if (!current || !current.fields) return null;
-      var field = current.fields[parts[i]];
+      field = current.fields[parts[i]];
       if (!field) return null;
-      ref = field.type;
-      current = unwrapArray(doc, ref).def;
+      current = unwrapArray(doc, field.type).def;
     }
-    return ref == null ? null : ref;
+    return field;
+  }
+
+  /** Just that field's type — what the rules table prints in its own
+   *  column. */
+  function filterFieldType(doc, dataTypeRef, path) {
+    var field = filterFieldDef(doc, dataTypeRef, path);
+    return field && field.type != null ? field.type : null;
+  }
+
+  /** One of the filter language's own literals, or `null` for a value it
+   *  has no literal form for (an object or an array - a filter compares
+   *  against scalars). Strings are single-quoted, the same spelling the
+   *  expression AST prints back; one that would need escaping is skipped
+   *  rather than guessed at. */
+  function filterLiteral(value) {
+    if (value === null || value === undefined) return null;
+    if (typeof value === 'boolean' || typeof value === 'number') {
+      return String(value);
+    }
+    if (typeof value !== 'string') return null;
+    return value.indexOf("'") === -1 ? "'" + value + "'" : null;
+  }
+
+  /** One `field=value` term for the example filter: `=` when the rule
+   *  allows it (it is the one every reader recognizes), otherwise the
+   *  first operator it does allow. `in`/`!in` take a list, and the worded
+   *  operators (`like`, `ilike`, `in`) need spaces around them where the
+   *  symbols do not. */
+  function filterExampleTerm(doc, dataTypeRef, field, rule) {
+    var ops = (rule && rule.operators) || [];
+    var op = !ops.length || ops.indexOf('=') !== -1 ? '=' : ops[0];
+    var def = filterFieldDef(doc, dataTypeRef, field);
+    if (!def) return null;
+    var declared = firstFieldExampleValue(def.examples);
+    var value =
+      declared !== undefined ? declared : buildExampleValue(doc, def.type);
+    var literal = filterLiteral(value);
+    if (literal === null) return null;
+    if (op === 'in' || op === '!in') {
+      return field + ' ' + op + ' [' + literal + ']';
+    }
+    return /[a-z]/i.test(op)
+      ? field + ' ' + op + ' ' + literal
+      : field + op + literal;
+  }
+
+  /** A filter the reader can actually send. The builtin `filter` type
+   *  declares one generic example (`name='John' and age>=18`) which names
+   *  fields that no particular resource has, so the request example was
+   *  offering every operation a filter its own API rejects. This builds
+   *  one from the operation's *own* rules instead - the first two fields
+   *  that have a literal form, joined with `and`. */
+  function filterExampleValue(doc, type) {
+    var props = (type && type.properties) || {};
+    var rules = props.rules;
+    if (!rules || typeof rules !== 'object') return null;
+    var parts = [];
+    Object.keys(rules).forEach(function (field) {
+      if (parts.length >= 2) return;
+      var term = filterExampleTerm(doc, props.dataType, field, rules[field]);
+      if (term) parts.push(term);
+    });
+    return parts.length ? parts.join(' and ') : null;
   }
 
   /** The `filter` type's own `rules` map, which says what each field may be
@@ -2445,6 +2507,12 @@
       var v = first && typeof first === 'object' ? first.value : first;
       if (v !== undefined) return String(v);
     }
+    // Before the type's own example, which for `filter` is a generic one
+    // naming fields this resource does not have (see
+    // `filterExampleValue`); every other parameter falls straight
+    // through, since only a filter type carries `rules`.
+    var fromRules = filterExampleValue(doc, p.type);
+    if (fromRules) return fromRules;
     var built = buildExampleValue(doc, p.type);
     return built === undefined || built === null ? '' : String(built);
   }

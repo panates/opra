@@ -11,6 +11,36 @@ import type { HttpRequest } from '../interfaces/http-request.interface.js';
 import { LocalFile } from './local-file.js';
 
 /**
+ * Whatever valgen rejects while a part is being read is the *request's*
+ * fault: a part that does not validate, or a required one the client left
+ * out. Thrown as the raw `ValidationError` it reached
+ * `HttpAdapter.handleRequest()`, whose catch block assumes a
+ * `ValidationError` arriving that far out can only have come from encoding
+ * the response - so a malformed upload was answered `500
+ * RESPONSE_VALIDATION` and logged as a server error, for a request the
+ * server had understood perfectly well. The reader knows which side of the
+ * exchange it is validating, so it says so here, the same way the unknown-
+ * field and content-type checks above already answer 400.
+ */
+function requestValidationError(error: ValidationError): BadRequestError {
+  const issues = error.issues || [];
+  return new BadRequestError(
+    {
+      // One issue is almost always the whole story ("Multi part field
+      // \"file\" is required") and reads better than a generic headline
+      // with the real message buried in `details`.
+      message:
+        issues.length === 1 && issues[0].message
+          ? issues[0].message
+          : 'Multipart request validation failed',
+      code: 'REQUEST_VALIDATION',
+      details: issues,
+    },
+    error,
+  );
+}
+
+/**
  * MultipartReader is a drop-in replacement for MultipartReader that uses
  * `multipasta` instead of `busboy`. The key advantage: part-level headers
  * (e.g. `Request-Id`) are fully exposed via `item.headers`.
@@ -158,11 +188,16 @@ export class MultipartReader extends AsyncEventEmitter {
           ignoreReadonlyFields: true,
           projection: '*',
         });
-        item!.value = decode(item!.value, {
-          onFail: issue =>
-            `Multipart field (${item.field}) validation failed: ` +
-            issue.message,
-        });
+        try {
+          item!.value = decode(item!.value, {
+            onFail: issue =>
+              `Multipart field (${item.field}) validation failed: ` +
+              issue.message,
+          });
+        } catch (e: any) {
+          if (!(e instanceof ValidationError)) throw e;
+          throw requestValidationError(e);
+        }
         this.emit('field', item);
       } else if (item.kind === 'file') {
         if (field.contentType) {
@@ -208,8 +243,9 @@ export class MultipartReader extends AsyncEventEmitter {
         }
       }
       if (error) {
-        this.emit('error', error);
-        throw error;
+        const e = requestValidationError(error);
+        this.emit('error', e);
+        throw e;
       }
     }
     return item;

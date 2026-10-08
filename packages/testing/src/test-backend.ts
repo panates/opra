@@ -48,40 +48,56 @@ export class TestBackend extends FetchBackend {
    * @returns A promise that resolves to the response.
    * @protected
    */
-  protected send(req: Request): Promise<Response> {
-    return new Promise<Response>((resolve, reject) => {
-      const url = new URL(req.url);
-      // Set protocol to HTTP
-      url.protocol = 'http';
+  protected async send(req: Request): Promise<Response> {
+    const url = new URL(req.url);
+    // Set protocol to HTTP
+    url.protocol = 'http';
 
-      // Apply original host to request header
-      if (url.host !== 'opra.test' && req.headers.get('host') == null)
-        req.headers.set('host', url.host);
+    // Apply original host to request header
+    if (url.host !== 'opra.test' && req.headers.get('host') == null)
+      req.headers.set('host', url.host);
 
-      new Promise<void>(subResolve => {
-        if (this._server.listening) subResolve();
-        else this._server.listen(0, '127.0.0.1', () => subResolve());
-      })
-        .then(() => {
-          const address = this._server.address() as AddressInfo;
-          url.host = '127.0.0.1';
-          url.port = address.port.toString();
-          return fetch(url.toString(), req as any);
-        })
-        .then(res => {
-          if (!this._server.listening) return resolve(res);
-          this._server.once('close', () => resolve(res));
-          this._server.close();
-          this._server.unref();
-        })
-        .then()
-        .catch(error => {
-          if (!this._server.listening) return reject(error);
-          this._server.once('close', () => reject(error));
+    /* Only a server this backend started is one it may close. A test that
+       listens itself (`app.listen(0)`) goes on using that server after the
+       request - closing it left every later call, including ones made with
+       something other than this client, with ECONNREFUSED. */
+    let startedHere = false;
+    if (!this._server.listening) {
+      startedHere = true;
+      await new Promise<void>(resolve => {
+        this._server.listen(0, '127.0.0.1', () => resolve());
+      });
+    }
+
+    try {
+      const address = this._server.address() as AddressInfo;
+      url.host = '127.0.0.1';
+      url.port = address.port.toString();
+      /* Read into a byte array rather than handing `fetch` the `Request`
+         itself, whose `body` is a one-shot stream. On a 401 undici replays
+         the request with credentials (httpNetworkOrCacheFetch) and a stream
+         body cannot be replayed: the retry fails with "expected non-null
+         body source", which surfaces as `TypeError: fetch failed` instead
+         of the 401 the test is asserting on. A GET or any other bodyless
+         request never reached that path, which is why only requests with a
+         body were affected. */
+      const body = req.body ? new Uint8Array(await req.arrayBuffer()) : null;
+      return await fetch(url.toString(), {
+        method: req.method,
+        headers: req.headers,
+        body,
+        redirect: req.redirect,
+        signal: req.signal,
+      });
+    } finally {
+      if (startedHere && this._server.listening) {
+        await new Promise<void>(resolve => {
+          this._server.once('close', () => resolve());
           this._server.close();
           this._server.unref();
         });
-    });
+      }
+    }
   }
 
   /**

@@ -1,6 +1,19 @@
 # Changelog
 
-<!-- rman:documented-up-to be4bf4fe3aeccb5523f29724821a1de2f784e33b -->
+<!-- rman:documented-up-to 5f9ecd1e691e1491b96f581d112f78c5b17bf1e3 -->
+
+## v1.32.2 (2026-10-12)
+
+### 🐛 Bug Fixes
+
+- **common,client:** Stop publishing browser bundles that import undeclared packages (ba7bf31)
+
+### 🧹 Chores
+
+- sync lockfile (0bf87a5)
+- **deps:** Update dependencies, and unblock the Angular set (e6963ff)
+
+---
 
 ## v1.32.1 (2026-10-08)
 

@@ -1,6 +1,20 @@
 # Changelog
 
-<!-- rman:documented-up-to 5f9ecd1e691e1491b96f581d112f78c5b17bf1e3 -->
+<!-- rman:documented-up-to a64f2bfb4e4a3649c2f2e49b3197be7854ad6299 -->
+
+## v1.32.3 (2026-10-12)
+
+### 🧹 Chores
+
+- sync lockfile (d5549e3)
+- **deps:** Bump dependencies across multiple packages (23618d0)
+- **angular:** Update @browsery/type-is version in peerDependencies (796f1c1)
+
+### 💬 General Changes
+
+- Merge remote-tracking branch 'origin/dev' into dev (041ae9b)
+
+---
 
 ## v1.32.2 (2026-10-12)
 

@@ -11,11 +11,18 @@ const pkgJson = require('./package.json');
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 const targetPath = path.resolve(dirname, 'build');
 const entryPoint = path.resolve(targetPath, 'index.js');
+/* What a consumer's own install will have, and therefore the only thing
+ * this bundle may leave as a bare import; everything else is inlined. A
+ * devDependency is not that - listing them here is how `@browsery/type-is`
+ * came to be imported by a published `browser.js` without being installed
+ * with it. */
 const external = [
   ...Object.keys(pkgJson.dependencies || {}),
   ...Object.keys(pkgJson.peerDependencies || {}),
-  ...Object.keys(pkgJson.devDependencies || {}),
 ];
+/* Bundled rather than imported, even though it is a real dependency: its
+ * `multipasta/node` entry is resolved against this build's own aliases
+ * (see below), which a consumer's bundler would not apply. */
 external.splice(external.indexOf('multipasta'), 1);
 
 await esbuild.build({

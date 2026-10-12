@@ -16,12 +16,12 @@
   },
   "dependencies": {
     "@jsopen/objects": "^2.3.4",
-    "@browsery/type-is": "^2.0.2-r2",
+    "@browsery/type-is": "^2.0.2-rev.1",
     "content-type": "^3.1.1",
     "iconv-lite": "^0.7.3",
     "node-events-async": "^1.5.2",
     "tslib": "^2.8.1",
-    "valgen": "^7.0.4"
+    "valgen": "^7.0.5"
   },
   "peerDependencies": {
     "@opra/common": "^1.32.2",

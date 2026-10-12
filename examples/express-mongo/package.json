@@ -11,7 +11,7 @@
     "@opra/mongodb": "^1.32.1",
     "@opra/openapi": "^1.32.1",
     "example-customer-mongo": "^1.32.1",
-    "express": "^5.2.1",
+    "express": "^5.3.0",
     "mongodb": "^7.7.0",
     "ts-gems": "^4.0.4"
   },

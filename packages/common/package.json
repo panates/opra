@@ -16,10 +16,10 @@
   },
   "dependencies": {
     "@browsery/antlr4": "^4.13.3-rev.1",
-    "@browsery/highland": "^2.13.6-r5",
-    "@browsery/http-parser": "^0.5.10-r3",
+    "@browsery/highland": "^2.13.6-rev.1",
+    "@browsery/http-parser": "^0.5.10-rev.1",
     "@browsery/i18next": "^26.4.2",
-    "@browsery/type-is": "^2.0.2-r2",
+    "@browsery/type-is": "^2.0.2-rev.1",
     "@jsopen/objects": "^2.3.4",
     "fast-tokenizer": "^1.10.1",
     "object-hash": "^3.0.0",
@@ -30,12 +30,12 @@
     "ts-gems": "^4.0.4",
     "tslib": "^2.8.1",
     "uid": "^2.0.2",
-    "valgen": "^7.0.4"
+    "valgen": "^7.0.5"
   },
   "devDependencies": {
     "@browsery/fs": "^0.5.1-rev.1",
-    "@browsery/stream": "^4.7.0-r3",
-    "@browsery/util": "^0.12.6-r4",
+    "@browsery/stream": "^4.7.0-rev.1",
+    "@browsery/util": "^0.12.6-rev.1",
     "@types/encodeurl": "^1.0.3",
     "@types/object-hash": "^3.0.6",
     "@types/validator": "^13.15.10",

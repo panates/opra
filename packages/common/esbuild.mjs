@@ -10,13 +10,18 @@ const pkgJson = require('./package.json');
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 const targetPath = path.resolve(dirname, 'build');
-const noExternal = [];
+/* What a consumer's own install will have, and therefore the only thing
+ * this bundle may leave as a bare import; everything else is inlined.
+ *
+ * devDependencies used to be listed here too, which published a
+ * `browser.js` importing `@browsery/fs` and `path-browserify` - packages
+ * that stand in for `node:fs`/`node:path` in this build only (see `alias`
+ * below) and that nobody downstream installs. Every consumer's bundler
+ * stopped on them: "Rollup failed to resolve import "@browsery/fs"". */
 const external = [
   ...Object.keys(pkgJson.dependencies || {}),
   ...Object.keys(pkgJson.peerDependencies || {}),
-  ...Object.keys(pkgJson.devDependencies || {}),
-  'mime-db',
-].filter(x => !noExternal.includes(x));
+];
 
 await esbuild.build({
   entryPoints: [path.resolve(targetPath, 'index.js')],

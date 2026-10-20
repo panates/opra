@@ -3,13 +3,16 @@ import { Gender } from '../enums/gender.js';
 
 @(SimpleType({
   name: 'PersonName',
-  description: 'A person name, at least 3 characters long',
+  description: 'A person name, at least 2 characters long',
 })
   .Example('John')
-  .Example('Ayşe'))
+  .Example('Ayşe')
+  /* Two letters is a name, not a typo: Al, Bo, Ed, Jo, Wm. The bound was
+   * 3, which refused them. */
+  .Example('Bo'))
 export class PersonNameType extends StringType {
   constructor() {
-    super({ minLength: 3 });
+    super({ minLength: 2 });
   }
 }
 

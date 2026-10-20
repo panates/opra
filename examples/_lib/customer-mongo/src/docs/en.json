@@ -141,7 +141,7 @@
       }
     },
     "PersonName": {
-      "description": "A person name, at least 3 characters long",
+      "description": "A person name, at least 2 characters long",
       "examples": {
         "0": {
           "description": ""

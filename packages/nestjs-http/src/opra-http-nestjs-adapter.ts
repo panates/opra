@@ -70,7 +70,8 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
    */
   constructor(
     options: HttpAdapter.Options & {
-      /** Indicates whether the schema is public */
+      /** Whether `$schema`, `$openapi` and the `$docs` page are reachable
+       *  without authentication. See `_addRootController`. */
       schemaIsPublic?: boolean;
       /** Manually added NestJS controllers */
       controllers?: Type[];
@@ -173,7 +174,12 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
    * stays a plain literal method — it's unconditional, same as in
    * `ExpressAdapter`.
    *
-   * @param isPublic - Whether the schema is accessible without authentication.
+   * @param isPublic - Whether what this controller publishes about the
+   *   document - `$schema`, `$openapi` and the reference page with its
+   *   assets - is reachable without authentication. They are three views
+   *   of one document, so one switch covers all three; `$bundle` is not
+   *   one of them and is never marked public, since it carries requests
+   *   to the API's own operations.
    * @protected
    */
   protected _addRootController(isPublic?: boolean) {
@@ -272,9 +278,12 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
         'openapi',
         openapiDescriptor,
       );
+      if (isPublic) {
+        Public()(RootController.prototype, 'openapi', openapiDescriptor);
+      }
     }
 
-    if (this.apiUi) this._addApiUiRoutes(RootController);
+    if (this.apiUi) this._addApiUiRoutes(RootController, isPublic);
     this._tagOwnership(RootController);
 
     this.nestControllers.push(RootController);
@@ -305,7 +314,7 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
    *
    * @protected
    */
-  protected _addApiUiRoutes(RootController: Type) {
+  protected _addApiUiRoutes(RootController: Type, isPublic?: boolean) {
     const _this = this;
     const { path: apiUiPathOpt, ...apiUiOptions } =
       typeof this.apiUi === 'object' ? this.apiUi : ({} as any);
@@ -378,11 +387,18 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
     Req()(RootController.prototype, 'apiUiRoot', 0);
     Res()(RootController.prototype, 'apiUiRoot', 1);
     Next()(RootController.prototype, 'apiUiRoot', 2);
+    const apiUiRootDescriptor = Object.getOwnPropertyDescriptor(
+      RootController.prototype,
+      'apiUiRoot',
+    )!;
     All('/' + apiUiPath)(
       RootController.prototype,
       'apiUiRoot',
-      Object.getOwnPropertyDescriptor(RootController.prototype, 'apiUiRoot')!,
+      apiUiRootDescriptor,
     );
+    if (isPublic) {
+      Public()(RootController.prototype, 'apiUiRoot', apiUiRootDescriptor);
+    }
 
     Object.defineProperty(RootController.prototype, 'apiUiRest', {
       writable: true,
@@ -408,11 +424,18 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
     Next()(RootController.prototype, 'apiUiRest', 2);
     /* Spelled for whichever router will register it — see `httpPlatform`. */
     const wildcard = this.httpPlatform === 'fastify' ? '*' : '*splat';
+    const apiUiRestDescriptor = Object.getOwnPropertyDescriptor(
+      RootController.prototype,
+      'apiUiRest',
+    )!;
     All('/' + apiUiPath + '/' + wildcard)(
       RootController.prototype,
       'apiUiRest',
-      Object.getOwnPropertyDescriptor(RootController.prototype, 'apiUiRest')!,
+      apiUiRestDescriptor,
     );
+    if (isPublic) {
+      Public()(RootController.prototype, 'apiUiRest', apiUiRestDescriptor);
+    }
   }
 
   /**

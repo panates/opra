@@ -1,5 +1,6 @@
+import type { ExecutionContext } from '@nestjs/common';
 import type { HttpAdapter, HttpContext } from '@opra/http';
-import { kOpraContexts } from './constants.js';
+import { kOpraContexts, OPRA_HTTP_ADAPTER } from './constants.js';
 
 /**
  * The object a context is stored on.
@@ -80,4 +81,45 @@ export function setActiveContext(_req: any, context: HttpContext): void {
 /** The active context, whichever of the two shapes the request has. */
 export function getActiveContext(_req: any): HttpContext | undefined {
   return _req?.opraContext ?? _req?.raw?.opraContext;
+}
+
+/**
+ * The `HttpContext` of the module whose route this request matched, for
+ * a NestJS guard, interceptor, filter or pipe.
+ *
+ * A guard runs *before* the handler, and it is the handler that settles
+ * which of the request's contexts is the active one. Until then
+ * `req.opraContext` is whichever module's middleware happened to run
+ * last — so with two modules a guard writing `ctx.user` wrote it to the
+ * other API's context, and the handler then saw no user. The controller
+ * class knows better: it carries the adapter that built it.
+ *
+ * Use this rather than reading `req.opraContext` directly:
+ *
+ * ```ts
+ * @Injectable()
+ * export class AuthGuard implements CanActivate {
+ *   canActivate(executionContext: ExecutionContext) {
+ *     const ctx = getOpraContext(executionContext);
+ *     if (ctx) ctx.user = ...;
+ *     return true;
+ *   }
+ * }
+ * ```
+ *
+ * With one module the two are the same, so this is safe either way.
+ *
+ * @param executionContext - The NestJS execution context.
+ * @returns The context built for this route's own adapter, or the active
+ *   one where the route is not an OPRA controller's.
+ */
+export function getOpraContext(
+  executionContext: ExecutionContext,
+): HttpContext | undefined {
+  const _req = executionContext.switchToHttp().getRequest();
+  const controllerClass = executionContext.getClass?.();
+  const adapter: HttpAdapter | undefined = controllerClass
+    ? Reflect.getMetadata(OPRA_HTTP_ADAPTER, controllerClass)
+    : undefined;
+  return adapter ? getRequestContext(_req, adapter) : getActiveContext(_req);
 }

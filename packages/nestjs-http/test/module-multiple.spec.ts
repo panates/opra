@@ -13,10 +13,15 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '@opra/common';
+import type { HttpContext } from '@opra/http';
 import { expect } from 'expect';
 import { Server } from 'http';
 import request from 'supertest';
-import { OpraHttpModule, OpraHttpNestjsAdapter } from '../src/index.js';
+import {
+  getOpraContext,
+  OpraHttpModule,
+  OpraHttpNestjsAdapter,
+} from '../src/index.js';
 
 /*
  * Two `OpraHttpModule`s in one application.
@@ -45,6 +50,11 @@ class XController {
   denied(): any {
     throw new ForbiddenError({ message: 'not yours' });
   }
+
+  @HttpOperation({ path: 'whoami' })
+  whoami(context: HttpContext) {
+    return { user: (context as any).user ?? null };
+  }
 }
 
 @HttpController({ path: 'y', name: 'YController' })
@@ -57,6 +67,11 @@ class YController {
   @HttpOperation({ path: 'missing' })
   missing(): any {
     throw new NotFoundError({ message: 'no such y' });
+  }
+
+  @HttpOperation({ path: 'whoami' })
+  whoami(context: HttpContext) {
+    return { user: (context as any).user ?? null };
   }
 }
 
@@ -203,6 +218,69 @@ describe('nestjs-http:OpraModule - several modules', () => {
       expect(r1.status).toStrictEqual(404);
       const r2 = await request(server).get('/y/missing');
       expect(r2.status).toStrictEqual(404);
+    });
+  });
+
+  describe('a guard writing to the request context', () => {
+    /*
+     * A guard runs before the handler, so nothing has yet settled which
+     * of the request's contexts is the active one: `req.opraContext`
+     * holds whichever module's middleware ran last. A guard reading it
+     * directly would write to the other API's context on one of the two
+     * modules, and that module's handler would see nothing.
+     * `getOpraContext` asks the controller class instead.
+     */
+    @Injectable()
+    class TaggingGuard implements CanActivate {
+      canActivate(executionContext: ExecutionContext): boolean {
+        const ctx = getOpraContext(executionContext);
+        if (ctx) {
+          (ctx as any).user = {
+            api: (ctx.__adapter as any)?.document?.api?.name,
+          };
+        }
+        return true;
+      }
+    }
+
+    let app: INestApplication;
+    let server: Server;
+
+    before(async () => {
+      const module = await Test.createTestingModule({
+        imports: [
+          OpraHttpModule.forRoot({
+            name: 'GuardedApiA',
+            basePath: 'a',
+            controllers: [XController],
+          }),
+          OpraHttpModule.forRoot({
+            token: 'GUARDED_B_ADAPTER',
+            name: 'GuardedApiB',
+            basePath: 'b',
+            controllers: [YController],
+            schema: false,
+          }),
+        ],
+        providers: [{ provide: APP_GUARD, useClass: TaggingGuard }],
+      }).compile();
+      app = module.createNestApplication();
+      await app.init();
+      server = app.getHttpServer();
+    });
+
+    after(async () => app?.close());
+
+    it('should reach the handler of whichever module owns the route', async () => {
+      /* Both, not just one: with a single shared slot exactly one of
+       * these two passes, whichever middleware happens to run last. */
+      const r1 = await request(server).get('/a/x/whoami');
+      expect(r1.status).toStrictEqual(200);
+      expect(r1.body.user).toEqual({ api: 'GuardedApiA' });
+
+      const r2 = await request(server).get('/b/y/whoami');
+      expect(r2.status).toStrictEqual(200);
+      expect(r2.body.user).toEqual({ api: 'GuardedApiB' });
     });
   });
 });

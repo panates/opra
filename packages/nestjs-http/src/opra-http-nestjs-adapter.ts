@@ -35,6 +35,8 @@ import {
 } from '@opra/http';
 import { OpraNestUtils, Public } from '@opra/nestjs';
 import { asMutable } from 'ts-gems';
+import { OPRA_HTTP_ADAPTER } from './constants.js';
+import { getRequestContext, setActiveContext } from './opra-request-context.js';
 
 /**
  * OpraHttpNestjsAdapter
@@ -138,6 +140,26 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
   }
 
   /**
+   * Records, on a generated NestJS controller class, which adapter built
+   * it.
+   *
+   * This is the only thing that says which API a route belongs to *before*
+   * any of our own code runs. A global guard rejecting a request throws
+   * before the handler, and by then the request carries one context per
+   * module with nothing to distinguish them, so `OpraExceptionFilter` has
+   * only `host.getClass()` to go on. Without it, an error raised on one
+   * API's route could be answered by the other API's adapter - or, where
+   * that lookup failed outright, as a 500 in place of the status the
+   * error carried.
+   *
+   * @param controllerClass - The generated controller class to tag.
+   * @protected
+   */
+  protected _tagOwnership(controllerClass: Type): void {
+    Reflect.defineMetadata(OPRA_HTTP_ADAPTER, this, controllerClass);
+  }
+
+  /**
    * Adds the root controller that serves the OPRA schema, OpenAPI mapping
    * and the reference UI, and accepts `$bundle` multipart batch requests —
    * the NestJS counterpart of `ExpressAdapter._initRouter()`.
@@ -164,8 +186,7 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
      * wrapper around it, and what the middleware wrote is one `.raw` away.
      * Reading it wrong is silent - the handler is called with `undefined`
      * and the request is never answered at all. */
-    const contextOf = (_req: any) =>
-      _req?.opraContext ?? _req?.raw?.opraContext;
+    const contextOf = (_req: any) => getRequestContext(_req, _this);
     /* `$` is a reserved character in Express 5's path syntax and has to be
      * escaped; Fastify's router has no such syntax and would take the
      * backslash literally, so `/\$schema` there is a path with a backslash
@@ -205,7 +226,11 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
         writable: true,
         configurable: true,
         value(_req: any, next: Function) {
-          _this.sendDocumentSchema(contextOf(_req)).catch(() => next());
+          const ctx = contextOf(_req);
+          /* No context of *ours* on this request: another module's
+           * middleware built one, but this route is not that API's. */
+          if (!ctx) return next();
+          _this.sendDocumentSchema(ctx).catch(() => next());
         },
       });
       Req()(RootController.prototype, 'schema', 0);
@@ -229,7 +254,11 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
         writable: true,
         configurable: true,
         value(_req: any, next: Function) {
-          _this.sendOpenApiDocument(contextOf(_req)).catch(() => next());
+          const ctx = contextOf(_req);
+          /* No context of *ours* on this request: another module's
+           * middleware built one, but this route is not that API's. */
+          if (!ctx) return next();
+          _this.sendOpenApiDocument(ctx).catch(() => next());
         },
       });
       Req()(RootController.prototype, 'openapi', 0);
@@ -246,6 +275,7 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
     }
 
     if (this.apiUi) this._addApiUiRoutes(RootController);
+    this._tagOwnership(RootController);
 
     this.nestControllers.push(RootController);
   }
@@ -418,6 +448,7 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
       : currentPath;
     const adapter = this;
 
+    this._tagOwnership(newClass);
     this.nestControllers.push(newClass);
     let metadataKeys: any[];
     if (metadata.operations) {
@@ -431,11 +462,12 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
             const api = adapter.document.api as HttpApi;
             const controller = api.findController(sourceClass);
             const operation = controller?.operations.get(k);
-            const context = asMutable<HttpContext>(
-              _req.opraContext ?? _req.raw?.opraContext,
-            );
+            /* This adapter's own context. Every module applies its
+             * middleware to every route, so the single `opraContext` slot
+             * holds whichever one ran last - not necessarily ours. */
+            const ownContext = getRequestContext(_req, adapter);
             if (!(
-              context &&
+              ownContext &&
               operation &&
               typeof operationHandler === 'function'
             )) {
@@ -448,11 +480,16 @@ export class OpraHttpNestjsAdapter extends HttpAdapter {
               });
             }
             /* Configure the HttpContext */
+            const context = asMutable<HttpContext>(ownContext);
             context.__docNode = operation.node;
             context.__oprDef = operation;
             context.__contDef = operation.owner;
             context.__controller = this;
             context.__handler = operationHandler;
+            /* From here on this is *the* context of the request, so that
+             * anything running after the handler - `OpraExceptionFilter`
+             * above all - reads the document this route belongs to. */
+            setActiveContext(_req, context);
             /* Handle request */
             await adapter.handleRequest(context);
           },

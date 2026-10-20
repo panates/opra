@@ -1,6 +1,22 @@
 # Changelog
 
-<!-- rman:documented-up-to 63c44a0aba2e101136c4edde461198f839b9169e -->
+<!-- rman:documented-up-to 99dd1b5c8c31cbe70398cda022e6af517be91c37 -->
+
+## v1.33.0 (2026-10-20)
+
+### ✨ Features
+
+- **nestjs-http:** Add getOpraContext() for guards and interceptors (3993fb1)
+
+### 🐛 Bug Fixes
+
+- **nestjs-http:** Make schemaIsPublic cover $openapi and the reference page (959c284)
+
+### 🧹 Chores
+
+- sync lockfile (a2a5db4)
+
+---
 
 ## v1.32.4 (2026-10-20)
 

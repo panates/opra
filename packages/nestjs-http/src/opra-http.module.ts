@@ -30,7 +30,12 @@ export namespace OpraHttpModule {
     token?: any;
     /** Base path for the API */
     basePath?: string;
-    /** Whether the API schema is public */
+    /** Whether what this module publishes *about* its document is
+     *  reachable without authentication: `GET $schema`, `GET $openapi`
+     *  and the reference page at `$docs` with its assets. They are three
+     *  views of one document, so one switch covers all three. The
+     *  `$bundle` route is not one of them — it carries requests to the
+     *  API's own operations — and is never marked public. */
     schemaIsPublic?: boolean;
     /** Interceptor list for the HTTP adapter */
     interceptors?: (

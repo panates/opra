@@ -1,6 +1,18 @@
 # Changelog
 
-<!-- rman:documented-up-to a64f2bfb4e4a3649c2f2e49b3197be7854ad6299 -->
+<!-- rman:documented-up-to 63c44a0aba2e101136c4edde461198f839b9169e -->
+
+## v1.32.4 (2026-10-20)
+
+### 🐛 Bug Fixes
+
+- **nestjs-http:** Let several OpraHttpModules share one application (dd09c1c)
+
+### 🧹 Chores
+
+- sync lockfile (e039115)
+
+---
 
 ## v1.32.3 (2026-10-12)
 

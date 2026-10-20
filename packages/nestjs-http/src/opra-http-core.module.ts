@@ -2,6 +2,7 @@ import { isConstructor } from '@jsopen/objects';
 import {
   type DynamicModule,
   Global,
+  Inject,
   Logger,
   type MiddlewareConsumer,
   Module,
@@ -12,18 +13,25 @@ import {
 import { APP_FILTER, HttpAdapterHost, ModuleRef } from '@nestjs/core';
 import { ApiDocumentFactory } from '@opra/common';
 import { HttpAdapter, HttpContext } from '@opra/http';
-import { OPRA_HTTP_API_CONFIG } from './constants.js';
+import { OPRA_HTTP_ADAPTER, OPRA_HTTP_API_CONFIG } from './constants.js';
 import { OpraExceptionFilter } from './opra-exception-filter.js';
 import type { OpraHttpModule } from './opra-http.module.js';
 import { OpraHttpNestjsAdapter } from './opra-http-nestjs-adapter.js';
 import { OpraMiddleware } from './opra-middleware.js';
 
-const opraHttpNestjsAdapterToken = Symbol('OpraHttpNestjsAdapter');
-
 @Module({})
 @Global()
 export class OpraHttpCoreModule implements OnModuleDestroy, NestModule {
-  constructor(protected opraAdapter: OpraHttpNestjsAdapter) {}
+  /**
+   * This module's own adapter. Injected through the module-local
+   * {@link OPRA_HTTP_ADAPTER} token rather than by class: with several
+   * modules the class token resolves to whichever one happened to keep
+   * the default, so `onModuleDestroy` would close that adapter once per
+   * module and never close the others at all.
+   */
+  constructor(
+    @Inject(OPRA_HTTP_ADAPTER) protected opraAdapter: OpraHttpNestjsAdapter,
+  ) {}
 
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(OpraMiddleware).forRoutes({
@@ -130,10 +138,17 @@ export class OpraHttpCoreModule implements OnModuleDestroy, NestModule {
       providers: [
         ...(moduleOptions?.providers || []),
         adapterProvider,
+        /* Module-local alias for this module's adapter, whatever token
+         * it was configured with. Everything inside the module asks for
+         * the adapter through this and gets its own. */
         {
-          provide: opraHttpNestjsAdapterToken,
+          provide: OPRA_HTTP_ADAPTER,
           useExisting: token,
         },
+        /* Declared here, rather than left to be instantiated implicitly,
+         * so the middleware is built by *this* module's injector and
+         * resolves this module's adapter. */
+        OpraMiddleware,
         {
           provide: APP_FILTER,
           useClass: OpraExceptionFilter,

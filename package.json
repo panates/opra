@@ -30,9 +30,9 @@
     "citest": "c8 mocha"
   },
   "devDependencies": {
-    "@panates/eslint-config": "^2.3.2",
-    "@panates/eslint-config-ts": "^2.3.2",
-    "@panates/rman-preset": "^1.12.0",
+    "@panates/eslint-config": "^2.3.3",
+    "@panates/eslint-config-ts": "^2.3.3",
+    "@panates/rman-preset": "^1.12.1",
     "@panates/tsconfig": "^2.1.8",
     "@platformatic/kafka": "^2.14.0",
     "@swc/core": "^1.16.18",

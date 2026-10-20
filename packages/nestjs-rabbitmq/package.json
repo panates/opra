@@ -30,8 +30,8 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",
-    "@nestjs/platform-express": "^12.1.2",
-    "@nestjs/testing": "^12.1.2",
+    "@nestjs/platform-express": "^12.2.0",
+    "@nestjs/testing": "^12.2.0",
     "expect": "^30.5.2",
     "express": "^5.3.0",
     "kafkajs": "^2.2.4",

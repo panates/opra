@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@jsopen/objects": "^2.3.4",
+    "ts-gems": "^4.0.4",
     "tslib": "^2.8.1"
   },
   "peerDependencies": {
@@ -38,9 +39,9 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",
-    "@nestjs/microservices": "^12.2.0",
     "@nestjs/platform-express": "^12.2.0",
     "@nestjs/platform-fastify": "^12.2.0",
+    "@nestjs/microservices": "^12.2.0",
     "@nestjs/testing": "^12.2.0",
     "@opra/api-ui": "workspace:^",
     "@opra/openapi": "workspace:^",
@@ -48,8 +49,7 @@
     "express": "^5.3.0",
     "multipart-stream": "^2.0.1",
     "rxjs": "^7.8.2",
-    "supertest": "^7.3.1",
-    "ts-gems": "^4.0.4"
+    "supertest": "^7.3.1"
   },
   "exports": {
     ".": {

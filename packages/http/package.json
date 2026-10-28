@@ -44,6 +44,7 @@
     "reflect-metadata": "^0.2.2",
     "super-fast-md5": "^1.0.3",
     "toml": "^5.0.1",
+    "ts-gems": "^4.0.4",
     "tslib": "^2.8.1",
     "uid": "^2.0.2",
     "valgen": "^7.0.5",
@@ -91,8 +92,7 @@
     "express": "^5.3.0",
     "fastify": "^5.12.7",
     "path-browserify": "^1.0.1",
-    "supertest": "^7.3.1",
-    "ts-gems": "^4.0.4"
+    "supertest": "^7.3.1"
   },
   "exports": {
     ".": {

@@ -35,7 +35,7 @@
     "iconv-lite": "^0.7.3",
     "mime-types": "^3.0.2",
     "multipart-stream": "^2.0.1",
-    "multipasta": "^0.2.8",
+    "multipasta": "^0.2.9",
     "node-events-async": "^1.5.2",
     "power-tasks": "^1.14.2",
     "putil-varhelpers": "^1.7.0",

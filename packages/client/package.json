@@ -30,6 +30,7 @@
   },
   "devDependencies": {
     "@browsery/stream": "4.7.0-rev.1",
+    "@types/express": "^5.0.6",
     "body-parser": "^2.3.0",
     "buffer": "^6.0.3",
     "expect": "^30.5.2",

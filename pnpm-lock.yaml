@@ -676,6 +676,9 @@ importers:
       '@browsery/stream':
         specifier: 4.7.0-rev.1
         version: 4.7.0-rev.1
+      '@types/express':
+        specifier: ^5.0.6
+        version: 5.0.6
       body-parser:
         specifier: ^2.3.0
         version: 2.3.0(supports-color@8.1.1)

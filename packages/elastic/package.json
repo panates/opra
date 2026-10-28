@@ -21,12 +21,13 @@
   },
   "peerDependencies": {
     "@elastic/elasticsearch": ">=8.7.0 <10",
-    "@opra/common": "^1.33.0",
-    "@opra/core": "^1.33.0"
+    "@opra/common": "workspace:^",
+    "@opra/core": "workspace:^"
   },
   "devDependencies": {
+    "@elastic/transport": "^9.4.1",
     "@faker-js/faker": "^10.6.0",
-    "@opra/http": "^1.33.0",
+    "@opra/http": "workspace:^",
     "expect": "^30.5.2",
     "sinon": "^22.1.0",
     "ts-gems": "^4.0.4"

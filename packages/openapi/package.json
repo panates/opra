@@ -19,7 +19,7 @@
     "tslib": "^2.8.1"
   },
   "peerDependencies": {
-    "@opra/common": "^1.33.0"
+    "@opra/common": "workspace:^"
   },
   "devDependencies": {
     "expect": "^30.5.2",

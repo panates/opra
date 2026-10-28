@@ -3,6 +3,23 @@ extends: '@panates/rman-preset'
 # All packages release together, under one version and one `v*` tag.
 group: true
 
+# Dependencies install with pnpm, but releases publish with npm.
+#
+# Left unset, rman takes the package manager from the nearest lockfile, so
+# committing pnpm-lock.yaml would quietly move `rman publish` from `npm
+# publish` to `pnpm publish`. Every release so far has carried an npm
+# provenance statement that npm 11 generates by itself on a GitHub runner
+# with `id-token: write` - nothing here asks for it - and pnpm's publish has
+# not been shown to do the same. rman rewrites `workspace:` ranges into
+# registry ranges before it publishes, whichever tool does the publishing, so
+# npm publishes this workspace correctly.
+#
+# This key also governs `rman ci`, which would then install with npm and
+# fail for want of a package-lock.json. Nothing runs `rman ci`: CI and the
+# release install through panates/gh-setup-node, which reads the lockfile.
+packageManager:
+  node: npm
+
 version:
   # Bump every package in the group, not only the ones that changed.
   cascade: group

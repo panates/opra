@@ -5,11 +5,13 @@
   "type": "module",
   "module": "./index.js",
   "dependencies": {
-    "@opra/common": "^1.32.1",
-    "@opra/core": "^1.32.1",
-    "@opra/sqb": "^1.32.1",
+    "@opra/common": "workspace:^",
+    "@opra/core": "workspace:^",
+    "@opra/http": "workspace:^",
+    "@opra/sqb": "workspace:^",
     "@sqb/connect": "^6.2.1",
     "@sqb/postgres": "^6.2.1",
+    "example-customer-sqb": "workspace:^",
     "express": "^5.3.0",
     "ts-gems": "^4.0.4"
   },

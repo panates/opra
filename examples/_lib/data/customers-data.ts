@@ -1,4 +1,3 @@
-// eslint-disable-next-line import-x/no-extraneous-dependencies
 import { faker } from '@faker-js/faker';
 import type { Address, Customer } from '../customer-mongo/src/models/index.js';
 

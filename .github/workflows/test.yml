@@ -126,6 +126,8 @@ jobs:
       # unpinned `npm install rman -g` with `rman-version`, which is what pins the *major* that this
       # repository's config keys need; and `install: 'ci'` installs exactly what the lockfile pins,
       # where `@v1` deleted package-lock.json first and installed whatever resolved that morning.
+      # It picks pnpm by itself, from the committed pnpm-lock.yaml, and installs the version named in
+      # package.json's `packageManager` - so there is no separate pnpm setup step.
       - name: 'Setup Environment'
         uses: panates/gh-setup-node@v2
         with:
@@ -178,7 +180,7 @@ jobs:
         run: rman lint
 
       - name: Run unit tests
-        run: npm run citest
+        run: pnpm run citest
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
           KAFKA_BROKER: localhost:9092

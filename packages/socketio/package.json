@@ -24,8 +24,8 @@
     "valgen": "^7.0.5"
   },
   "peerDependencies": {
-    "@opra/common": "^1.33.0",
-    "@opra/core": "^1.33.0",
+    "@opra/common": "workspace:^",
+    "@opra/core": "workspace:^",
     "socket.io": ">=4.0.0"
   },
   "devDependencies": {

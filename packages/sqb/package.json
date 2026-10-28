@@ -21,6 +21,7 @@
     "valgen": "^7.0.5"
   },
   "peerDependencies": {
+    "@opra/common": "workspace:^",
     "@opra/core": "workspace:^",
     "@opra/http": "workspace:^",
     "@sqb/builder": "^5 || ^6",

@@ -472,6 +472,9 @@ importers:
       '@opra/client':
         specifier: workspace:^
         version: link:../client
+      '@opra/common':
+        specifier: workspace:^
+        version: link:../common
       ts-gems:
         specifier: ^4.0.4
         version: 4.0.4
@@ -1504,6 +1507,9 @@ importers:
       '@jsopen/objects':
         specifier: ^2.3.4
         version: 2.3.4
+      '@opra/common':
+        specifier: workspace:^
+        version: link:../common
       '@opra/core':
         specifier: workspace:^
         version: link:../core

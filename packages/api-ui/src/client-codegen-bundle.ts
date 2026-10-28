@@ -61,6 +61,16 @@ export function buildClientCodegenBundle(): Promise<
       write: false,
       outdir: 'out',
       logLevel: 'silent',
+      // Resolve from this package, not from wherever the process started.
+      // esbuild resolves an `alias` target (`path-browserify`, `events`,
+      // `process` below) in the working directory rather than beside the
+      // importing file, and that defaults to `process.cwd()` - the
+      // application's own directory in production. The polyfills are this
+      // package's dependencies, so they are only certain to be found from
+      // here; from the application's directory they were found only when
+      // the install happened to hoist them, and the bundle failed with
+      // `Could not resolve "path-browserify"` wherever it did not.
+      absWorkingDir: dir,
       // A couple of Node-oriented transitive dependencies (e.g.
       // `putil-promisify`, reachable via `resolveThunk` — see
       // `@opra/common`'s `function-utils.ts`) reference the bare Node

@@ -30,7 +30,7 @@
     "ts-gems": "^4.0.4",
     "tslib": "^2.8.1",
     "uid": "^2.0.2",
-    "valgen": "^7.0.5"
+    "valgen": "^7.0.6"
   },
   "devDependencies": {
     "@browsery/fs": "^0.5.1-rev.1",

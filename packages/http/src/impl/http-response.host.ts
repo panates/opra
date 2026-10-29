@@ -10,7 +10,7 @@ import * as contentDisposition from 'content-disposition';
 import * as contentType from 'content-type';
 import * as cookie from 'cookie';
 import cookieSignature from 'cookie-signature';
-import encodeUrl from 'encodeurl';
+import { encodeUrl } from 'encodeurl';
 import mime from 'mime-types';
 import { toString } from 'putil-varhelpers';
 import vary from 'vary';

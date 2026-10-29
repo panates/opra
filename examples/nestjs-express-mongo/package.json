@@ -6,9 +6,9 @@
   "module": "./index.js",
   "dependencies": {
     "@jsopen/objects": "^2.3.4",
-    "@nestjs/common": "^12.3.1",
-    "@nestjs/core": "^12.3.1",
-    "@nestjs/platform-express": "^12.3.1",
+    "@nestjs/common": "^12.3.2",
+    "@nestjs/core": "^12.3.2",
+    "@nestjs/platform-express": "^12.3.2",
     "@opra/api-ui": "workspace:^",
     "@opra/common": "workspace:^",
     "@opra/core": "workspace:^",

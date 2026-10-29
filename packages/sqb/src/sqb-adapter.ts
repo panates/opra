@@ -136,8 +136,13 @@ export namespace SQBAdapter {
             projection:
               ctx.queryParams.projection ||
               __oprDef.compositionOptions.defaultProjection,
+            // A list request is always paged. The service applies no limit of its own any more,
+            // so an operation that declares no `defaultLimit` falls back to the page size the
+            // service used to impose.
             limit:
-              ctx.queryParams.limit || __oprDef.compositionOptions.defaultLimit,
+              ctx.queryParams.limit ||
+              __oprDef.compositionOptions.defaultLimit ||
+              100,
             skip: ctx.queryParams.skip,
             sort:
               ctx.queryParams.sort || __oprDef.compositionOptions.defaultSort,

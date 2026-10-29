@@ -13,7 +13,9 @@ export namespace SqbCollectionService {
    */
   export interface Options extends SqbEntityService.Options {
     /**
-     * Default maximum number of records returned by `findMany`.
+     * Maximum number of records `findMany` and `findManyWithCount` return when the call gives
+     * no `limit`. Unset by default: such a call returns every matching record. The HTTP
+     * FindMany operation pages with its own `defaultLimit` and does not depend on this.
      */
     defaultLimit?: SqbCollectionService<any>['defaultLimit'];
     /**
@@ -32,9 +34,10 @@ export class SqbCollectionService<
   T extends object = object,
 > extends SqbEntityService<T> {
   /**
-   * Default maximum number of records returned by `findMany`.
+   * Maximum number of records `findMany` and `findManyWithCount` return when the call gives no
+   * `limit`. Unset by default: such a call returns every matching record.
    */
-  defaultLimit: number;
+  defaultLimit?: number;
 
   /**
    * Constructs a new instance.
@@ -47,7 +50,7 @@ export class SqbCollectionService<
     options?: SqbCollectionService.Options,
   ) {
     super(dataType, options);
-    this.defaultLimit = options?.defaultLimit || 100;
+    this.defaultLimit = options?.defaultLimit;
   }
 
   /**

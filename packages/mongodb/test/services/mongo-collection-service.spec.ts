@@ -346,6 +346,30 @@ describeOrSkip('mongodb:MongoCollectionService', () => {
       expect(result.length).toBeGreaterThan(0);
     });
 
+    it('Should return every matching record when no limit is given', async () => {
+      // More documents than the 10 the service used to cut at, silently.
+      const ctx = createContext(app.adapter);
+      const svc = service1.for(ctx);
+      const count = await svc.count();
+      expect(count).toBeGreaterThan(10);
+      expect((await svc.findMany()).length).toEqual(count);
+      expect((await svc.findMany({ limit: 0 })).length).toEqual(count);
+      const r = await svc.findManyWithCount();
+      expect(r.count).toEqual(count);
+      expect(r.items.length).toEqual(count);
+    });
+
+    it('Should apply defaultLimit when set and no limit is given', async () => {
+      const ctx = createContext(app.adapter);
+      const svc = new MongoCollectionService<any>('Customer', {
+        db: app.db,
+        collectionName: 'MongoCollectionService',
+        defaultLimit: 5,
+      }).for(ctx);
+      expect((await svc.findMany()).length).toEqual(5);
+      expect((await svc.findMany({ limit: 7 })).length).toEqual(7);
+    });
+
     it('Should apply filter', async () => {
       const ctx = createContext(app.adapter);
       const result: any = await service1.for(ctx).findMany({

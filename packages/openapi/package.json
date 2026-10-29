@@ -1,6 +1,6 @@
 {
   "name": "@opra/openapi",
-  "version": "1.33.0",
+  "version": "1.34.0",
   "description": "Generates OpenAPI (Swagger) documents from an Opra ApiDocument",
   "author": "Panates",
   "contributors": [

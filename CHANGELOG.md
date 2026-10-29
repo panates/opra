@@ -1,6 +1,36 @@
 # Changelog
 
-<!-- rman:documented-up-to 99dd1b5c8c31cbe70398cda022e6af517be91c37 -->
+<!-- rman:documented-up-to 0f92a5e686a34894f2b2fc33111572016ce6bc73 -->
+
+## v1.34.0 (2026-10-29)
+
+### ✨ Features
+
+- **sqb,mongodb:** Return every matching record when findMany is given no limit (b332f80)
+
+### 🐛 Bug Fixes
+
+- **sqb,angular:** Declare the @opra/common they import (63d3442)
+- **http,nestjs-http:** Depend on the ts-gems they load at runtime (4c1bfe2)
+- **api-ui:** Resolve the codegen bundle's polyfills from this package (3f4614a)
+- **client:** Declare the @types/express its test server is typed with (7c73528)
+
+### 🧪 Tests
+
+- **kafka:** Count each e2e test's own messages, not every delivery (d969219)
+
+### 🤖 Continuous Integration
+
+- Run the tests on ubuntu-22.04 until MongoDB 8.0.35 is published (f56f62c)
+
+### 🧹 Chores
+
+- sync lockfile (dd85d9c)
+- **deps:** Update dependencies across the workspace (48778f0)
+- Move the workspace from npm to pnpm (909f355)
+- Disable pnpm's minimum release age and document the pre-push routine (78ff7f7)
+
+---
 
 ## v1.33.0 (2026-10-20)
 

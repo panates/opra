@@ -1,6 +1,6 @@
 {
   "name": "@opra/nestjs-kafka",
-  "version": "1.33.0",
+  "version": "1.34.0",
   "description": "Opra NestJS Kafka Module",
   "author": "Panates",
   "contributors": [

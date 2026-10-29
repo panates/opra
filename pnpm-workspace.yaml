@@ -2,6 +2,9 @@ packages:
   - packages/*
   - examples/_lib/*
   - examples/*
+# Install releases as soon as they are published. pnpm's default holds back
+# anything younger than a day (1440 minutes); this repository opts out.
+minimumReleaseAge: 0
 allowBuilds:
   '@parcel/watcher': false
   '@swc/core': true

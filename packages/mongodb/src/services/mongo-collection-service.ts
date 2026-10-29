@@ -15,7 +15,9 @@ export namespace MongoCollectionService {
    */
   export interface Options extends MongoEntityService.Options {
     /**
-     * Default maximum number of records returned by `findMany`.
+     * Maximum number of records `findMany` and `findManyWithCount` return when the call gives
+     * no `limit`. Unset by default: such a call returns every matching record. The HTTP
+     * FindMany operation pages with its own `defaultLimit` and does not depend on this.
      */
     defaultLimit?: number;
   }
@@ -30,9 +32,10 @@ export class MongoCollectionService<
   T extends mongodb.Document,
 > extends MongoEntityService<T> {
   /**
-   * Default maximum number of records returned by `findMany`.
+   * Maximum number of records `findMany` and `findManyWithCount` return when the call gives no
+   * `limit`. Unset by default: such a call returns every matching record.
    */
-  defaultLimit: number;
+  defaultLimit?: number;
 
   /**
    * Constructs a new instance.
@@ -45,7 +48,7 @@ export class MongoCollectionService<
     options?: MongoCollectionService.Options,
   ) {
     super(dataType, options);
-    this.defaultLimit = options?.defaultLimit || 10;
+    this.defaultLimit = options?.defaultLimit;
   }
 
   /**

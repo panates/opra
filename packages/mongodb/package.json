@@ -17,12 +17,12 @@
   "dependencies": {
     "@jsopen/objects": "^2.3.4",
     "tslib": "^2.8.1",
-    "valgen": "^7.0.5"
+    "valgen": "^7.0.6"
   },
   "peerDependencies": {
-    "@opra/common": "^1.33.0",
-    "@opra/core": "^1.33.0",
-    "@opra/http": "^1.33.0",
+    "@opra/common": "workspace:^",
+    "@opra/core": "workspace:^",
+    "@opra/http": "workspace:^",
     "mongodb": "^7.7.0"
   },
   "devDependencies": {

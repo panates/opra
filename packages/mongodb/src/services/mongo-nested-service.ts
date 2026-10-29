@@ -31,7 +31,9 @@ export namespace MongoNestedService {
    */
   export interface Options extends MongoService.Options {
     /**
-     * Default maximum number of records returned by `findMany`.
+     * Maximum number of records `findMany` and `findManyWithCount` return when the call gives
+     * no `limit`. Unset by default: such a call returns every matching record. The HTTP
+     * FindMany operation pages with its own `defaultLimit` and does not depend on this.
      */
     defaultLimit?: number;
     /**
@@ -233,9 +235,10 @@ export class MongoNestedService<
   nestedKey: string;
 
   /**
-   * Represents the default limit value for a certain operation.
+   * Maximum number of records `findMany` and `findManyWithCount` return when the call gives no
+   * `limit`. Unset by default: such a call returns every matching record.
    */
-  defaultLimit: number;
+  defaultLimit?: number;
 
   /**
    * Represents a common array filter function
@@ -270,7 +273,7 @@ export class MongoNestedService<
     super(dataType, options);
     this.fieldName = fieldName;
     this.nestedKey = options?.nestedKey || '_id';
-    this.defaultLimit = options?.defaultLimit || 10;
+    this.defaultLimit = options?.defaultLimit;
     this.nestedFilter = options?.nestedFilter;
   }
 
@@ -903,7 +906,7 @@ export class MongoNestedService<
     /* Skip */
     if (options?.skip) stages.push({ $skip: options.skip });
     /* Limit */
-    stages.push({ $limit: limit });
+    if (limit) stages.push({ $limit: limit });
 
     const dataType = this.dataType;
     const projection = MongoAdapter.prepareProjection(
@@ -1029,7 +1032,7 @@ export class MongoNestedService<
     /* Skip */
     if (options?.skip) dataStages.push({ $skip: options.skip });
     /* Limit */
-    dataStages.push({ $limit: limit });
+    if (limit) dataStages.push({ $limit: limit });
     /* Post-Stages */
     if (options?.postStages) dataStages.push(...options.postStages);
 

@@ -74,7 +74,13 @@ jobs:
         github.event_name == 'push' &&
         !contains(github.event.head_commit.message, 'no-test')
       )
-    runs-on: ubuntu-latest
+    # **ubuntu-22.04 until MongoDB 8.0.35 is published.** MongoDB 8 refuses to start on Linux 6.19
+    # and newer (fatal 12257600, SERVER-121912), and its kernel check misreads the current
+    # ubuntu-24.04 runner's Azure kernel as affected (SERVER-131779) - the container exits at once
+    # and the MongoDB step only reports "container is not running" until it times out. The fix
+    # ships in 8.0.35 / 8.3.14; 22.04's older kernel is what actions/runner-images#15005
+    # recommends meanwhile. Move back to ubuntu-latest once mongo:8.0 resolves to 8.0.35 or later.
+    runs-on: ubuntu-22.04
     timeout-minutes: 60
 
     services:
@@ -126,6 +132,8 @@ jobs:
       # unpinned `npm install rman -g` with `rman-version`, which is what pins the *major* that this
       # repository's config keys need; and `install: 'ci'` installs exactly what the lockfile pins,
       # where `@v1` deleted package-lock.json first and installed whatever resolved that morning.
+      # It picks pnpm by itself, from the committed pnpm-lock.yaml, and installs the version named in
+      # package.json's `packageManager` - so there is no separate pnpm setup step.
       - name: 'Setup Environment'
         uses: panates/gh-setup-node@v2
         with:
@@ -143,7 +151,9 @@ jobs:
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.11.0
         with:
-          mongodb-version: 8.0
+          # Quoted: unquoted, YAML reads 8.0 as the number 8, and the action pulled `mongo:8` -
+          # whichever 8.x was newest that day - rather than the 8.0 line named here.
+          mongodb-version: '8.0'
           mongodb-replica-set: test-rs
 
       - name: Runs Elasticsearch
@@ -178,7 +188,7 @@ jobs:
         run: rman lint
 
       - name: Run unit tests
-        run: npm run citest
+        run: pnpm run citest
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
           KAFKA_BROKER: localhost:9092

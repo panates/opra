@@ -5,12 +5,12 @@
   "type": "module",
   "module": "./index.js",
   "dependencies": {
-    "@opra/common": "^1.32.1",
-    "@opra/sqb": "^1.32.1",
-    "@sqb/builder": "^6.0.12",
-    "@sqb/connect": "^6.0.12",
-    "@sqb/postgres": "^6.0.12",
-    "postgrejs": "^3.14.0",
+    "@opra/common": "workspace:^",
+    "@opra/sqb": "workspace:^",
+    "@sqb/builder": "^6.3.2",
+    "@sqb/connect": "^6.3.2",
+    "@sqb/postgres": "^6.3.2",
+    "postgrejs": "^3.14.1",
     "ts-gems": "^4.0.4"
   },
   "scripts": {

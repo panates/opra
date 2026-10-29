@@ -30,7 +30,7 @@
     "ts-gems": "^4.0.4",
     "tslib": "^2.8.1",
     "uid": "^2.0.2",
-    "valgen": "^7.0.5"
+    "valgen": "^7.0.6"
   },
   "devDependencies": {
     "@browsery/fs": "^0.5.1-rev.1",
@@ -39,6 +39,7 @@
     "@types/encodeurl": "^1.0.3",
     "@types/object-hash": "^3.0.6",
     "@types/validator": "^13.15.10",
+    "events": "^3.3.0",
     "expect": "^30.5.2",
     "path-browserify": "^1.0.1"
   },

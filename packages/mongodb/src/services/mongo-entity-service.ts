@@ -408,7 +408,7 @@ export class MongoEntityService<
       if (sort) stages.push({ $sort: sort });
     }
     /* "Limit" stage */
-    stages.push({ $limit: options?.limit || 10 });
+    if (options?.limit) stages.push({ $limit: options.limit });
     /* Post-Stages */
     if (options?.postStages) stages.push(...options.postStages);
 
@@ -450,7 +450,6 @@ export class MongoEntityService<
     items: PartialDTO<T>[];
   }> {
     const { options } = command;
-    const limit = options?.limit || 10;
     let filter: mongodb.Filter<T> | undefined;
     if (options?.filter)
       filter = MongoAdapter.prepareFilter<T>(options?.filter);
@@ -484,7 +483,7 @@ export class MongoEntityService<
     /* Skip */
     if (options?.skip) dataStages.push({ $skip: options.skip });
     /* Limit */
-    dataStages.push({ $limit: limit });
+    if (options?.limit) dataStages.push({ $limit: options.limit });
 
     const dataType = this.dataType;
     const projection = MongoAdapter.prepareProjection(

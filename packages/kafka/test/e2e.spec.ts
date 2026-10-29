@@ -49,12 +49,7 @@ describeOrSkip('kafka:e2e', () => {
   }).timeout(20000);
 
   beforeEach(() => {
-    TestController.counters = {
-      mailChannel1: 0,
-      mailChannel2: 0,
-      smsChannel1: 0,
-      smsChannel2: 0,
-    };
+    TestController.received.clear();
   });
 
   it('Should receive message from different groupId', async () => {
@@ -105,12 +100,10 @@ describeOrSkip('kafka:e2e', () => {
       header1: 'header1-value',
       header2: 1234,
     });
-    expect(TestController.counters).toEqual({
-      mailChannel1: 1,
-      mailChannel2: 1,
-      smsChannel1: 0,
-      smsChannel2: 0,
-    });
+    expect(TestController.operationsReceived(key)).toEqual([
+      'mailChannel1',
+      'mailChannel2',
+    ]);
   });
 
   it('Should listen regexp channel', async () => {
@@ -145,12 +138,7 @@ describeOrSkip('kafka:e2e', () => {
     expect(ctx1).toBeDefined();
     expect(ctx1?.key).toStrictEqual(key);
     expect(ctx1?.payload).toEqual(payload);
-    expect(TestController.counters).toEqual({
-      mailChannel1: 0,
-      mailChannel2: 0,
-      smsChannel1: 0,
-      smsChannel2: 1,
-    });
+    expect(TestController.operationsReceived(key)).toEqual(['smsChannel2']);
   }).slow(800);
 
   it('Should receive message from same groupId', async () => {
@@ -189,11 +177,9 @@ describeOrSkip('kafka:e2e', () => {
     expect(ctx2).toBeDefined();
     expect(ctx2?.key).toStrictEqual(key);
     expect(ctx2?.payload).toEqual(payload);
-    expect(TestController.counters).toEqual({
-      mailChannel1: 0,
-      mailChannel2: 0,
-      smsChannel1: 1,
-      smsChannel2: 1,
-    });
+    expect(TestController.operationsReceived(key)).toEqual([
+      'smsChannel1',
+      'smsChannel2',
+    ]);
   }).slow(800);
 });

@@ -21,11 +21,11 @@
     "iconv-lite": "^0.7.3",
     "node-events-async": "^1.5.2",
     "tslib": "^2.8.1",
-    "valgen": "^7.0.5"
+    "valgen": "^7.0.6"
   },
   "peerDependencies": {
-    "@opra/common": "^1.33.0",
-    "@opra/core": "^1.33.0",
+    "@opra/common": "workspace:^",
+    "@opra/core": "workspace:^",
     "socket.io": ">=4.0.0"
   },
   "devDependencies": {

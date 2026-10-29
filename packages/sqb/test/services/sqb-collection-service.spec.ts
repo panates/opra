@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { ResourceNotAvailableError } from '@opra/common';
 import { SqbCollectionService } from '@opra/sqb';
+import { sql } from '@sqb/builder';
 import { TempCustomer } from 'example-customer-sqb';
 import { CustomerApplication } from 'example-express-sqb';
 import { expect } from 'expect';
@@ -296,6 +297,41 @@ describeOrSkip('sqb:SqbCollectionService', () => {
         ]),
       );
       expect(result.length).toBeGreaterThan(0);
+    });
+
+    it('Should return every matching record when no limit is given', async () => {
+      // More rows than the 100 the service used to cut at, silently.
+      const repo = app.db.getRepository(TempCustomer);
+      for (let i = 1001; i <= 1110; i++) {
+        await repo.create({
+          ...tempRecords[0],
+          _id: i,
+          uid: faker.string.uuid(),
+        });
+      }
+      try {
+        const ctx = createContext(app.adapter);
+        const svc = service1.for(ctx);
+        const count = await svc.count();
+        expect(count).toBeGreaterThan(100);
+        expect((await svc.findMany()).length).toEqual(count);
+        expect((await svc.findMany({ limit: 0 })).length).toEqual(count);
+        const r = await svc.findManyWithCount();
+        expect(r.count).toEqual(count);
+        expect(r.items.length).toEqual(count);
+      } finally {
+        await repo.deleteMany({ filter: sql.Gt('_id', 1000) });
+      }
+    });
+
+    it('Should apply defaultLimit when set and no limit is given', async () => {
+      const ctx = createContext(app.adapter);
+      const svc = new SqbCollectionService<any>(TempCustomer, {
+        db: app.db,
+        defaultLimit: 5,
+      }).for(ctx);
+      expect((await svc.findMany()).length).toEqual(5);
+      expect((await svc.findMany({ limit: 7 })).length).toEqual(7);
     });
 
     it('Should apply filter', async () => {

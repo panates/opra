@@ -87,11 +87,23 @@ export namespace ElasticAdapter {
         case 'Entity.FindMany': {
           const options = {
             filter: ctx.queryParams.filter,
-            projection: ctx.queryParams.projection,
+            // The operation's declared defaults apply when the request gives none - as in the
+            // SQB and Mongo adapters. Without them, an operation's `defaultSort` was silently
+            // ignored and its `defaultLimit` never applied.
+            projection:
+              ctx.queryParams.projection ||
+              __oprDef.compositionOptions.defaultProjection,
             count: ctx.queryParams.count,
-            limit: ctx.queryParams.limit,
+            // A list request is always paged. The service applies no limit of its own any more,
+            // so an operation that declares no `defaultLimit` falls back to the page size the
+            // service used to impose.
+            limit:
+              ctx.queryParams.limit ||
+              __oprDef.compositionOptions.defaultLimit ||
+              10,
             skip: ctx.queryParams.skip,
-            sort: ctx.queryParams.sort,
+            sort:
+              ctx.queryParams.sort || __oprDef.compositionOptions.defaultSort,
           };
           return { method: 'findMany', options } satisfies TransformedRequest;
         }

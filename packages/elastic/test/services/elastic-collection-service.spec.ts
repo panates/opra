@@ -374,6 +374,63 @@ describeOrSkip('elastic:ElasticCollectionService', () => {
     });
   });
 
+  describe('elastic: decoding single-pass', () => {
+    // A Buffer-typed base64 field: its codec turns the stored string into a Buffer and rejects a
+    // Buffer as input, so it fails if a result is decoded a second time.
+    const id = 'photo-1';
+
+    before(async () => {
+      await app.dbClient.index({
+        index: indexName,
+        id,
+        document: { id: 9001, rate: 1, photo: 'aGVsbG8=' },
+        refresh: true,
+      });
+    });
+
+    after(async () => {
+      await app.dbClient
+        .delete({ index: indexName, id, refresh: true })
+        .catch(() => undefined);
+    });
+
+    it('Should decode a findById result once', async () => {
+      const ctx = createContext(app.adapter);
+      const result: any = await service.for(ctx).findById(id);
+      expect(result._id).toEqual(id);
+      expect(Buffer.isBuffer(result.photo)).toEqual(true);
+      expect(result.photo.toString()).toEqual('hello');
+    });
+
+    it('Should decode a findOne result once', async () => {
+      const ctx = createContext(app.adapter);
+      const result: any = await service.for(ctx).findOne({ filter: 'id=9001' });
+      expect(result._id).toEqual(id);
+      expect(result.photo.toString()).toEqual('hello');
+    });
+
+    it('Should decode findManyWithCount items once', async () => {
+      const ctx = createContext(app.adapter);
+      const result: any = await service
+        .for(ctx)
+        .findManyWithCount({ filter: 'id=9001' });
+      expect(result.count).toEqual(1);
+      expect(result.items[0]._id).toEqual(id);
+      expect(result.items[0].photo.toString()).toEqual('hello');
+    });
+
+    it('Should ask Elasticsearch for one hit in findById and findOne', async () => {
+      const spy = sinon.spy(
+        ElasticCollectionService.prototype as any,
+        '__findMany',
+      );
+      const ctx = createContext(app.adapter);
+      await service.for(ctx).findById(id);
+      await service.for(ctx).findOne({ filter: 'id=9001' });
+      expect(spy.args.map(args => args[0].size)).toEqual([1, 1]);
+    });
+  });
+
   describe('elastic:findMany() without a limit', () => {
     // More documents than the 10 the service used to cut at, and than the 1000 hits _findAll
     // fetches per page, so every match has to come back across several pages.

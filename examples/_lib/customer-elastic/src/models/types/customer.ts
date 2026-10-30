@@ -26,6 +26,9 @@ export class Customer extends MixinType([Record, Person]) {
   @ApiField()
   declare rate: number;
 
+  @ApiField({ type: 'base64' })
+  declare photo?: Buffer;
+
   @ApiField({ exclusive: true })
   declare address?: Address;
 

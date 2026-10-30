@@ -359,6 +359,28 @@ describeOrSkip('mongodb:MongoCollectionService', () => {
       expect(r.items.length).toEqual(count);
     });
 
+    it('Should skip records in the requested sort order', async () => {
+      // Sorted descending, against the order the records were inserted in: skipping before
+      // sorting skipped the first records of the natural order and returned the wrong page.
+      const ctx = createContext(app.adapter);
+      const svc = service1.for(ctx);
+      const all = await svc.findMany({ sort: ['-rate', '_id'] });
+      expect(all.length).toBeGreaterThan(5);
+      const expected = all.slice(2, 5).map((x: any) => x._id);
+      const page = await svc.findMany({
+        sort: ['-rate', '_id'],
+        skip: 2,
+        limit: 3,
+      });
+      expect(page.map((x: any) => x._id)).toEqual(expected);
+      const withCount = await svc.findManyWithCount({
+        sort: ['-rate', '_id'],
+        skip: 2,
+        limit: 3,
+      });
+      expect(withCount.items.map((x: any) => x._id)).toEqual(expected);
+    });
+
     it('Should apply defaultLimit when set and no limit is given', async () => {
       const ctx = createContext(app.adapter);
       const svc = new MongoCollectionService<any>('Customer', {

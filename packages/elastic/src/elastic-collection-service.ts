@@ -25,6 +25,11 @@ export namespace ElasticCollectionService {
    */
   export interface Options extends ElasticEntityService.Options {
     documentFilter?: ElasticCollectionService['documentFilter'];
+    /**
+     * Maximum number of documents `findMany` and `findManyWithCount` return when the call gives
+     * no `limit`. Unset by default: such a call returns every matching document. The HTTP
+     * FindMany operation pages with its own `defaultLimit` and does not depend on this.
+     */
     defaultLimit?: number;
   }
 
@@ -61,9 +66,11 @@ export class ElasticCollectionService<
     | ElasticCollectionService.DocumentFilter[];
 
   /**
-   * Represents the default limit value for find operations.
+   * Maximum number of documents `findMany` and `findManyWithCount` return when the call gives no
+   * `limit`. Unset by default: such a call returns every matching document, paged through with a
+   * point in time, so it is not cut at the index's `max_result_window`.
    */
-  defaultLimit: number;
+  defaultLimit?: number;
 
   /**
    * Constructs a new instance.
@@ -77,7 +84,7 @@ export class ElasticCollectionService<
   ) {
     super(dataType, options);
     this.documentFilter = options?.documentFilter;
-    this.defaultLimit = options?.defaultLimit || 10;
+    this.defaultLimit = options?.defaultLimit;
   }
 
   for<C extends ExecutionContext, P extends Partial<this>>(
@@ -330,15 +337,15 @@ export class ElasticCollectionService<
       ]);
       const newCommand = {
         ...command,
-        limit: 1,
-        options: { ...command.options, filter },
+        options: { ...command.options, filter, limit: 1 },
       } as ElasticEntityService.FindManyCommand;
+      // _findMany has decoded the hits already. Decoding them again breaks any codec that does
+      // not accept its own output - a Buffer-typed base64 field rejects the Buffer it made.
       const r = await this._findMany(newCommand);
       if (r.hits.hits?.length) {
-        const outputCodec = this.getOutputCodec('find');
         return {
           _id: r.hits.hits[0]._id,
-          ...outputCodec(r.hits.hits[0]._source!),
+          ...r.hits.hits[0]._source,
         };
       }
     });
@@ -384,15 +391,15 @@ export class ElasticCollectionService<
       ]);
       const newCommand = {
         ...command,
-        limit: 1,
-        options: { ...command.options, filter },
+        options: { ...command.options, filter, limit: 1 },
       } as ElasticEntityService.FindManyCommand;
+      // _findMany has decoded the hits already. Decoding them again breaks any codec that does
+      // not accept its own output - a Buffer-typed base64 field rejects the Buffer it made.
       const r = await this._findMany(newCommand);
       if (r.hits.hits?.length) {
-        const outputCodec = this.getOutputCodec('find');
         return {
           _id: r.hits.hits[0]._id,
-          ...outputCodec(r.hits.hits[0]._source!),
+          ...r.hits.hits[0]._source,
         };
       }
     });
@@ -436,7 +443,9 @@ export class ElasticCollectionService<
       ]);
       const limit = command.options?.limit || this.defaultLimit;
       command.options = { ...command.options, filter, limit };
-      const r = await this._findMany(command);
+      const r = limit
+        ? await this._findMany(command)
+        : await this._findAll(command);
       return r.hits?.hits.map((x: any) => x._source) || [];
     });
   }
@@ -503,15 +512,15 @@ export class ElasticCollectionService<
         limit,
         request: { ...command.options?.request, track_total_hits: true },
       };
-      const r = await this._findMany(command);
+      const r = limit
+        ? await this._findMany(command)
+        : await this._findAll(command);
       const out = {} as ElasticCollectionService.FindManyWithCountResult<any>;
-      if (r.hits.hits?.length) {
-        const outputCodec = this.getOutputCodec('find');
-        out.items = r.hits.hits.map((x: any) => ({
-          _id: x._id,
-          ...outputCodec(x._source!),
-        }));
-      } else out.items = [];
+      // The hits come decoded already - see findById.
+      out.items = (r.hits.hits || []).map((x: any) => ({
+        _id: x._id,
+        ...x._source,
+      }));
       if (typeof r.hits.total === 'object') {
         out.count = r.hits.total.value;
         out.relation = r.hits.total.relation;

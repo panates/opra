@@ -400,13 +400,13 @@ export class MongoEntityService<
     if (options?.filter)
       filter = MongoAdapter.prepareFilter<T>(options?.filter);
     if (filter) stages.push({ $match: filter });
-    /* "Skip" stage */
-    if (options?.skip) stages.push({ $skip: options.skip });
-    /* "Sort" stage */
+    /* "Sort" stage - before "Skip", so skip counts records in the requested order */
     if (options?.sort) {
       const sort = MongoAdapter.prepareSort(options.sort);
       if (sort) stages.push({ $sort: sort });
     }
+    /* "Skip" stage */
+    if (options?.skip) stages.push({ $skip: options.skip });
     /* "Limit" stage */
     if (options?.limit) stages.push({ $limit: options.limit });
     /* Post-Stages */

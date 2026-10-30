@@ -7,9 +7,9 @@
   "dependencies": {
     "@opra/common": "workspace:^",
     "@opra/sqb": "workspace:^",
-    "@sqb/builder": "^6.3.2",
-    "@sqb/connect": "^6.3.2",
-    "@sqb/postgres": "^6.3.2",
+    "@sqb/builder": "^6.3.3",
+    "@sqb/connect": "^6.3.3",
+    "@sqb/postgres": "^6.3.3",
     "postgrejs": "^3.14.1",
     "ts-gems": "^4.0.4"
   },

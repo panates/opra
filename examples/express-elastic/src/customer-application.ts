@@ -15,7 +15,7 @@ export class CustomerApplication {
   ): Promise<CustomerApplication> {
     const app = new CustomerApplication();
     try {
-      const host = process.env.MONGO_HOST || 'http://127.0.0.1:9200';
+      const host = process.env.ELASTIC_HOST || 'http://127.0.0.1:9200';
       app.dbClient = new Client({ node: host });
       app.document = await CustomerApiDocument.create(app.dbClient);
       app.express = express();

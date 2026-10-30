@@ -1,5 +1,6 @@
 import type { estypes } from '@elastic/elasticsearch';
 import type { TransportRequestOptions } from '@elastic/transport';
+import { omit } from '@jsopen/objects';
 import {
   ComplexType,
   DataType,
@@ -21,6 +22,9 @@ import { ElasticService } from './elastic-service.js';
  *
  * @namespace ElasticEntityService
  */
+/** How many hits `_findAll` asks for per page. */
+const FIND_ALL_PAGE_SIZE = 1000;
+
 export namespace ElasticEntityService {
   /**
    * The constructor options of ElasticEntityService.
@@ -454,6 +458,84 @@ export class ElasticEntityService<
     command: ElasticEntityService.FindManyCommand,
   ): Promise<ElasticEntityService.SearchResponse<PartialDTO<T>>> {
     const { options } = command;
+    const request = this._prepareSearchRequest(command);
+    const r = await this.__findMany(request, options);
+    return this._decodeSearchResponse(r, options);
+  }
+
+  /**
+   * Returns every search hit that matches the query, however many there are. A single search
+   * stops at the index's `max_result_window` (10,000 by default), so this pages through the
+   * matches with a point in time and `search_after`, sorted by the requested order and then
+   * by `_shard_doc` as the tie-breaker the paging needs. `skip` drops that many leading hits.
+   *
+   * @param command - The findMany command. Its `limit` is ignored.
+   * @returns A promise that resolves to one search response holding all the hits.
+   */
+  protected async _findAll(
+    command: ElasticEntityService.FindManyCommand,
+  ): Promise<ElasticEntityService.SearchResponse<PartialDTO<T>>> {
+    const { options } = command;
+    // `from` and `size` do not apply: the pages below set their own size, and skip is done by
+    // dropping hits, since `search_after` cannot be combined with `from`.
+    const prepared = this._prepareSearchRequest(command);
+    const { index, sort } = prepared;
+    const request = omit(prepared, ['index', 'from', 'size', 'sort']);
+    const client = this.getClient();
+    const keepAlive = '1m';
+    const pit = await client.openPointInTime(
+      { index: index!, keep_alive: keepAlive },
+      options?.transport,
+    );
+    let pitId = pit.id;
+    try {
+      const hits: estypes.SearchHit<any>[] = [];
+      let first: ElasticEntityService.SearchResponse<any> | undefined;
+      let searchAfter: estypes.SortResults | undefined;
+      for (;;) {
+        const r = await client.search<any>(
+          {
+            ...request,
+            // Asked for only once: the total does not change across the pages of one point in time.
+            track_total_hits: first ? false : request.track_total_hits,
+            size: FIND_ALL_PAGE_SIZE,
+            sort: [...((sort as any[]) || []), { _shard_doc: 'asc' }],
+            pit: { id: pitId, keep_alive: keepAlive },
+            search_after: searchAfter,
+          },
+          options?.transport,
+        );
+        if (r.pit_id) pitId = r.pit_id;
+        first = first || r;
+        hits.push(...r.hits.hits);
+        if (r.hits.hits.length < FIND_ALL_PAGE_SIZE) break;
+        searchAfter = r.hits.hits[r.hits.hits.length - 1].sort;
+      }
+      const response: ElasticEntityService.SearchResponse<any> = {
+        ...first!,
+        hits: {
+          ...first!.hits,
+          hits: options?.skip ? hits.slice(options.skip) : hits,
+        },
+      };
+      return this._decodeSearchResponse(response, options);
+    } finally {
+      await client
+        .closePointInTime({ id: pitId }, options?.transport)
+        .catch(() => undefined);
+    }
+  }
+
+  /**
+   * Builds the search request a findMany command describes.
+   *
+   * @param command - The findMany command.
+   * @returns The search request.
+   */
+  protected _prepareSearchRequest(
+    command: ElasticEntityService.FindManyCommand,
+  ): ElasticEntityService.SearchRequest {
+    const { options } = command;
     const filterQuery = ElasticAdapter.prepareFilter([
       command.documentId
         ? { ids: { values: [command.documentId] } }
@@ -465,7 +547,7 @@ export class ElasticEntityService<
     let query = this._mergeQueries(options?.request?.query, filterQuery);
     if (!(query && Object.keys(query).length)) query = { match_all: {} };
 
-    const request: ElasticEntityService.SearchRequest = {
+    return {
       from: options?.skip,
       size: options?.limit,
       sort: options?.sort
@@ -480,7 +562,19 @@ export class ElasticEntityService<
       ...options?.request,
       query,
     };
-    const r = await this.__findMany(request, options);
+  }
+
+  /**
+   * Decodes the hits of a search response, unless `options.noDecode` is set.
+   *
+   * @param r - The search response.
+   * @param options - The findMany options.
+   * @returns The search response with decoded hits.
+   */
+  protected _decodeSearchResponse(
+    r: ElasticEntityService.SearchResponse<any>,
+    options?: ElasticEntityService.FindManyOptions,
+  ): ElasticEntityService.SearchResponse<PartialDTO<T>> {
     if (options?.noDecode) return r;
     if (r.hits.hits?.length) {
       const outputCodec = this.getOutputCodec('find');

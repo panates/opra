@@ -74,13 +74,7 @@ jobs:
         github.event_name == 'push' &&
         !contains(github.event.head_commit.message, 'no-test')
       )
-    # **ubuntu-22.04 until MongoDB 8.0.35 is published.** MongoDB 8 refuses to start on Linux 6.19
-    # and newer (fatal 12257600, SERVER-121912), and its kernel check misreads the current
-    # ubuntu-24.04 runner's Azure kernel as affected (SERVER-131779) - the container exits at once
-    # and the MongoDB step only reports "container is not running" until it times out. The fix
-    # ships in 8.0.35 / 8.3.14; 22.04's older kernel is what actions/runner-images#15005
-    # recommends meanwhile. Move back to ubuntu-latest once mongo:8.0 resolves to 8.0.35 or later.
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 60
 
     services:
@@ -151,9 +145,16 @@ jobs:
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.11.0
         with:
-          # Quoted: unquoted, YAML reads 8.0 as the number 8, and the action pulled `mongo:8` -
-          # whichever 8.x was newest that day - rather than the 8.0 line named here.
-          mongodb-version: '8.0'
+          # **9.0, not 8.0.** MongoDB 8 refuses to start on Linux 6.19 and newer (fatal 12257600,
+          # SERVER-121912), and its kernel check misreads the ubuntu-24.04 runner's Azure kernel as
+          # affected (SERVER-131779): the container exits at once and this step only reports
+          # "container is not running" until it times out. 9.0.4 carries the fix and is what
+          # actions/runner-images#15005 verified on these runners; the 8.x fix (8.0.35 / 8.3.14)
+          # was not published yet. The tests now run against 9.0 rather than the 8.0 most users
+          # may still be on.
+          # Quoted: unquoted, YAML reads a version such as 9.0 as the number 9, and the action
+          # pulls `mongo:9` - whichever 9.x is newest that day - rather than the line named here.
+          mongodb-version: '9.0'
           mongodb-replica-set: test-rs
 
       - name: Runs Elasticsearch

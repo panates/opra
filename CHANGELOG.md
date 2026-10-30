@@ -1,6 +1,28 @@
 # Changelog
 
-<!-- rman:documented-up-to 0f92a5e686a34894f2b2fc33111572016ce6bc73 -->
+<!-- rman:documented-up-to bc10ff11db5b7d89d779f0cd9e46411e722101dc -->
+
+## v1.35.0 (2026-10-30)
+
+### ✨ Features
+
+- **elastic:** Return every matching document when findMany is given no limit (e5438a5)
+
+### 🐛 Bug Fixes
+
+- **mongodb:** Sort before skipping in findMany (3eb75d5)
+- **elastic:** Apply the FindMany operation's defaults in ElasticAdapter (b2ff3d7)
+- **elastic:** Decode findById, findOne and findManyWithCount results once (4c43573)
+
+### 🤖 Continuous Integration
+
+- Run the tests on ubuntu-latest against MongoDB 9.0 (ba376b4)
+
+### 🧹 Chores
+
+- **deps:** Update rman to 2.40.3 and @sqb to 6.3.3 (dbfcd7f)
+
+---
 
 ## v1.34.0 (2026-10-29)
 

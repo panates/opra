@@ -374,6 +374,85 @@ describeOrSkip('elastic:ElasticCollectionService', () => {
     });
   });
 
+  describe('elastic:findMany() without a limit', () => {
+    // More documents than the 10 the service used to cut at, and than the 1000 hits _findAll
+    // fetches per page, so every match has to come back across several pages.
+    const allIndexName = 'collection-find-all-test';
+    const total = 2305;
+    let allService: ElasticCollectionService<any>;
+
+    before(async () => {
+      const client = app.dbClient;
+      if (await client.indices.exists({ index: allIndexName }))
+        await client.indices.delete({ index: allIndexName });
+      await client.indices.create({ index: allIndexName });
+      const operations: any[] = [];
+      for (let i = 1; i <= total; i++) {
+        operations.push(
+          { index: { _index: allIndexName, _id: String(i) } },
+          { id: i, rate: i % 10, givenName: 'Name' + i, familyName: 'Family' },
+        );
+      }
+      await client.bulk({ operations, refresh: true });
+      allService = new ElasticCollectionService<any>(Customer, {
+        client,
+        indexName: allIndexName,
+      });
+    }).timeout(60000);
+
+    after(async () => {
+      await app?.dbClient.indices
+        .delete({ index: allIndexName })
+        .catch(() => undefined);
+    });
+
+    it('Should return every matching document, in the requested order', async () => {
+      const ctx = createContext(app.adapter);
+      const result: any[] = await allService
+        .for(ctx)
+        .findMany({ sort: ['id'] });
+      expect(result.length).toEqual(total);
+      expect(result.map(x => x.id)).toEqual(
+        Array.from({ length: total }, (_, i) => i + 1),
+      );
+    });
+
+    it('Should treat "limit: 0" as no limit', async () => {
+      const ctx = createContext(app.adapter);
+      const result: any[] = await allService.for(ctx).findMany({ limit: 0 });
+      expect(result.length).toEqual(total);
+    });
+
+    it('Should apply filter and skip', async () => {
+      const ctx = createContext(app.adapter);
+      const result: any[] = await allService
+        .for(ctx)
+        .findMany({ filter: 'rate=3', sort: ['-id'], skip: 5 });
+      const expected = Array.from({ length: total }, (_, i) => total - i)
+        .filter(id => id % 10 === 3)
+        .slice(5);
+      expect(result.map(x => x.id)).toEqual(expected);
+    });
+
+    it('Should return every match and the total from findManyWithCount', async () => {
+      const ctx = createContext(app.adapter);
+      const result = await allService.for(ctx).findManyWithCount();
+      expect(result.count).toEqual(total);
+      expect(result.items.length).toEqual(total);
+    });
+
+    it('Should apply defaultLimit when set', async () => {
+      const ctx = createContext(app.adapter);
+      const svc = new ElasticCollectionService<any>(Customer, {
+        client: app.dbClient,
+        indexName: allIndexName,
+        defaultLimit: 5,
+      }).for(ctx);
+      expect((await svc.findMany()).length).toEqual(5);
+      expect((await svc.findMany({ limit: 7 })).length).toEqual(7);
+    });
+  });
+
   describe('elastic:findManyWithCount()', () => {
     it('Should count total matches', async () => {
       const ctx = createContext(app.adapter);

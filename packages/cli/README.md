@@ -137,4 +137,4 @@ Available under [MIT](LICENSE) license.
 
 [coveralls-image]: https://coveralls.io/repos/github/panates/opra/badge.svg?branch=dev
 
-[coveralls-url]: https://coveralls.io/github/panates/opra?branch=main
+[coveralls-url]: https://coveralls.io/github/panates/opra?branch=dev

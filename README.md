@@ -4,6 +4,8 @@
   <img src="https://oprajs.com/img/opra-header-block.webp" width="880" alt="OPRA — Open Platform for Rich APIs" />
 </a>
 
+A TypeScript framework for rich APIs: define the schema once and get validation, documentation and a typed client, over HTTP, WebSocket, Kafka, RabbitMQ or Socket.IO.
+
 [![NPM Version][npm-image]][npm-url]
 [![NPM Downloads][downloads-image]][downloads-url]
 [![CI Tests][ci-test-image]][ci-test-url]
@@ -114,6 +116,6 @@ OPRA is available under the [MIT](LICENSE) license.
 [ci-test-image]: https://github.com/panates/opra/actions/workflows/test.yml/badge.svg
 [ci-test-url]: https://github.com/panates/opra/actions/workflows/test.yml
 [coveralls-image]: https://coveralls.io/repos/github/panates/opra/badge.svg?branch=dev
-[coveralls-url]: https://coveralls.io/github/panates/opra?branch=main
+[coveralls-url]: https://coveralls.io/github/panates/opra?branch=dev
 [downloads-image]: https://img.shields.io/npm/dm/@opra/core.svg
 [downloads-url]: https://npmjs.org/package/@opra/core

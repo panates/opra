@@ -19,7 +19,8 @@
   "scripts": {
     "build": "rman build",
     "graph": "graphify update .",
-    "test": "tsc -b tsconfig-test.json --noEmit && mocha",
+    "compile": "tsc -b tsconfig-test.json --noEmit",
+    "test": "mocha",
     "precover": "rimraf coverage",
     "format": "rman format",
     "precitest": "rman clean",

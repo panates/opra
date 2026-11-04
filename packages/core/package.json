@@ -1,6 +1,7 @@
 {
   "name": "@opra/core",
   "version": "1.35.0",
+  "private": true,
   "description": "Opra schema package",
   "author": "Panates",
   "contributors": [

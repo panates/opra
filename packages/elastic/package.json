@@ -1,6 +1,7 @@
 {
   "name": "@opra/elastic",
   "version": "1.35.0",
+  "private": true,
   "description": "Opra Elastic Search adapter package",
   "author": "Panates",
   "contributors": [

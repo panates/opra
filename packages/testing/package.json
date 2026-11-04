@@ -1,6 +1,7 @@
 {
   "name": "@opra/testing",
   "version": "1.35.0",
+  "private": true,
   "description": "Opra testing package",
   "author": "Panates",
   "contributors": [

@@ -1,6 +1,7 @@
 {
   "name": "@opra/nestjs-socketio",
   "version": "1.35.0",
+  "private": true,
   "description": "Opra NestJS Socket.io Module",
   "author": "Panates",
   "contributors": [

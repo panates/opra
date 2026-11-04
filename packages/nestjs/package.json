@@ -1,6 +1,7 @@
 {
   "name": "@opra/nestjs",
   "version": "1.35.0",
+  "private": true,
   "description": "Opra NestJS module",
   "author": "Panates",
   "contributors": [

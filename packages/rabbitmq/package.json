@@ -1,6 +1,6 @@
 {
   "name": "@opra/rabbitmq",
-  "version": "1.35.0",
+  "version": "1.35.1",
   "private": true,
   "description": "Opra RabbitMQ adapter",
   "author": "Panates",

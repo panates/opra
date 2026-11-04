@@ -1,6 +1,36 @@
 # Changelog
 
-<!-- rman:documented-up-to bc10ff11db5b7d89d779f0cd9e46411e722101dc -->
+<!-- rman:documented-up-to 1c30d1eda7f9c83ddf8efd4cd43416c1d017efe7 -->
+
+## v1.35.1 (2026-11-04)
+
+### 🐛 Bug Fixes
+
+- **cli:** point repository.directory to packages/cli (c85a168)
+
+### 📚 Documentation
+
+- add the code of conduct, the security policy and issue templates; remove renovate.json (a9a69cd)
+- README sentence, badges for api-ui and openapi, coverage links to dev (27403d1)
+- add the project summary, layout and test notes to CLAUDE.md (8cf15ce)
+
+### 🤖 Continuous Integration
+
+- check that main takes pull requests from dev; declare the test job permissions (8f0c4d5)
+- type-check in a compile script and in CI (b0e8872)
+
+### 🧹 Chores
+
+- install and publish with pnpm through rman (ae6eb1c)
+- use the rman root scripts and drop rman as a dev dependency (9f0368c)
+- declare Node.js >=22 in every manifest (86a7309)
+- mark published package sources private (a00d0fe)
+- add the template's ignore entries (1f58202)
+- commit .claude/settings.json with the panates plugin (3e3bace)
+- emit source maps (9d2a2a1)
+- upgrade dependencies with rman deps -u (b5c1fe3)
+
+---
 
 ## v1.35.0 (2026-10-30)
 

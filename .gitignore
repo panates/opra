@@ -3,6 +3,7 @@
 **/node_modules
 packages/*/dist
 packages/*/build
+build/
 /support/docker/data
 /reports
 /debug
@@ -15,6 +16,8 @@ junit.xml
 
 # environment variables
 .env
+.env.*
+!.env.example
 env-dev.ts
 
 # Debug
@@ -39,7 +42,9 @@ lerna-debug.log*
 
 # IDEs and editors
 /.idea
-/.claude
+.claude/settings.local.json
+.claude/worktrees/
+.claude/launch.json
 /graphify-out
 .project
 .classpath

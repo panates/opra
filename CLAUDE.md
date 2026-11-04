@@ -1,3 +1,28 @@
+# opra
+
+OPRA is a TypeScript framework for rich APIs, published to npm as `@opra/*` packages that release
+together under one version (lockstep, `v*` tags).
+
+## Layout
+
+- `packages/common`: the schema, decorators and `ApiDocument`. `packages/core`, `packages/http`:
+  the server side. `packages/client`, `packages/angular`: the clients.
+- Transports: `kafka`, `rabbitmq`, `socketio` and their `nestjs-*` modules, plus `nestjs` and
+  `nestjs-http`. Data adapters: `mongodb`, `sqb`, `elastic`. Tools: `cli`, `openapi`, `api-ui`,
+  `testing`.
+- `packages/angular` builds with `ng build` (ng-packagr writes its exports), not with rman's
+  TypeScript build.
+- `examples/` and `examples/_lib/` are workspace members that are never published.
+- `support/test/global-setup.ts` prepares the test databases when mocha runs from the root.
+
+## Tests
+
+CI starts Kafka, PostgreSQL, RabbitMQ, MongoDB and Elasticsearch (`.github/workflows/test.yml`).
+Running mocha from the root sets `INIT_MONGODB`, `INIT_SQB`, `INIT_ELASTIC` and `INIT_KAFKA`
+(`.mocharc.cjs`), so the global setup fills those databases first; a package's own `.mocharc.cjs`
+sets only its own. Locally, suites for a server that is not running fail with connection errors.
+The root `test` script type-checks with `tsc -b tsconfig-test.json` before mocha.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.

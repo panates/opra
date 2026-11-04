@@ -51,6 +51,8 @@ jobs:
           needs.source.outputs.head-ref != 'dev'
         )
       )
+    permissions:
+      contents: read
     uses: ./.github/workflows/test.yml
 
   release:

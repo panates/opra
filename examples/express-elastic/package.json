@@ -12,7 +12,7 @@
     "@opra/mongodb": "workspace:^",
     "example-customer-elastic": "workspace:^",
     "express": "^5.3.0",
-    "mongodb": "^7.7.0",
+    "mongodb": "^7.8.0",
     "ts-gems": "^4.0.4"
   },
   "scripts": {

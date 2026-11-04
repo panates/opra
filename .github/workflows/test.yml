@@ -188,6 +188,9 @@ jobs:
       - name: Lint
         run: rman lint
 
+      - name: Run type check
+        run: pnpm run compile
+
       - name: Run unit tests
         run: pnpm run citest
         env:

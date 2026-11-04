@@ -8,6 +8,11 @@
 
 Modern, interactive API reference UI rendering an Opra `ApiDocument`'s native schema
 
+[![NPM Version][npm-image]][npm-url]
+[![NPM Downloads][downloads-image]][downloads-url]
+[![CI Tests][ci-test-image]][ci-test-url]
+[![Test Coverage][coveralls-image]][coveralls-url]
+
 [🌐 Documentation](https://oprajs.com) · [🚀 Getting Started](https://oprajs.com/docs/introduction) · [📦 Packages](https://github.com/panates/opra#packages) · [💬 Issues](https://github.com/panates/opra/issues)
 
 </div>
@@ -43,3 +48,12 @@ Unlike Swagger UI or Scalar, this package renders Opra's own native schema direc
 The reference UI is organized as separate pages (not one long scrolling document): an overview page, one page per controller, one page per operation, and one page per named model, all linked from a sidebar tree that mirrors the controller hierarchy and groups models by kind.
 
 If the `ApiDocument` has `references` to other documents, a document switcher in the header lets the viewer jump to any of them — the referenced document's schema is fetched on demand from the server's `$schema?id=...` endpoint the first time it's selected.
+
+[npm-image]: https://img.shields.io/npm/v/@opra/api-ui
+[npm-url]: https://npmjs.org/package/@opra/api-ui
+[downloads-image]: https://img.shields.io/npm/dm/@opra/api-ui.svg
+[downloads-url]: https://npmjs.org/package/@opra/api-ui
+[ci-test-image]: https://github.com/panates/opra/actions/workflows/test.yml/badge.svg
+[ci-test-url]: https://github.com/panates/opra/actions/workflows/test.yml
+[coveralls-image]: https://coveralls.io/repos/github/panates/opra/badge.svg?branch=dev
+[coveralls-url]: https://coveralls.io/github/panates/opra?branch=dev

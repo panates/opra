@@ -1,6 +1,7 @@
 {
   "name": "@opra/sqb",
   "version": "1.35.0",
+  "private": true,
   "description": "Opra SQB adapter package",
   "author": "Panates",
   "contributors": [
@@ -17,8 +18,8 @@
   "dependencies": {
     "@jsopen/objects": "^2.3.4",
     "reflect-metadata": "^0.2.2",
-    "tslib": "^2.8.1",
-    "valgen": "^7.0.6"
+    "tslib": "^2.9.1",
+    "valgen": "^7.0.7"
   },
   "peerDependencies": {
     "@opra/common": "workspace:^",
@@ -29,9 +30,9 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",
-    "@sqb/builder": "^6.3.3",
-    "@sqb/connect": "^6.3.3",
-    "@sqb/postgres": "^6.3.3",
+    "@sqb/builder": "^6.3.4",
+    "@sqb/connect": "^6.3.4",
+    "@sqb/postgres": "^6.3.4",
     "expect": "^30.5.2",
     "postgrejs": "^3.14.1",
     "sinon": "^22.1.0",
@@ -48,7 +49,7 @@
     "./package.json": "./package.json"
   },
   "engines": {
-    "node": ">=20.0"
+    "node": ">=22"
   },
   "repository": {
     "type": "git",

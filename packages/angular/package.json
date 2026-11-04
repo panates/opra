@@ -53,7 +53,7 @@
     "directory": "packages/angular"
   },
   "engines": {
-    "node": ">=16.0",
+    "node": ">=22",
     "npm": ">=7.0.0"
   },
   "keywords": [

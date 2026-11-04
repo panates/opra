@@ -48,7 +48,7 @@
     "./package.json": "./package.json"
   },
   "engines": {
-    "node": ">=20.0"
+    "node": ">=22"
   },
   "bin": {
     "oprimp": "bin/oprimp.mjs"

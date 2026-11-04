@@ -49,7 +49,7 @@
     "./package.json": "./package.json"
   },
   "engines": {
-    "node": ">=20.0"
+    "node": ">=22"
   },
   "repository": {
     "type": "git",

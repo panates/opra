@@ -43,7 +43,7 @@
   "module": "./index.js",
   "types": "./index.d.ts",
   "engines": {
-    "node": ">=20.0"
+    "node": ">=22"
   },
   "repository": {
     "type": "git",

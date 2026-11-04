@@ -42,7 +42,9 @@ lerna-debug.log*
 
 # IDEs and editors
 /.idea
-/.claude
+.claude/settings.local.json
+.claude/worktrees/
+.claude/launch.json
 /graphify-out
 .project
 .classpath

@@ -30,3 +30,6 @@
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# pnpm writes the lockfile in its own layout, which prettier would rewrite on every format
+pnpm-lock.yaml

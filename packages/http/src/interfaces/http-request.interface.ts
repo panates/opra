@@ -1,15 +1,15 @@
 import { isPlainObject } from '@jsopen/objects';
 import { mergePrototype } from '@opra/common';
 import type http from 'http';
-import type {
-  Options as RangeParserOptions,
-  Ranges as RangeParserRanges,
-  Result as RangeParserResult,
-} from 'range-parser';
 import { HttpRequestHost } from '../impl/http-request.host.js';
 import { IncomingMessageHost } from '../impl/incoming-message-host.js';
 import { isHttpIncomingMessage, isHttpRequest } from '../type-guards.js';
 import { BodyReader } from '../utils/body-reader.js';
+import type {
+  ParseRangeOptions,
+  ParseRangeResult,
+  Ranges,
+} from '../utils/parse-range.js';
 import type { HttpResponse } from './http-response.interface.js';
 
 /**
@@ -224,8 +224,8 @@ export interface HttpRequest extends http.IncomingMessage {
    */
   range(
     size: number,
-    options?: RangeParserOptions,
-  ): RangeParserRanges | RangeParserResult | undefined;
+    options?: ParseRangeOptions,
+  ): Ranges | ParseRangeResult | undefined;
 
   /**
    * Receives and parses the request body.

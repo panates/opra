@@ -5,9 +5,9 @@
 import typeIs from '@browsery/type-is';
 import accepts from 'accepts';
 import fresh from 'fresh';
-import parseRange from 'range-parser';
 import type { HttpRequest } from '../interfaces/http-request.interface.js';
 import { BodyReader } from '../utils/body-reader.js';
+import { parseRange, type ParseRangeOptions } from '../utils/parse-range.js';
 
 export interface HttpRequestHost extends HttpRequest {}
 const ENCODING_PATTERN = /encoding=([^;]+)/;
@@ -115,7 +115,7 @@ export class HttpRequestHost {
     return contentType ? typeIs.is(contentType as any, types) : null;
   }
 
-  range(size: number, options) {
+  range(size: number, options?: ParseRangeOptions) {
     const range = this.header('range');
     if (!range) return;
     return parseRange(size, range, options);

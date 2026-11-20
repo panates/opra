@@ -99,4 +99,73 @@ describe('http:HttpIncoming', () => {
     expect(result.length).toBeGreaterThanOrEqual(1);
     expect(result[0]).toEqual({ start: 50, end: 55 });
   });
+
+  describe('range()', () => {
+    const range = (header: string | undefined, size = 100, options?: any) =>
+      HttpRequest.create({
+        method: 'get',
+        headers: header === undefined ? [] : ['Range', header],
+      }).range(size, options);
+
+    it('Should return undefined when there is no "Range" header', () => {
+      expect(range(undefined)).toBeUndefined();
+    });
+
+    it('Should return the ranges in the order given, with their type', () => {
+      const result: any = range('bytes=50-55,0-10,-20,90-');
+      expect([...result]).toStrictEqual([
+        { start: 50, end: 55 },
+        { start: 0, end: 10 },
+        { start: 80, end: 99 },
+        { start: 90, end: 99 },
+      ]);
+      expect(result.type).toStrictEqual('bytes');
+    });
+
+    it('Should combine overlapping and adjacent ranges', () => {
+      const result: any = range('bytes=50-55,0-10,5-10,56-60', 100, {
+        combine: true,
+      });
+      expect([...result]).toStrictEqual([
+        { start: 50, end: 60 },
+        { start: 0, end: 10 },
+      ]);
+      expect(result.type).toStrictEqual('bytes');
+    });
+
+    it('Should cap the end position to the size', () => {
+      expect([...(range('bytes=0-200') as any)]).toStrictEqual([
+        { start: 0, end: 99 },
+      ]);
+    });
+
+    it('Should skip unsatisfiable ranges', () => {
+      expect([...(range('bytes=0-10,200-') as any)]).toStrictEqual([
+        { start: 0, end: 10 },
+      ]);
+    });
+
+    it('Should return -1 when no range is satisfiable', () => {
+      expect(range('bytes=200-300')).toStrictEqual(-1);
+      expect(range('bytes=0-', 0)).toStrictEqual(-1);
+    });
+
+    it('Should return -2 when the header is malformed', () => {
+      expect(range('bytes')).toStrictEqual(-2);
+      expect(range('bytes=x-')).toStrictEqual(-2);
+      expect(range('bytes=0-10,x-')).toStrictEqual(-2);
+      expect(range('bytes=50-20')).toStrictEqual(-2);
+    });
+
+    it('Should return -1 for an invalid size instead of throwing', () => {
+      expect(range('bytes=0-1', -1)).toStrictEqual(-1);
+      expect(range('bytes=0-1', NaN)).toStrictEqual(-1);
+    });
+
+    it('Should floor a fractional size', () => {
+      expect([...(range('bytes=-1', 100.5) as any)]).toStrictEqual([
+        { start: 99, end: 99 },
+      ]);
+    });
+  });
 });

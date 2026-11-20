@@ -1,6 +1,29 @@
 # Changelog
 
-<!-- rman:documented-up-to 1c30d1eda7f9c83ddf8efd4cd43416c1d017efe7 -->
+<!-- rman:documented-up-to 46477865f27b02da77021301a3b6cef39d446c61 -->
+
+## v1.35.2 (2026-11-20)
+
+### 🐛 Bug Fixes
+
+- **http:** move range() to range-parser 2 (a86b274)
+
+### 🔧 Refactoring
+
+- **common:** replace the antlr4 filter parser with a hand-written one (585a262)
+
+### 🧹 Chores
+
+- **deps:** upgrade dependencies with rman deps -u (e3ae77f)
+- **deps:** upgrade valgen to 7.0.12 (ef038ad)
+- **deps:** upgrade valgen to 7.0.13 (18208a7)
+
+### 💬 General Changes
+
+- Merge branch 'chore/deps-update' into dev (30f0bb8)
+- Merge branch 'refactor/filter-parser' into dev (ef140a3)
+
+---
 
 ## v1.35.1 (2026-11-04)
 

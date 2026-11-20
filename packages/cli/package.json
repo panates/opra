@@ -20,7 +20,7 @@
     "@browsery/type-is": "^2.0.2-rev.1",
     "@jsopen/objects": "^2.3.4",
     "ansi-colors": "^4.1.3",
-    "commander": "^15.0.0",
+    "commander": "^15.1.0",
     "js-string-escape": "^1.0.1",
     "putil-flattentext": "^2.1.1",
     "putil-varhelpers": "^1.7.0",

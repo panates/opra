@@ -737,8 +737,8 @@ importers:
         specifier: ^2.0.2
         version: 2.0.2
       valgen:
-        specifier: ^7.0.12
-        version: 7.0.12
+        specifier: ^7.0.13
+        version: 7.0.13
     devDependencies:
       '@browsery/fs':
         specifier: ^0.5.1-rev.1
@@ -805,8 +805,8 @@ importers:
         specifier: ^2.9.1
         version: 2.9.1
       valgen:
-        specifier: ^7.0.12
-        version: 7.0.12
+        specifier: ^7.0.13
+        version: 7.0.13
     devDependencies:
       '@elastic/transport':
         specifier: ^9.6.1
@@ -926,8 +926,8 @@ importers:
         specifier: ^2.0.2
         version: 2.0.2
       valgen:
-        specifier: ^7.0.12
-        version: 7.0.12
+        specifier: ^7.0.13
+        version: 7.0.13
       vary:
         specifier: ^1.1.2
         version: 1.1.2
@@ -1018,8 +1018,8 @@ importers:
         specifier: ^2.9.1
         version: 2.9.1
       valgen:
-        specifier: ^7.0.12
-        version: 7.0.12
+        specifier: ^7.0.13
+        version: 7.0.13
     devDependencies:
       '@faker-js/faker':
         specifier: ^10.6.0
@@ -1055,8 +1055,8 @@ importers:
         specifier: ^2.9.1
         version: 2.9.1
       valgen:
-        specifier: ^7.0.12
-        version: 7.0.12
+        specifier: ^7.0.13
+        version: 7.0.13
     devDependencies:
       '@faker-js/faker':
         specifier: ^10.6.0
@@ -1428,8 +1428,8 @@ importers:
         specifier: ^2.9.1
         version: 2.9.1
       valgen:
-        specifier: ^7.0.12
-        version: 7.0.12
+        specifier: ^7.0.13
+        version: 7.0.13
     devDependencies:
       '@faker-js/faker':
         specifier: ^10.6.0
@@ -1474,8 +1474,8 @@ importers:
         specifier: ^2.9.1
         version: 2.9.1
       valgen:
-        specifier: ^7.0.12
-        version: 7.0.12
+        specifier: ^7.0.13
+        version: 7.0.13
     devDependencies:
       '@faker-js/faker':
         specifier: ^10.6.0
@@ -1511,8 +1511,8 @@ importers:
         specifier: ^2.9.1
         version: 2.9.1
       valgen:
-        specifier: ^7.0.12
-        version: 7.0.12
+        specifier: ^7.0.13
+        version: 7.0.13
     devDependencies:
       '@faker-js/faker':
         specifier: ^10.6.0
@@ -7956,8 +7956,8 @@ packages:
     resolution: {integrity: sha512-kiGUalWN+rgBJ/1OHZsBtU4rXZOfj/7rKQxULKlIzwzQSvMJUUNgPwJEEh7gU6xEVxC0ahoOBvN2YI8GH6FNgA==}
     engines: {node: '>=10.12.0'}
 
-  valgen@7.0.12:
-    resolution: {integrity: sha512-IGk9mAmo6LHWJYVCrL567wWBmJtzhrMFoM0d1XQeS6yPZoPmULOc7I2dtQOsVTMZIeiD3U55QayKJg5pMlOh8Q==}
+  valgen@7.0.13:
+    resolution: {integrity: sha512-3KOD11vbqN/c1NWUtinVgP20CVUsc/lQGa2cHIMq8MNYleuLBU7ja0YkoUEmlbRF50wXv90SfEhBmIB3E4qN9w==}
     engines: {node: '>=22.0'}
 
   validate-npm-package-name@8.0.0:
@@ -14630,7 +14630,7 @@ snapshots:
       '@types/istanbul-lib-coverage': 2.0.6
       convert-source-map: 2.0.0
 
-  valgen@7.0.12:
+  valgen@7.0.13:
     dependencies:
       '@browsery/validator': 13.15.35
       '@jsopen/objects': 2.3.4

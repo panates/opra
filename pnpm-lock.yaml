@@ -694,9 +694,6 @@ importers:
 
   packages/common:
     dependencies:
-      '@browsery/antlr4':
-        specifier: ^4.13.3-rev.1
-        version: 4.13.3-rev.1
       '@browsery/highland':
         specifier: ^2.13.6-rev.1
         version: 2.13.6-rev.1
@@ -832,9 +829,6 @@ importers:
 
   packages/http:
     dependencies:
-      '@browsery/antlr4':
-        specifier: ^4.13.3-rev.1
-        version: 4.13.3-rev.1
       '@browsery/http-parser':
         specifier: ^0.5.10-rev.1
         version: 0.5.10-rev.1
@@ -2318,9 +2312,6 @@ packages:
 
   '@borewit/text-codec@0.2.3':
     resolution: {integrity: sha512-49CycTz1aAZmvFcwkeFyhud1HUmRIB5Tabf7ALV+VA4Iu85MTfz2cUwzPagMFAdVBvrWdkCxG67I30tUwwpKsw==}
-
-  '@browsery/antlr4@4.13.3-rev.1':
-    resolution: {integrity: sha512-Jl5G4ko95Wjcc7tqomhEe7VfQ1WQurod/9nIQDjot5O8G36CxpoLo35y3+Jzw2SUL3vOpQv/nAGE5qm+I+pW5Q==}
 
   '@browsery/fs@0.5.1-rev.1':
     resolution: {integrity: sha512-WUaY2ojaEhF2fIUPTYVu25y9goxX50aM5CZmASRArctjsrVO1aKcxkWcH1AhI6wr5fQyn++KM1m9mDfjpTgcWQ==}
@@ -9180,8 +9171,6 @@ snapshots:
   '@bcoe/v8-coverage@1.0.2': {}
 
   '@borewit/text-codec@0.2.3': {}
-
-  '@browsery/antlr4@4.13.3-rev.1': {}
 
   '@browsery/fs@0.5.1-rev.1': {}
 

@@ -26,7 +26,7 @@ Shared foundation package of the [OPRA](https://oprajs.com) framework. Provides 
 - **API Document Model** — `ApiDocument` with `HttpApi`, `MQApi`, and `WSApi` transport layers in a single schema
 - **Rich Type System** — Simple, Complex, Array, Enum, Union, and a full set of utility types (`PartialType`, `PickType`, `OmitType`, `MixinType`, …)
 - **Decorator-Driven API** — `@HttpController`, `@HttpOperation`, `@MQOperation`, `@WSOperation` and parameter/response decorators
-- **Filter DSL** — ANTLR4-based query language (`OpraFilter.parse()`) for flexible server-side filtering
+- **Filter DSL** — Query language with a built-in, dependency-free parser (`OpraFilter.parse()`) for flexible server-side filtering
 - **Exception Hierarchy** — `OpraException` and `OpraHttpError` subclasses (`NotFoundError`, `ForbiddenError`, …) with severity levels
 - **`ResponsiveMap`** — Case-insensitive ordered Map with well-known key support
 - **i18n Support** — Built-in internationalization with a `translate()` helper and lazy-loaded resource bundles

@@ -9,7 +9,6 @@ export default [
       'packages/*/node_modules/**/*',
       'packages/*/build/**/*',
       'packages/*/coverage/**/*',
-      'packages/common/src/filter/antlr/**/*',
       'packages/api-ui/assets/**/*',
     ],
   },

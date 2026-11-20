@@ -17,7 +17,6 @@
     "postbuild": "cp -R i18n ./build/i18n"
   },
   "dependencies": {
-    "@browsery/antlr4": "^4.13.3-rev.1",
     "@browsery/http-parser": "^0.5.10-rev.1",
     "@browsery/type-is": "^2.0.2-rev.1",
     "@jsopen/objects": "^2.3.4",

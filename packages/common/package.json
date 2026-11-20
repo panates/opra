@@ -16,7 +16,6 @@
     "test": "mocha"
   },
   "dependencies": {
-    "@browsery/antlr4": "^4.13.3-rev.1",
     "@browsery/highland": "^2.13.6-rev.1",
     "@browsery/http-parser": "^0.5.10-rev.1",
     "@browsery/i18next": "^26.4.2",

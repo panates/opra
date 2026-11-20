@@ -51,7 +51,7 @@
     "fastify": "^5.12.8",
     "minisearch": "^7.2.0",
     "reflect-metadata": "^0.2.2",
-    "supertest": "^7.3.1"
+    "supertest": "^7.3.2"
   },
   "type": "module",
   "module": "./index.js",

@@ -6,9 +6,9 @@
   "module": "./index.js",
   "dependencies": {
     "@jsopen/objects": "^2.3.4",
-    "@nestjs/common": "^12.3.3",
-    "@nestjs/core": "^12.3.3",
-    "@nestjs/platform-express": "^12.3.3",
+    "@nestjs/common": "^12.5.1",
+    "@nestjs/core": "^12.5.1",
+    "@nestjs/platform-express": "^12.5.1",
     "@opra/api-ui": "workspace:^",
     "@opra/common": "workspace:^",
     "@opra/core": "workspace:^",
@@ -17,7 +17,7 @@
     "@opra/nestjs-http": "workspace:^",
     "@opra/openapi": "workspace:^",
     "example-customer-mongo": "workspace:^",
-    "mongodb": "^7.8.0",
+    "mongodb": "^7.9.1",
     "ts-gems": "^4.0.4"
   },
   "scripts": {

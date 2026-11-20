@@ -18,13 +18,13 @@
   "dependencies": {
     "@jsopen/objects": "^2.3.4",
     "tslib": "^2.9.1",
-    "valgen": "^7.0.7"
+    "valgen": "^7.0.11"
   },
   "peerDependencies": {
     "@opra/common": "workspace:^",
     "@opra/core": "workspace:^",
     "@opra/http": "workspace:^",
-    "mongodb": "^7.8.0"
+    "mongodb": "^7.9.1"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",

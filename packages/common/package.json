@@ -16,13 +16,12 @@
     "test": "mocha"
   },
   "dependencies": {
-    "@browsery/antlr4": "^4.13.3-rev.1",
     "@browsery/highland": "^2.13.6-rev.1",
     "@browsery/http-parser": "^0.5.10-rev.1",
     "@browsery/i18next": "^26.4.2",
     "@browsery/type-is": "^2.0.2-rev.1",
     "@jsopen/objects": "^2.3.4",
-    "fast-tokenizer": "^1.10.1",
+    "fast-tokenizer": "^1.10.2",
     "object-hash": "^3.0.0",
     "putil-promisify": "^1.10.1",
     "putil-varhelpers": "^1.7.0",
@@ -31,7 +30,7 @@
     "ts-gems": "^4.0.4",
     "tslib": "^2.9.1",
     "uid": "^2.0.2",
-    "valgen": "^7.0.7"
+    "valgen": "^7.0.13"
   },
   "devDependencies": {
     "@browsery/fs": "^0.5.1-rev.1",

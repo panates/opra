@@ -1,6 +1,19 @@
 # Changelog
 
-<!-- rman:documented-up-to 46477865f27b02da77021301a3b6cef39d446c61 -->
+<!-- rman:documented-up-to c48dcc3559d5c5aeb82e654872c058b53e1379f0 -->
+
+## v1.35.3 (2026-11-27)
+
+### 🤖 Continuous Integration
+
+- send coverage to Coveralls from the release (db0a413)
+
+### 🧹 Chores
+
+- ignore .claude/local/ and name the handoff note in CLAUDE.md (eaaea13)
+- **deps:** upgrade dependencies with rman deps -u (7e7f33a)
+
+---
 
 ## v1.35.2 (2026-11-20)
 

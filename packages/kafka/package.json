@@ -1,6 +1,6 @@
 {
   "name": "@opra/kafka",
-  "version": "1.35.2",
+  "version": "1.35.3",
   "private": true,
   "description": "Opra Kafka adapter",
   "author": "Panates",

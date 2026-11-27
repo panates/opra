@@ -45,6 +45,8 @@ lerna-debug.log*
 .claude/settings.local.json
 .claude/worktrees/
 .claude/launch.json
+# The handoff note between sessions (.claude/local/handoff.md) and other files of a session
+.claude/local/
 /graphify-out
 .project
 .classpath

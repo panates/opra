@@ -30,11 +30,11 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",
-    "@sqb/builder": "^6.3.5",
-    "@sqb/connect": "^6.3.5",
-    "@sqb/postgres": "^6.3.5",
+    "@sqb/builder": "^6.4.0",
+    "@sqb/connect": "^6.4.0",
+    "@sqb/postgres": "^6.4.0",
     "expect": "^30.5.2",
-    "postgrejs": "^3.15.2",
+    "postgrejs": "^3.15.3",
     "sinon": "^22.1.0",
     "ts-gems": "^4.0.4"
   },

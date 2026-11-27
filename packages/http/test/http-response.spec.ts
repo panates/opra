@@ -105,4 +105,17 @@ describe('http:HttpResponse', () => {
     msg.sendStatus(400);
     expect(msg.statusCode).toStrictEqual(400);
   });
+
+  it('Should vary() add fields to the Vary header once', async () => {
+    // vary() is on the host, not on the HttpResponse interface
+    const msg: any = HttpResponse.create(
+      ServerResponseHost.create({} as any, { statusCode: 200 }),
+    );
+    msg.vary('Accept');
+    msg.vary('Origin, accept');
+    expect(msg.getHeader('Vary')).toStrictEqual('Accept, Origin');
+    msg.vary('*');
+    expect(msg.getHeader('Vary')).toStrictEqual('*');
+    expect(() => msg.vary('in valid')).toThrow(TypeError);
+  });
 });

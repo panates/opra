@@ -55,6 +55,23 @@ jobs:
       contents: read
     uses: ./.github/workflows/test.yml
 
+  # Sends the coverage report of the released commit to Coveralls. A release merged from dev takes
+  # the report of the test run on the pull request's head commit, which tested exactly this code.
+  coverage:
+    needs: [source, test]
+    if: >
+      always() && !cancelled() &&
+      needs.source.result == 'success' &&
+      (needs.test.result == 'success' ||
+       (needs.test.result == 'skipped' && needs.source.outputs.head-ref == 'dev'))
+    uses: panates/github-actions/.github/workflows/coverage-publish.yaml@v3
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    with:
+      pr-number: ${{ needs.source.outputs.head-ref == 'dev' && needs.source.outputs.pr-number || '' }}
+
   release:
     needs: [source, test]
     # `always()` because `needs` alone would block this whenever `test` is *skipped*, which is the

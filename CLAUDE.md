@@ -23,6 +23,12 @@ Running mocha from the root sets `INIT_MONGODB`, `INIT_SQB`, `INIT_ELASTIC` and 
 sets only its own. Locally, suites for a server that is not running fail with connection errors.
 The root `test` script type-checks with `tsc -b tsconfig-test.json` before mocha.
 
+## Handoff
+
+A handoff note for the next session goes to `.claude/local/handoff.md` and is never committed
+(`.claude/local/` is git-ignored). A new note replaces the old one. A new session reads it first and
+checks it against the code and `git log`.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.

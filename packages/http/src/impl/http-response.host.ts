@@ -13,7 +13,7 @@ import cookieSignature from 'cookie-signature';
 import { encodeUrl } from 'encodeurl';
 import mime from 'mime-types';
 import { toString } from 'putil-varhelpers';
-import vary from 'vary';
+import { vary } from 'vary';
 import type {
   CookieOptions,
   HttpResponse,

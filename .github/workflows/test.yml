@@ -35,9 +35,9 @@ on:
       - 'package-lock.json'
       - '.rmanrc.yml'
 
-# The workflow only ever reads the repository: it checks out, installs and runs tests. Anything it
-# reports goes out through a separate credential - Coveralls uses its own token, and releases happen
-# in release.yml - so GITHUB_TOKEN never needs write access here. Set explicitly rather than left to
+# The workflow only ever reads the repository: it checks out, installs and runs tests. Its coverage
+# report stays an artifact of the run, which release.yml sends to Coveralls, and releases happen in
+# release.yml - so GITHUB_TOKEN never needs write access here. Set explicitly rather than left to
 # the repository default, which is org-wide and can be widened later without anyone editing this
 # file.
 permissions:
@@ -198,7 +198,9 @@ jobs:
           KAFKA_BROKER: localhost:9092
           ELASTIC_HOST: http://localhost:9200
 
-      - name: Send coverage to Coveralls
-        uses: coverallsapp/github-action@v2
+      # release.yml sends this report to Coveralls under the release commit on main
+      - name: Keep the coverage report for the release
+        uses: actions/upload-artifact@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          name: coverage
+          path: coverage/lcov.info
